@@ -18,7 +18,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		arboristAuth := fmt.Sprintf("%s/auth/proxy?resource=%s&service=%s&method=%s",
 			c.GetString("arborist_endpoint"),
-			ctx.FullPath(),
+			ctx.Request.URL.Path,
 			"cohort-middleware",
 			"access")
 
@@ -29,8 +29,6 @@ func AuthMiddleware() gin.HandlerFunc {
 		req.Header.Set("Authorization", authorization)
 		client := &http.Client{}
 		resp, _ := client.Do(req)
-
-		fmt.Println(ctx)
 
 		if resp.StatusCode != 200 {
 			ctx.AbortWithStatus(401)

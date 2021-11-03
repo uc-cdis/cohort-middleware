@@ -16,9 +16,10 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		c := config.GetConfig()
 
+		resourcePath := fmt.Sprintf("/cohort-middleware%s", ctx.Request.URL.Path)
 		arboristAuth := fmt.Sprintf("%s/auth/proxy?resource=%s&service=%s&method=%s",
 			c.GetString("arborist_endpoint"),
-			ctx.Request.URL.Path,
+			resourcePath,
 			"cohort-middleware",
 			"access")
 

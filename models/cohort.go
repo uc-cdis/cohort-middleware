@@ -3,14 +3,11 @@ package models
 import (
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/utils"
-	"gorm.io/driver/sqlserver"
-	"gorm.io/gorm"
-	"gorm.io/gorm/schema"
 	"time"
 )
 
 type Cohort struct {
-	CohortDefinitionId int
+	CohortDefinitionId int `json:",omitempty"`
 	SubjectId int64
 	CohortStartDate time.Time
 	CohortEndDate time.Time
@@ -23,8 +20,6 @@ func (h Cohort) GetCohortById(id int) ([]*Cohort, error) {
 	return cohort, nil
 }
 
-var omopDataSource *gorm.DB
-
 var cohortDefinitionModel = new(CohortDefinition)
 
 func (h Cohort) GetCohortByName(datasourcename string, cohortname string) ([]*Cohort, error) {
@@ -32,14 +27,8 @@ func (h Cohort) GetCohortByName(datasourcename string, cohortname string) ([]*Co
 	dataSource, _ := dataSourceModel.GetSourceByNameWithConnection(datasourcename)
 
 	sourceConnectionString := dataSource.SourceConnection
-	dsn := utils.GenerateDsn(sourceConnectionString)
-
-	omopDataSource, _ = gorm.Open(sqlserver.Open(dsn),
-		&gorm.Config{
-			NamingStrategy: schema.NamingStrategy{
-				TablePrefix:   "RESULTS.",
-				SingularTable: true,
-			}})
+	dbSchema := "RESULTS."
+	omopDataSource := utils.GetDataSourceDB(sourceConnectionString, dbSchema)
 
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(cohortname)
 	cohortDefinitionId := cohortDefinition.Id

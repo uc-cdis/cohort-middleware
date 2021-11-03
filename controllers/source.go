@@ -53,6 +53,6 @@ func (u SourceController) RetriveAll(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"source": source})
+	c.JSON(http.StatusOK, gin.H{"Sources": source})
 	return
 }

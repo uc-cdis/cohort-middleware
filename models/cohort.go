@@ -31,7 +31,7 @@ var cohortDefinitionModel = new(CohortDefinition)
 
 func (h Cohort) GetCohortByName(datasourcename string, cohortname string) ([]*Cohort, error) {
 	var dataSourceModel = new(Source)
-	dataSource, _ := dataSourceModel.GetSourceByName(datasourcename)
+	dataSource, _ := dataSourceModel.GetSourceByNameWithConnection(datasourcename)
 
 	sourceConnectionString := dataSource.SourceConnection
 

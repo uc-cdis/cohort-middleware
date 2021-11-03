@@ -23,16 +23,21 @@ func NewRouter() *gin.Engine {
 	authorized := r.Group("/")
 	authorized.Use(middlewares.AuthMiddleware())
 	{
-		//source := new(controllers.SourceController)
-		//authorized.GET("/source/by-id/:id", source.RetriveById)
-		//authorized.GET("/source/by-name/:name", source.RetriveByName)
-		//authorized.GET("/sources", source.RetriveAll)
+		source := new(controllers.SourceController)
+		authorized.GET("/source/by-id/:id", source.RetriveById)
+		authorized.GET("/source/by-name/:name", source.RetriveByName)
+		authorized.GET("/sources", source.RetriveAll)
 
 		cohortdefinitions := new(controllers.CohortDefinitionController)
 		authorized.GET("/cohortdefinition/by-id/:id", cohortdefinitions.RetriveById)
+		authorized.GET("/cohortdefinition/by-name/:name", cohortdefinitions.RetriveByName)
+		authorized.GET("/cohortdefinitions", cohortdefinitions.RetriveAll)
 
 		cohort := new(controllers.Cohort)
 		authorized.GET("/cohort/by-name/:cohortname/source/by-name/:sourcename", cohort.RetrieveByName)
+
+		cohortDataPhenotype := new(controllers.CohortPhenotypeData)
+		authorized.GET("/cohort-data/:sourcename", cohortDataPhenotype.Retrieve)
 	}
 
 	return r

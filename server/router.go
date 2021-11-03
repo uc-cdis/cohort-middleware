@@ -5,6 +5,10 @@ import (
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
 	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
+
+	_ "github.com/rizalgowandy/go-swag-sample/docs/ginsimple" // you need to update github.com/rizalgowandy/go-swag-sample with your own project path
+	swaggerFiles "github.com/swaggo/files"
+	ginSwagger "github.com/swaggo/gin-swagger"
 )
 
 func NewRouter() *gin.Engine {
@@ -13,6 +17,9 @@ func NewRouter() *gin.Engine {
 	r.Use(gin.Recovery())
 
 	r.Use(gintrace.Middleware("cohort-middleware"))
+
+	url := ginSwagger.URL("http://localhost:3000/swagger/doc.json") // The url pointing to API definition
+	r.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
 	health := new(controllers.HealthController)
 	r.GET("/_health", health.Status)

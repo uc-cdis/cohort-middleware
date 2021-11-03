@@ -1,0 +1,29 @@
+basePath: /
+host: localhost:3000
+info:
+  contact: {}
+  description: Simple Cohort Middleware for accessing OMOP data
+  license:
+    name: Apache 2.0
+    url: http://www.apache.org/licenses/LICENSE-2.0.html
+  termsOfService: http://swagger.io/terms/
+  title: Cohort Middleware
+  version: "0.0"
+paths:
+  /_health:
+    get:
+      consumes:
+      - '*/*'
+      produces:
+      - text/plain
+      responses:
+        "200":
+          description: ok!
+          schema:
+            type: string
+      summary: Show healthcheck for cohort-middleware.
+      tags:
+      - root
+schemes:
+- http
+swagger: "2.0"

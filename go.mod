@@ -15,6 +15,7 @@ require (
 	github.com/DataDog/sketches-go v1.2.1 // indirect
 	github.com/Microsoft/go-winio v0.5.1 // indirect
 	github.com/google/uuid v1.3.0 // indirect
+	github.com/jmespath/go-jmespath v0.4.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
@@ -27,6 +28,7 @@ require (
 )
 
 require (
+	github.com/aws/aws-sdk-go v1.42.52
 	github.com/denisenkom/go-mssqldb v0.11.0 // indirect
 	github.com/fsnotify/fsnotify v1.5.1 // indirect
 	github.com/gin-contrib/sse v0.1.0 // indirect

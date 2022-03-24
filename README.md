@@ -4,12 +4,12 @@
 
 Cohort-middleware provides a set of web-services (endpoints) for:
 
-1. providing information about Atlas DB cohorts that a user has authorized access to (as defined in Fence/Arborist?)
-2. getting clinical attribute values (CONCEPT values in Atlas/OMOP jargon) for a given cohort
+1. providing information about cohorts to which a user has authorized access (Atlas DB cohorts as defined in Fence/Arborist?)
+2. getting clinical attribute values for a given cohort (aka CONCEPT values in Atlas/OMOP jargon)
 3. providing patient-level clinical attribute values matrix for use in backend workflows, like GWAS workflows (e.g. https://github.com/uc-cdis/vadc-genesis-cwl)
 
 The cohorts and their clinical attribute values are retrieved from a
-connected OHDSI/CMD/Atlas databases via SQL queries.
+connected OHDSI/CMD/Atlas database via SQL queries.
 
 ## Overview diagram
 

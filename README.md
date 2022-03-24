@@ -11,6 +11,14 @@ Cohort-middleware provides a set of web-services (endpoints) for:
 The cohorts and their clinical attribute values are retrieved from a
 connected OHDSI/CMD/Atlas databases via SQL queries.
 
+## Overview diagram
+
+Overview of cohort-middleware and its connected systems:
+
+<div align="center">
+<img src="./docs/cohort-middleware-overview.png" alt="Cohort-middleware and connected systems overview" height="400" hspace="10"/>
+</div>
+
 
 ## Running
 

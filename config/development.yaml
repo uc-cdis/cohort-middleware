@@ -1,4 +1,4 @@
-arborist_endpoint: 'http://local-arborist-service/'
+arborist_endpoint: 'NONE'
 # see tests/setup_cdm/README.md
 atlas_db:
   host: localhost

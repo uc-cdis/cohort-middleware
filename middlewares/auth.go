@@ -2,19 +2,28 @@ package middlewares
 
 import (
 	"fmt"
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/config"
-	"net/http"
 )
 
 func AuthMiddleware() gin.HandlerFunc {
+
+	c := config.GetConfig()
+
+	// used in local DEV mode:
+	if c.GetString("arborist_endpoint") == "NONE" {
+		return func(ctx *gin.Context) {
+			ctx.Next()
+		}
+	}
+
 	return func(ctx *gin.Context) {
 		authorization := ctx.Request.Header.Get("Authorization")
 		if authorization == "" {
 			ctx.AbortWithStatus(401)
 		}
-
-		c := config.GetConfig()
 
 		resourcePath := fmt.Sprintf("/cohort-middleware%s", ctx.Request.URL.Path)
 		arboristAuth := fmt.Sprintf("%s/auth/proxy?resource=%s&service=%s&method=%s",

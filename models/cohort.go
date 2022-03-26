@@ -1,16 +1,18 @@
 package models
 
 import (
+	"log"
+	"time"
+
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/utils"
-	"time"
 )
 
 type Cohort struct {
 	CohortDefinitionId int `json:",omitempty"`
-	SubjectId int64
-	CohortStartDate time.Time
-	CohortEndDate time.Time
+	SubjectId          int64
+	CohortStartDate    time.Time
+	CohortEndDate      time.Time
 }
 
 func (h Cohort) GetCohortById(id int) ([]*Cohort, error) {
@@ -32,8 +34,12 @@ func (h Cohort) GetCohortByName(datasourcename string, cohortname string) ([]*Co
 
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(cohortname)
 	cohortDefinitionId := cohortDefinition.Id
+	log.Printf("Found cohort definition id %d", cohortDefinitionId)
 
 	var cohort []*Cohort
-	omopDataSource.Model(&Cohort{}).Select("cohort_definition_id, subject_id, cohort_start_date, cohort_end_date").Where("cohort_definition_id = ?", cohortDefinitionId).Scan(&cohort)
+	omopDataSource.Model(&Cohort{}).
+		Select("cohort_definition_id, subject_id, cohort_start_date, cohort_end_date").
+		Where("cohort_definition_id = ?", cohortDefinitionId).
+		Scan(&cohort)
 	return cohort, nil
 }

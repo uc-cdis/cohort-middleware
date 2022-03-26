@@ -85,44 +85,15 @@ CREATE TABLE cdm.concept
 
 #### Setting up databases for local development
 
-Setup the local Atlas DB by running:
+Setup the local Atlas DB by running the `init_db.sh` script in the `./tests` folder:
 
 ```
-docker run --name local-atlas-postgres --rm \
--p 5433:5432 \
--e POSTGRES_PASSWORD=mysecretpassword \
--d \
-postgres:12.10-bullseye
+cd tests
+./init_db.sh
 ```
 
-Load ddl and test data:
-```
-docker exec -i \
-local-atlas-postgres \
-psql -U postgres -d postgres <$PWD/tests/ddl_atlas.sql
+**Test this setup by opening a browser and trying the following URLs**:
 
-docker exec -i \
-local-atlas-postgres \
-psql -U postgres -d postgres <$PWD/tests/test_data_atlas.sql
-```
-
-Setup the local results and cdm DBs by running:
-
-```
-docker run --name local-results-and-cdm-postgres --rm \
--p 5434:5432 \
--e POSTGRES_PASSWORD=mysecretpassword \
--d \
-postgres:12.10-bullseye
-```
-
-Load ddl and test data:
-```
-docker exec -i \
-local-results-and-cdm-postgres \
-psql -U postgres -d postgres <$PWD/tests/ddl_results_and_cdm.sql
-
-docker exec -i \
-local-results-and-cdm-postgres \
-psql -U postgres -d postgres <$PWD/tests/test_data_results_and_cdm.sql
-```
+- http://localhost:8080/sources
+- http://localhost:8080/cohortdefinitions
+- http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE

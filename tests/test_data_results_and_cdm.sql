@@ -2,7 +2,7 @@
 -- Populate cdm schema
 -- ========================================================
 
-insert into cdm.concept
+insert into omop.concept
 (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
 values
     (8532,'FEMALE','Gender','Gender','Gender','S','F','1970-01-01','2099-12-31',NULL),
@@ -19,7 +19,7 @@ values
 -- 2000000324 - Sex indicated by the subject (VALUE_AS_STRING)
 -- 2000000280 - BMI at enrollment (VALUE_AS_NUMBER)
 
-insert into cdm.person
+insert into omop.person
 (person_id,gender_concept_id,year_of_birth,month_of_birth,day_of_birth,birth_datetime,death_datetime,race_concept_id,ethnicity_concept_id,location_id,provider_id,care_site_id,person_source_value,gender_source_value,gender_source_concept_id,race_source_value,race_source_concept_id,ethnicity_source_value,ethnicity_source_concept_id)
 values
     (1,8507,1981,1,26,'1981-01-26 00:00:00',NULL,8527,0,NULL,NULL,NULL,'61735069-d238-1e52-1fac-bfc49c4b6325','M',0,'white',0,'nonhispanic',0),
@@ -29,7 +29,7 @@ values
     (5,8507,1953,11,11,'1953-11-11 00:00:00',NULL,8515,0,NULL,NULL,NULL,'e6b6627f-4e38-dfc8-078c-11406151c521','M',0,'asian',0,'hispanic',0)
 ;
 
-insert into cdm.observation
+insert into omop.observation
 (observation_id,person_id,observation_concept_id,observation_date,observation_datetime,observation_type_concept_id,value_as_number,value_as_string,value_as_concept_id,qualifier_concept_id,unit_concept_id,provider_id,visit_occurrence_id,visit_detail_id,observation_source_value,observation_source_concept_id,unit_source_value,qualifier_source_value,observation_event_id,obs_event_field_concept_id,value_as_datetime)
 values
     (1,1,0,'2019-03-29','2019-03-29 00:00:00',38000276,NULL,NULL,0,0,0,NULL,26,0,'43878008',0,NULL,NULL,NULL,0,NULL),

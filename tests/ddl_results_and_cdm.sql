@@ -25,10 +25,10 @@ CREATE TABLE results.COHORT
 -- );
 
 -- ========================================================
-CREATE SCHEMA cdm;
+CREATE SCHEMA omop;
 -- ========================================================
 
-CREATE TABLE cdm.person
+CREATE TABLE omop.person
 (
     person_id integer NOT NULL,
     gender_concept_id integer NOT NULL DEFAULT 8507,
@@ -51,7 +51,7 @@ CREATE TABLE cdm.person
     ethnicity_source_concept_id integer NOT NULL DEFAULT 0
 );
 
-CREATE TABLE cdm.observation
+CREATE TABLE omop.observation
 (
     observation_id bigint NOT NULL,
     person_id bigint NOT NULL,
@@ -76,7 +76,7 @@ CREATE TABLE cdm.observation
     value_as_datetime timestamp without time zone
 );
 
-CREATE TABLE cdm.concept
+CREATE TABLE omop.concept
 (
     concept_id integer NOT NULL,
     concept_name character varying(255) COLLATE pg_catalog."default" NOT NULL,

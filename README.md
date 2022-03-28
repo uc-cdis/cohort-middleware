@@ -97,3 +97,7 @@ cd tests
 - http://localhost:8080/sources
 - http://localhost:8080/cohortdefinitions
 - http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE
+
+POST request:
+
+curl -d '{"ConceptIds":[8532,8507]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-id/3

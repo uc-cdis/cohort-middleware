@@ -49,37 +49,31 @@ tables in "atlas" and "results" or "atlas" and "cdm".
 
 Below is an overview of the schemas and respective tables.
 
-
 **DB Instance1**:
-```sql
--- ========================================================
-CREATE SCHEMA atlas;
--- ========================================================
-
-CREATE TABLE atlas.source
-CREATE TABLE atlas.source_daimon
-CREATE TABLE atlas.cohort_definition
+```
+===============================
+       SCHEMA atlas
+===============================
+TABLE atlas.source
+TABLE atlas.source_daimon
+TABLE atlas.cohort_definition
 ```
 
 **DB Instance2**:
 
-```sql
--- ========================================================
-CREATE SCHEMA results;
--- ========================================================
+```
+===============================
+      SCHEMA results
+===============================
+TABLE results.COHORT
 
-CREATE TABLE results.COHORT
--- can we assume that the cohort_definition will also be present in results? That will make queries easier
-CREATE TABLE results.COHORT_DEFINITION
-
-
--- ========================================================
-CREATE SCHEMA cdm;
--- ========================================================
-
-CREATE TABLE cdm.person
-CREATE TABLE cdm.observation
-CREATE TABLE cdm.concept
+===============================
+      SCHEMA omop
+===============================
+TABLE omop.person
+TABLE omop.observation
+TABLE omop.concept
+TABLE omop.domain
 ```
 
 

@@ -97,7 +97,7 @@ cd tests
 - curl http://localhost:8080/sources | python -m json.tool
 - curl http://localhost:8080/cohortdefinition-stats/by-source-id/1 | python -m json.tool
 - curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
-- curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-id/3 | python -m json.tool
+- curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3 | python -m json.tool
 
 
 Deprecated (TODO - remove from code):

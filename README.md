@@ -92,12 +92,14 @@ cd tests
 ./init_db.sh
 ```
 
-**Test this setup by opening a browser and trying the following URLs**:
+**Test this setup by trying the following curl commands**:
 
-- http://localhost:8080/sources
+- curl http://localhost:8080/sources | python -m json.tool
+- curl http://localhost:8080/cohortdefinition-stats/by-source-id/1 | python -m json.tool
+- curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
+- curl -d '{"ConceptIds":[8532,8507]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-id/3 | python -m json.tool
+
+
+Deprecated (TODO - remove from code):
 - http://localhost:8080/cohortdefinitions
 - http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE
-
-POST request:
-
-curl -d '{"ConceptIds":[8532,8507]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-id/3

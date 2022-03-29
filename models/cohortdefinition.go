@@ -54,7 +54,17 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStats(sourceId int) ([]*Coho
 	db2.Model(&CohortDefinition{}).
 		Select("id, name, null as cohort_size").
 		Scan(&cohortDefinitions)
+
 	// Connect to source db and gather stats:
-	// TODO
+	var dataSourceModel = new(Source)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, "RESULTS")
+	for _, cohortDefinition := range cohortDefinitions {
+		var cohortSize int
+		resultsDataSource.Model(&Cohort{}).
+			Select("count(*)").
+			Where("cohort_definition_id = ?", cohortDefinition.Id).
+			Scan(&cohortSize)
+		cohortDefinition.CohortSize = cohortSize
+	}
 	return cohortDefinitions, nil
 }

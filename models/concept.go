@@ -2,15 +2,12 @@ package models
 
 import (
 	"log"
-
-	"github.com/uc-cdis/cohort-middleware/utils"
-	"gorm.io/gorm"
 )
 
 type Concept struct {
 	ConceptId   int
 	ConceptName string
-	DomainId    int
+	DomainId    string
 	DomainName  string
 }
 
@@ -23,29 +20,22 @@ type ConceptStats struct {
 type Observation struct {
 }
 
-func getDataSource(sourceId int, schemaName string) *gorm.DB {
-	var dataSourceModel = new(Source)
-	dataSource, _ := dataSourceModel.GetSourceByIdWithConnection(sourceId)
-
-	sourceConnectionString := dataSource.SourceConnection
-	dbSchema := schemaName + "."
-	omopDataSource := utils.GetDataSourceDB(sourceConnectionString, dbSchema)
-	return omopDataSource
-}
-
 func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
-	omopDataSource := getDataSource(sourceId, "OMOP")
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
 
 	var concept []*Concept
 	omopDataSource.Model(&Concept{}).
-		Select("concept_id, concept_name, domain_id, '' as domain_name").
+		Select("concept_id, concept_name, domain.domain_id, domain.domain_name").
+		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
 		Order("concept_name").
 		Scan(&concept)
 	return concept, nil
 }
 
 func (h Concept) RetriveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
-	omopDataSource := getDataSource(sourceId, "OMOP")
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
 
 	var conceptStats []*ConceptStats
 	omopDataSource.Model(&Concept{}).
@@ -54,7 +44,7 @@ func (h Concept) RetriveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, co
 		Order("concept_name").
 		Scan(&conceptStats)
 
-	resultsDataSource := getDataSource(sourceId, "RESULTS")
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, "RESULTS")
 	var cohortSubjectIds []int
 	resultsDataSource.Model(&Cohort{}).
 		Select("subject_id").
@@ -71,7 +61,7 @@ func (h Concept) RetriveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, co
 			Select("count(distinct(person_id))").
 			Where("observation_concept_id = ?", conceptStat.ConceptId).
 			Where("person_id in (?)", cohortSubjectIds).
-			Where("value_as_string is not null"). // transform to is null
+			Where("(value_as_string is not null or value_as_number is not null)").
 			Scan(&nrPersonsWithData)
 		log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)
 		n_missing := cohortSize - nrPersonsWithData

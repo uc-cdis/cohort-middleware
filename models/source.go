@@ -7,8 +7,8 @@ import (
 )
 
 type Source struct {
-	SourceId         int
-	SourceName       string
+	SourceId         int    `json:"source_id"`
+	SourceName       string `json:"source_name"`
 	SourceConnection string `json:",omitempty"`
 	SourceDialect    string `json:",omitempty"`
 	Username         string `json:",omitempty"`

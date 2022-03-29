@@ -5,16 +5,16 @@ import (
 )
 
 type Concept struct {
-	ConceptId   int
-	ConceptName string
-	DomainId    string
-	DomainName  string
+	ConceptId   int    `json:"concept_id"`
+	ConceptName string `json:"concept_name"`
+	DomainId    string `json:"domain_id"`
+	DomainName  string `json:"domain_name"`
 }
 
 type ConceptStats struct {
-	ConceptId     int
-	ConceptName   string
-	NmissingRatio float32
+	ConceptId     int     `json:"concept_id"`
+	ConceptName   string  `json:"concept_name"`
+	NmissingRatio float32 `json:"n_missing_ratio"`
 }
 
 type Observation struct {

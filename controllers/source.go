@@ -1,10 +1,11 @@
 package controllers
 
 import (
-	"github.com/gin-gonic/gin"
-	"github.com/uc-cdis/cohort-middleware/models"
 	"net/http"
 	"strconv"
+
+	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/models"
 )
 
 type SourceController struct{}
@@ -53,6 +54,6 @@ func (u SourceController) RetriveAll(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"Sources": source})
+	c.JSON(http.StatusOK, gin.H{"sources": source})
 	return
 }

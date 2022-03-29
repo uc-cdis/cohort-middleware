@@ -5,18 +5,18 @@ import (
 )
 
 type CohortDefinition struct {
-	Id             int
-	Name           string
-	Description    string
+	Id             int    `json:"cohort_definition_id"`
+	Name           string `json:"cohort_name"`
+	Description    string `json:"cohort_description"`
 	ExpressionType string `json:",omitempty"`
 	CreatedById    int    `json:",omitempty"`
 	ModifiedById   int    `json:",omitempty"`
 }
 
 type CohortDefinitionStats struct {
-	Id         int
-	Name       string
-	CohortSize int
+	Id         int    `json:"cohort_definition_id"`
+	Name       string `json:"cohort_name"`
+	CohortSize int    `json:"size"`
 }
 
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {

@@ -33,6 +33,19 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 	return concept, nil
 }
 
+func (h Concept) GetConceptBySourceIdAndConceptId(sourceId int, conceptId int) *Concept {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
+
+	var concept *Concept
+	omopDataSource.Model(&Concept{}).
+		Select("concept_id, concept_name, domain.domain_id, domain.domain_name").
+		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
+		Where("concept_id = ?", conceptId).
+		Scan(&concept)
+	return concept
+}
+
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")

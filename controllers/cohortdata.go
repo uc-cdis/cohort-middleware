@@ -18,6 +18,7 @@ type CohortDataController struct {
 var cohortDataModel = new(models.CohortData)
 
 func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
 
 	// parse and validate all parameters:
 	sourceIdStr := c.Param("sourceid")
@@ -50,12 +51,12 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		c.Abort()
 		return
 	}
-	b := GenerateTSV(cohortData, conceptIds.ConceptIds)
+	b := GenerateTSV(sourceId, cohortData, conceptIds.ConceptIds)
 	c.String(http.StatusOK, b.String())
 	return
 }
 
-func GenerateTSV(cohort []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
+func GenerateTSV(sourceId int, cohort []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 	w.Comma = '\t'
@@ -63,7 +64,7 @@ func GenerateTSV(cohort []*models.PersonConceptAndValue, conceptIds []int) *byte
 	var rows [][]string
 	var header []string
 	header = append(header, "sample.id")
-	header = addConceptsToHeader(header, conceptIds)
+	header = addConceptsToHeader(sourceId, header, conceptIds)
 	rows = append(rows, header)
 
 	var currentPersonId = -1
@@ -84,6 +85,10 @@ func GenerateTSV(cohort []*models.PersonConceptAndValue, conceptIds []int) *byte
 	// append last person row:
 	rows = append(rows, row)
 
+	// TODO - is there a way to write as the rows are produced? Building up all rows in memory
+	// could cause issues if the cohort vs concepts matrix gets very large...or will the number of concepts
+	// queried at the same time never be very large? Should we restrict the number of concepts to
+	// a max here in this method?
 	err := w.WriteAll(rows)
 	if err != nil {
 		log.Fatal(err)
@@ -91,11 +96,20 @@ func GenerateTSV(cohort []*models.PersonConceptAndValue, conceptIds []int) *byte
 	return b
 }
 
-func addConceptsToHeader(header []string, conceptIds []int) []string {
+func addConceptsToHeader(sourceId int, header []string, conceptIds []int) []string {
 	for i := 0; i < len(conceptIds); i++ {
-		header = append(header, strconv.Itoa(conceptIds[i]))
+		var conceptName = getConceptName(sourceId, conceptIds[i])
+		header = append(header, conceptName)
 	}
 	return header
+}
+
+func getConceptName(sourceId int, conceptId int) string {
+	concept := conceptModel.GetConceptBySourceIdAndConceptId(sourceId, conceptId)
+	if concept == nil {
+		log.Panicf("Concept not found for source %d and concept %d", sourceId, conceptId)
+	}
+	return concept.ConceptName
 }
 
 func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
@@ -108,8 +122,6 @@ func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
 func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue, conceptIds []int) []string {
 	var conceptIdIdx int = pos(cohortItem.ConceptId, conceptIds)
 	if conceptIdIdx != -1 {
-		log.Printf("Value as string: %s", cohortItem.ConceptValueAsString)
-		log.Printf("Value as number: %f", cohortItem.ConceptValueAsNumber)
 		if cohortItem.ConceptValueAsString != "" {
 			row[conceptIdIdx+1] = cohortItem.ConceptValueAsString // +1 because first column is sample.id
 		} else if cohortItem.ConceptValueAsNumber != 0.0 {

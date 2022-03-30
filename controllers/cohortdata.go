@@ -56,11 +56,20 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	return
 }
 
-// This function will take the given cohort data and format it into a matrix
-// that contains the PersonId as the first column and the concept values as
-// subsequent columns. Some transformation is necessary since the cohortData
-// list contains one row per person-concept combination. E.g.
-//
+// This function will take the given cohort data and transform it into a matrix
+// that contains the person id as the first column and the concept values found
+// for this person in the subsequent columns. The transformation is necessary
+// since the cohortData list contains one row per person-concept combination.
+// E.g. the following (simplified version of the) data:
+//   {PersonId:1, ConceptId:1, ConceptValue: A},
+//   {PersonId:1, ConceptId:2, ConceptValue: B},
+//   {PersonId:2, ConceptId:1, ConceptValue: C},
+// will be transformed to a TSV table like:
+//   sample.id       concept_name_for_id1      concept_name_for_id2
+//   1               A                         B
+//   2               C                         NA
+// where "NA" means that the person did not have a data element for that concept
+// or that the data element had a NULL/empty value.
 func GenerateTSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)

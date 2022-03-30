@@ -8,8 +8,8 @@ Cohort-middleware provides a set of web-services (endpoints) for:
 2. getting clinical attribute values for a given cohort (aka CONCEPT values in Atlas/OMOP jargon)
 3. providing patient-level clinical attribute values matrix for use in backend workflows, like GWAS workflows (e.g. https://github.com/uc-cdis/vadc-genesis-cwl)
 
-The cohorts and their clinical attribute values are retrieved from a
-connected OHDSI/CMD/Atlas database via SQL queries.
+The cohorts and their clinical attribute values are retrieved from
+connected OHDSI/CMD/Atlas databases via SQL queries.
 
 ## Overview diagram
 
@@ -104,6 +104,12 @@ Deprecated endpoints (TODO - remove from code):
 
 # Deployment steps
 
-- Build docker image on QA  (or build and push to QA?)
-- Find correct settings file?
--
+## Deployment to QA
+
+- PRs to `master` get the docker image built on quay (via github webhook). See https://quay.io/repository/cdis/cohort-middleware?tab=tags
+- Once the image is built, it can be pulled. E.g. for branch `branch1`: `docker pull quay.io/cdis/cohort-middleware:branch1`
+- If testing on QA:
+   - ssh to QA machine
+   - edit `/home/<qa-machine-name>/cdis-manifest/<qa-machine-name>.planx-pla.net/manifest.json` to set the desired image name and tag
+     for cohort-middleware
+   - run `run gen3 roll {service_name}`, e.g. `gen3 roll cohort-middleware`. See also https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml, which is used directly by the `gen3 roll` command.

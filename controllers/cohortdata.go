@@ -122,11 +122,12 @@ func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
 func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue, conceptIds []int) []string {
 	var conceptIdIdx int = pos(cohortItem.ConceptId, conceptIds)
 	if conceptIdIdx != -1 {
+		// conceptIdIdx+1 because first column is sample.id
+		conceptIdxInRow := conceptIdIdx + 1
 		if cohortItem.ConceptValueAsString != "" {
-			row[conceptIdIdx+1] = cohortItem.ConceptValueAsString // +1 because first column is sample.id
+			row[conceptIdxInRow] = cohortItem.ConceptValueAsString
 		} else if cohortItem.ConceptValueAsNumber != 0.0 {
-			s := strconv.FormatFloat(float64(cohortItem.ConceptValueAsNumber), 'f', 2, 64)
-			row[conceptIdIdx+1] = s
+			row[conceptIdxInRow] = strconv.FormatFloat(float64(cohortItem.ConceptValueAsNumber), 'f', 2, 64)
 		}
 	}
 	return row

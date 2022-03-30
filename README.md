@@ -87,13 +87,16 @@ cd tests
 ```
 
 **Test this setup by trying the following curl commands**:
-
+JSON summary data endpoints:
 - curl http://localhost:8080/sources | python -m json.tool
 - curl http://localhost:8080/cohortdefinition-stats/by-source-id/1 | python -m json.tool
 - curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 - curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3 | python -m json.tool
 
+TSV full data endpoint:
+- curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
 
-Deprecated (TODO - remove from code):
+
+Deprecated endpoints (TODO - remove from code):
 - http://localhost:8080/cohortdefinitions
 - http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE

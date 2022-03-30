@@ -2,8 +2,6 @@ package models
 
 import (
 	"log"
-
-	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortData struct{}
@@ -14,19 +12,6 @@ type PersonConceptAndValue struct {
 	ConceptName          string
 	ConceptValueAsString string
 	ConceptValueAsNumber float32
-}
-
-func (h CohortData) GetCohortData(datasourcename string) ([]*CohortPhenotypeData, error) {
-	var dataSourceModel = new(Source)
-	dataSource, _ := dataSourceModel.GetSourceByNameWithConnection(datasourcename)
-
-	sourceConnectionString := dataSource.SourceConnection
-	dbSchema := "MISC_OMOP."
-	omopDataSource := utils.GetDataSourceDB(sourceConnectionString, dbSchema)
-
-	var cohortDataPhenotype []*CohortPhenotypeData
-	omopDataSource.Model(&CohortPhenotypeData{}).Select("[sample.id], age, gender, Hare, CDW_race, Height").Scan(&cohortDataPhenotype)
-	return cohortDataPhenotype, nil
 }
 
 func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*PersonConceptAndValue, error) {

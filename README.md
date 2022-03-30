@@ -100,3 +100,10 @@ TSV full data endpoint:
 Deprecated endpoints (TODO - remove from code):
 - http://localhost:8080/cohortdefinitions
 - http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE
+
+
+# Deployment steps
+
+- Build docker image on QA  (or build and push to QA?)
+- Find correct settings file?
+-

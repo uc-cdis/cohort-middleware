@@ -56,7 +56,12 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	return
 }
 
-func GenerateTSV(sourceId int, cohort []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
+// This function will take the given cohort data and format it into a matrix
+// that contains the PersonId as the first column and the concept values as
+// subsequent columns. Some transformation is necessary since the cohortData
+// list contains one row per person-concept combination. E.g.
+//
+func GenerateTSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 	w.Comma = '\t'
@@ -69,18 +74,18 @@ func GenerateTSV(sourceId int, cohort []*models.PersonConceptAndValue, conceptId
 
 	var currentPersonId = -1
 	var row []string
-	for _, cohortItem := range cohort {
+	for _, cohortDatum := range cohortData {
 		// if new person, start new row:
-		if cohortItem.PersonId != currentPersonId {
+		if cohortDatum.PersonId != currentPersonId {
 			if currentPersonId != -1 {
 				rows = append(rows, row)
 			}
 			row = []string{}
-			row = append(row, strconv.Itoa(cohortItem.PersonId))
+			row = append(row, strconv.Itoa(cohortDatum.PersonId))
 			row = appendInitEmptyConceptValues(row, len(conceptIds))
-			currentPersonId = cohortItem.PersonId
+			currentPersonId = cohortDatum.PersonId
 		}
-		row = populateConceptValue(row, *cohortItem, conceptIds)
+		row = populateConceptValue(row, *cohortDatum, conceptIds)
 	}
 	// append last person row:
 	rows = append(rows, row)

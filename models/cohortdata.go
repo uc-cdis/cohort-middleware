@@ -6,14 +6,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
-type CohortData struct {
-	PersonId int `gorm:"column:sample.id"`
-	Age      int
-	Gender   string
-	Hare     string
-	CDWrace  string `gorm:"column:CDW_race"`
-	Height   float32
-}
+type CohortData struct{}
 
 type PersonConceptAndValue struct {
 	PersonId             int

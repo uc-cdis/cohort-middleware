@@ -60,16 +60,3 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 
 	return cohortData, nil
 }
-
-func (h Concept) TRetriveAllBySourceIdT(sourceId int) ([]*Concept, error) {
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
-
-	var concept []*Concept
-	omopDataSource.Model(&Concept{}).
-		Select("concept_id, concept_name, domain.domain_id, domain.domain_name").
-		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
-		Order("concept_name").
-		Scan(&concept)
-	return concept, nil
-}

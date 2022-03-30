@@ -136,7 +136,7 @@ func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
 func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue, conceptIds []int) []string {
 	var conceptIdIdx int = pos(cohortItem.ConceptId, conceptIds)
 	if conceptIdIdx != -1 {
-		// conceptIdIdx+1 because first column is sample.id
+		// conceptIdIdx+1 because first column is sample.id:
 		conceptIdxInRow := conceptIdIdx + 1
 		if cohortItem.ConceptValueAsString != "" {
 			row[conceptIdxInRow] = cohortItem.ConceptValueAsString

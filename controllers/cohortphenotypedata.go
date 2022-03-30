@@ -1,17 +1,19 @@
 package controllers
 
+// DEPRECATED!
 import (
 	"bytes"
 	"encoding/csv"
 	"fmt"
-	"github.com/gin-gonic/gin"
-	"github.com/uc-cdis/cohort-middleware/models"
 	"log"
 	"net/http"
 	"strings"
+
+	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/models"
 )
 
-type CohortPhenotypeData struct{
+type CohortPhenotypeData struct {
 	Format string `form:"format"`
 }
 

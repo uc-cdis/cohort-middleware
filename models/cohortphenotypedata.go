@@ -1,16 +1,17 @@
 package models
 
+// DEPRECATED!
 import (
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortPhenotypeData struct {
 	SampleId string `gorm:"column:sample.id"`
-	Age int
-	Gender string
-	Hare string
-	CDWrace string `gorm:"column:CDW_race"`
-	Height float32
+	Age      int
+	Gender   string
+	Hare     string
+	CDWrace  string `gorm:"column:CDW_race"`
+	Height   float32
 }
 
 func (h CohortPhenotypeData) GetCohortDataPhenotype(datasourcename string) ([]*CohortPhenotypeData, error) {

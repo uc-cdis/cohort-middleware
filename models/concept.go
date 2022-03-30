@@ -66,7 +66,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	var cohortSize = len(cohortSubjectIds)
 
 	// find, for each concept, the ratio of persons in the given cohortId that have
-	// a non-empty value for this concept:
+	// an empty value for this concept:
 	for _, conceptStat := range conceptStats {
 
 		var nrPersonsWithData int

@@ -37,7 +37,7 @@ type ConceptIds struct {
 	ConceptIds []int
 }
 
-func (u ConceptController) RetriveStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 
 	// parse and validate all parameters:
 	sourceIdStr := c.Param("sourceid")
@@ -64,7 +64,7 @@ func (u ConceptController) RetriveStatsBySourceIdAndCohortIdAndConceptIds(c *gin
 	cohortId, _ := strconv.Atoi(cohortIdStr)
 
 	// call model method:
-	conceptStats, err := conceptModel.RetriveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds.ConceptIds)
+	conceptStats, err := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds.ConceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()

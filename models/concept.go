@@ -33,7 +33,7 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 	return concept, nil
 }
 
-func (h Concept) RetriveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
+func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
 

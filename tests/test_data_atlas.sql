@@ -1,0 +1,23 @@
+-- ========================================================
+-- Populate atlas schema
+-- ========================================================
+
+insert into atlas.source
+(source_id,source_name,source_connection,source_dialect,username,password)
+values
+    (1,'results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434;databaseName=postgres;user=postgres;password=mysecretpassword', 'postgres', 'postgres', 'mysecretpassword') -- pragma: allowlist secret
+;
+
+insert into atlas.source_daimon
+(source_daimon_id,source_id,daimon_type)
+values
+    (1,1,0)
+;
+
+insert into atlas.cohort_definition
+(id,name,description)
+values
+    (1,'Test cohort1','Small cohort'),
+    (2,'Test cohort2','Medium cohort'),
+    (3,'Test cohort3','Larger cohort')
+;

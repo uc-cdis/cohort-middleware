@@ -101,7 +101,6 @@ Deprecated endpoints (TODO - remove from code):
 - http://localhost:8080/cohortdefinitions
 - http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE
 
-
 # Deployment steps
 
 ## Deployment to QA
@@ -113,3 +112,18 @@ Deprecated endpoints (TODO - remove from code):
    - edit `/home/<qa-machine-name>/cdis-manifest/<qa-machine-name>.planx-pla.net/manifest.json` to set the desired image name and tag
      for cohort-middleware
    - run `run gen3 roll {service_name}`, e.g. `gen3 roll cohort-middleware`. See also https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml, which is used directly by the `gen3 roll` command (see https://github.com/uc-cdis/cloud-automation/blob/master/gen3/bin/roll.sh).
+
+## Test the endpoints on QA
+
+Examples:
+```
+curl -H "Content-Type: application/json" -H "$(cat auth)" https://<qa-url-here>/sources | python -m json.tool
+
+curl -H "Content-Type: application/json" -H "$(cat auth)" https://<qa-url-here>/cohortdefinition-stats/by-source-id/2 | python -m json.tool
+
+curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -H "$(cat auth)" -X POST https://<qa-url-here>/cohort-data/by-source-id/2/by-cohort-definition-id/3
+```
+
+**Note that** the `<qa-url-here>` in these examples above needs to be replaced, and the ids used (`by-source-id/2`, `by-cohort-definition-id/3`) need
+to be replaced with real values from the QA environment. The main addition in these `curl` commands is the presence of `https` and the
+extra `-H "$(cat auth)"`.

@@ -14,6 +14,8 @@ type Concept struct {
 type ConceptStats struct {
 	ConceptId     int     `json:"concept_id"`
 	ConceptName   string  `json:"concept_name"`
+	DomainId      string  `json:"domain_id"`
+	DomainName    string  `json:"domain_name"`
 	NmissingRatio float32 `json:"n_missing_ratio"`
 }
 
@@ -40,7 +42,7 @@ func (h Concept) GetConceptBySourceIdAndConceptId(sourceId int, conceptId int) *
 	var concept *Concept
 	omopDataSource.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name").
-		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
+		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id"). //TODO - this is crashing with Out of Memory...limit it?? Add paging?
 		Where("concept_id = ?", conceptId).
 		Scan(&concept)
 	return concept
@@ -52,7 +54,8 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 
 	var conceptStats []*ConceptStats
 	omopDataSource.Model(&Concept{}).
-		Select("concept_id, concept_name, domain_id, '' as domain_name, 0 as n_missing_ratio").
+		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, 0 as n_missing_ratio").
+		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptStats)

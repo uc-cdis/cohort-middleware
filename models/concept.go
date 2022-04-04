@@ -16,6 +16,7 @@ type ConceptStats struct {
 	ConceptName   string  `json:"concept_name"`
 	DomainId      string  `json:"domain_id"`
 	DomainName    string  `json:"domain_name"`
+	CohortSize    int     `json:"cohort_size"`
 	NmissingRatio float32 `json:"n_missing_ratio"`
 }
 
@@ -71,17 +72,21 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	// find, for each concept, the ratio of persons in the given cohortId that have
 	// an empty value for this concept:
 	for _, conceptStat := range conceptStats {
-
-		var nrPersonsWithData int
-		omopDataSource.Model(&Observation{}).
-			Select("count(distinct(person_id))").
-			Where("observation_concept_id = ?", conceptStat.ConceptId).
-			Where("person_id in (?)", cohortSubjectIds).
-			Where("(value_as_string is not null or value_as_number is not null)").
-			Scan(&nrPersonsWithData)
-		log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)
-		n_missing := cohortSize - nrPersonsWithData
-		conceptStat.NmissingRatio = float32(n_missing) / float32(cohortSize)
+		conceptStat.CohortSize = cohortSize
+		if cohortSize == 0 {
+			conceptStat.NmissingRatio = 0
+		} else {
+			var nrPersonsWithData int
+			omopDataSource.Model(&Observation{}).
+				Select("count(distinct(person_id))").
+				Where("observation_concept_id = ?", conceptStat.ConceptId).
+				Where("person_id in (?)", cohortSubjectIds).
+				Where("(value_as_string is not null or value_as_number is not null)").
+				Scan(&nrPersonsWithData)
+			log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)
+			n_missing := cohortSize - nrPersonsWithData
+			conceptStat.NmissingRatio = float32(n_missing) / float32(cohortSize)
+		}
 	}
 
 	return conceptStats, nil

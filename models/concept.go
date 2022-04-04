@@ -2,6 +2,7 @@ package models
 
 import (
 	"log"
+	"strconv"
 )
 
 type Concept struct {
@@ -12,12 +13,13 @@ type Concept struct {
 }
 
 type ConceptStats struct {
-	ConceptId     int     `json:"concept_id"`
-	ConceptName   string  `json:"concept_name"`
-	DomainId      string  `json:"domain_id"`
-	DomainName    string  `json:"domain_name"`
-	CohortSize    int     `json:"cohort_size"`
-	NmissingRatio float32 `json:"n_missing_ratio"`
+	ConceptId         int     `json:"concept_id"`
+	PrefixedConceptId string  `json:"prefixed_concept_id"`
+	ConceptName       string  `json:"concept_name"`
+	DomainId          string  `json:"domain_id"`
+	DomainName        string  `json:"domain_name"`
+	CohortSize        int     `json:"cohort_size"`
+	NmissingRatio     float32 `json:"n_missing_ratio"`
 }
 
 type Observation struct {
@@ -49,6 +51,13 @@ func (h Concept) GetConceptBySourceIdAndConceptId(sourceId int, conceptId int) *
 	return concept
 }
 
+// Very simple function, just to add a prefix in front of the conceptId.
+// It is a public method here, since it is needed in different places...
+// ...so we need to keep it consistent:
+func (h Concept) GetPrefixedConceptId(conceptId int) string {
+	return "ID_" + strconv.Itoa(conceptId)
+}
+
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
@@ -72,10 +81,13 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	// find, for each concept, the ratio of persons in the given cohortId that have
 	// an empty value for this concept:
 	for _, conceptStat := range conceptStats {
+		// since we are looping over items anyway, also set prefixed_concept_id and cohort_size:
+		conceptStat.PrefixedConceptId = h.GetPrefixedConceptId(conceptStat.ConceptId)
 		conceptStat.CohortSize = cohortSize
 		if cohortSize == 0 {
 			conceptStat.NmissingRatio = 0
 		} else {
+			// calculate missing ratio for cohorts that actually have a size:
 			var nrPersonsWithData int
 			omopDataSource.Model(&Observation{}).
 				Select("count(distinct(person_id))").

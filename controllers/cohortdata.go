@@ -51,7 +51,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		c.Abort()
 		return
 	}
-	b := GenerateTSV(sourceId, cohortData, conceptIds.ConceptIds)
+	b := GenerateCSV(sourceId, cohortData, conceptIds.ConceptIds)
 	c.String(http.StatusOK, b.String())
 	return
 }
@@ -64,16 +64,16 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 //   {PersonId:1, ConceptId:1, ConceptValue: A},
 //   {PersonId:1, ConceptId:2, ConceptValue: B},
 //   {PersonId:2, ConceptId:1, ConceptValue: C},
-// will be transformed to a TSV table like:
-//   sample.id       concept_name_for_id1      concept_name_for_id2
-//   1               A                         B
-//   2               C                         NA
+// will be transformed to a CSV table like:
+//   sample.id,ID_concept_id1,ID_concept_id2
+//   1,"A value with, comma!",B
+//   2,Simple value,NA
 // where "NA" means that the person did not have a data element for that concept
 // or that the data element had a NULL/empty value.
-func GenerateTSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
+func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
-	w.Comma = '\t'
+	w.Comma = ',' // CSV
 
 	var rows [][]string
 	var header []string
@@ -111,9 +111,11 @@ func GenerateTSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 }
 
 func addConceptsToHeader(sourceId int, header []string, conceptIds []int) []string {
+	var conceptModel = new(models.Concept)
 	for i := 0; i < len(conceptIds); i++ {
-		var conceptName = getConceptName(sourceId, conceptIds[i])
-		header = append(header, conceptName)
+		//var conceptName = getConceptName(sourceId, conceptIds[i]) // instead of name, we now prefer ID_concept_id...below:
+		var conceptPrefixedId = conceptModel.GetPrefixedConceptId(conceptIds[i])
+		header = append(header, conceptPrefixedId)
 	}
 	return header
 }

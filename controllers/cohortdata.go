@@ -15,6 +15,10 @@ import (
 type CohortDataController struct {
 }
 
+type PrefixedConceptIds struct {
+	PrefixedConceptIds []string
+}
+
 var cohortDataModel = new(models.CohortData)
 
 func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
@@ -31,29 +35,40 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		return
 	}
 	decoder := json.NewDecoder(c.Request.Body)
-	var conceptIds ConceptIds
-	err := decoder.Decode(&conceptIds)
+	var prefixedConceptIds PrefixedConceptIds
+	err := decoder.Decode(&prefixedConceptIds)
 	if err != nil {
 		log.Printf("Error: %s", err)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request - no request body"})
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request - no valid request body"})
 		c.Abort()
 		return
 	}
-	log.Printf("Querying concept ids: %v", conceptIds.ConceptIds)
+	log.Printf("Querying concept ids: %v", prefixedConceptIds.PrefixedConceptIds)
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
+	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds.PrefixedConceptIds)
 
 	// call model method:
-	cohortData, err := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds.ConceptIds)
+	cohortData, err := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()
 		return
 	}
-	b := GenerateCSV(sourceId, cohortData, conceptIds.ConceptIds)
+	b := GenerateCSV(sourceId, cohortData, conceptIds)
 	c.String(http.StatusOK, b.String())
 	return
+}
+
+func getConceptIdsFromPrefixedConceptIds(ids []string) []int {
+	var result []int
+	for _, id := range ids {
+		var conceptModel = new(models.Concept)
+		idAsNumber := conceptModel.GetConceptId(id)
+		result = append(result, idAsNumber)
+	}
+	return result
 }
 
 // This function will take the given cohort data and transform it into a matrix

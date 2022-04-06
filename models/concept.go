@@ -3,6 +3,7 @@ package models
 import (
 	"log"
 	"strconv"
+	"strings"
 )
 
 type Concept struct {
@@ -56,6 +57,17 @@ func (h Concept) GetConceptBySourceIdAndConceptId(sourceId int, conceptId int) *
 // ...so we need to keep it consistent:
 func (h Concept) GetPrefixedConceptId(conceptId int) string {
 	return "ID_" + strconv.Itoa(conceptId)
+}
+
+// The reverse of above function:
+func (h Concept) GetConceptId(prefixedConceptId string) int {
+	// validate: it should start with ID_
+	if strings.Index(prefixedConceptId, "ID_") != 0 {
+		log.Panicf("Prefixed concept id should start with ID_ . However, found this instead: %s", prefixedConceptId)
+	}
+	var conceptId = strings.Split(prefixedConceptId, "ID_")[1]
+	var result, _ = strconv.Atoi(conceptId)
+	return result
 }
 
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {

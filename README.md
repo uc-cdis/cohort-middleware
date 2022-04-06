@@ -93,13 +93,8 @@ JSON summary data endpoints:
 - curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 - curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3 | python -m json.tool
 
-TSV full data endpoint:
-- curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
-
-
-Deprecated endpoints (TODO - remove from code):
-- http://localhost:8080/cohortdefinitions
-- http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE
+CSV full data endpoint:
+- curl -d '{"PrefixedConceptIds":["ID_2000000324","ID_2000006885"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
 
 # Deployment steps
 
@@ -127,3 +122,42 @@ curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/j
 **Note that** the `<qa-url-here>` in these examples above needs to be replaced, and the ids used (`by-source-id/2`, `by-cohort-definition-id/3`) need
 to be replaced with real values from the QA environment. The main addition in these `curl` commands is the presence of `https` and the
 extra `-H "$(cat auth)"`.
+
+### Troubleshooting on QA
+
+#### How to make curl with Auth
+
+TODO - document...
+
+#### How to see the logs
+
+Find the pod(s):
+
+```
+kubectl get pods --all-namespaces | grep cohort-middleware
+```
+
+or:
+```
+kubectl get pods -l app=cohort-middleware
+```
+
+Then run:
+
+```
+kubectl logs <pod-name-here>
+```
+
+See also https://kubernetes.io/docs/reference/kubectl/cheatsheet/#interacting-with-running-pods
+
+
+#### In case of infra / network issues:
+
+Get help from **"PE team"**:
+- PE team = Platform Engineering team = [GPE project Jira ticket](https://ctds-planx.atlassian.net/browse/GPE) = #gen3-devops-oncall (slack channel)
+
+If networking changes are necessary:
+- see https://github.com/uc-cdis/cloud-automation/blob/master/gen3/bin/kube-setup-networkpolicy.sh
+
+If proxy changes are necessary:
+- see https://github.com/uc-cdis/cloud-automation/tree/master/kube/services/revproxy/gen3.nginx.conf

@@ -7,7 +7,7 @@ insert into omop.concept
 values
     (2000006885,'Average height ','Measurement','Measurement','Measurement','S','F','1970-01-01','2099-12-31',NULL),
     (2000000323,'MVP Age Group','Person','Person','Person','S','F','1970-01-01','2099-12-31',NULL),
-    (2000000324,'Sex indicated by the subject','Person','Person','Observation Type',NULL,'OMOP4822310','1970-01-01','2099-12-31',NULL),
+    (2000000324,'Sex, indicated by the subject','Person','Person','Observation Type',NULL,'OMOP4822310','1970-01-01','2099-12-31',NULL),
     (2000000280,'BMI at enrollment','Measurement','Measurement','Measurement','S','2','1970-01-01','2099-12-31',NULL)
 ;
 
@@ -39,7 +39,7 @@ insert into omop.observation
 values
     (1,1,2000000324,'2019-03-29','2019-03-29 00:00:00',38000276,NULL,'F',0,0,0,NULL,26,0,'43878008',0,NULL,NULL,NULL,0,NULL),
 	(22,1,2000000324,'2013-04-15','2013-04-15 00:00:00',38000276,NULL,'F',0,0,0,NULL,9,0,'302870006',0,NULL,NULL,NULL,0,NULL),
-	(23,2,2000000324,'2014-02-05','2014-02-05 00:00:00',38000276,NULL,'F',0,0,0,NULL,52,0,'278860009',0,NULL,NULL,NULL,0,NULL),
+	(23,2,2000000324,'2014-02-05','2014-02-05 00:00:00',38000276,NULL,'A value with , comma!',0,0,0,NULL,52,0,'278860009',0,NULL,NULL,NULL,0,NULL),
 	(35,2,0,'2017-06-13','2017-06-13 00:00:00',38000276,NULL,NULL,0,0,0,NULL,60,0,'444814009',0,NULL,NULL,NULL,0,NULL),
 	(47,3,2000000324,'1993-10-24','1993-10-24 00:00:00',38000276,NULL,'M',0,0,0,NULL,81,0,'713197008',0,NULL,NULL,NULL,0,NULL),
 	(48,3,0,'1967-12-02','1967-12-02 00:00:00',38000276,NULL,NULL,0,0,0,NULL,114,0,'53741008',0,NULL,NULL,NULL,0,NULL),

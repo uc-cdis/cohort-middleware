@@ -8,8 +8,8 @@ Cohort-middleware provides a set of web-services (endpoints) for:
 2. getting clinical attribute values for a given cohort (aka CONCEPT values in Atlas/OMOP jargon)
 3. providing patient-level clinical attribute values matrix for use in backend workflows, like GWAS workflows (e.g. https://github.com/uc-cdis/vadc-genesis-cwl)
 
-The cohorts and their clinical attribute values are retrieved from a
-connected OHDSI/CMD/Atlas database via SQL queries.
+The cohorts and their clinical attribute values are retrieved from
+connected OHDSI/CMD/Atlas databases via SQL queries.
 
 ## Overview diagram
 
@@ -87,13 +87,77 @@ cd tests
 ```
 
 **Test this setup by trying the following curl commands**:
-
+JSON summary data endpoints:
 - curl http://localhost:8080/sources | python -m json.tool
 - curl http://localhost:8080/cohortdefinition-stats/by-source-id/1 | python -m json.tool
 - curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 - curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3 | python -m json.tool
 
+CSV full data endpoint:
+- curl -d '{"PrefixedConceptIds":["ID_2000000324","ID_2000006885"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
 
-Deprecated (TODO - remove from code):
-- http://localhost:8080/cohortdefinitions
-- http://localhost:8080/cohort/by-name/Test%20cohort1/source/by-name/results_and_cdm_DATABASE
+# Deployment steps
+
+## Deployment to QA
+
+- PRs to `master` get the docker image built on quay (via github webhook). See https://quay.io/repository/cdis/cohort-middleware?tab=tags
+- Once the image is built, it can be pulled. E.g. for branch `branch1`: `docker pull quay.io/cdis/cohort-middleware:branch1`
+- If testing on QA:
+   - ssh to QA machine
+   - edit `/home/<qa-machine-name>/cdis-manifest/<qa-machine-name>.planx-pla.net/manifest.json` to set the desired image name and tag
+     for cohort-middleware
+   - run `run gen3 roll {service_name}`, e.g. `gen3 roll cohort-middleware`. See also https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml, which is used directly by the `gen3 roll` command (see https://github.com/uc-cdis/cloud-automation/blob/master/gen3/bin/roll.sh).
+
+## Test the endpoints on QA
+
+Examples:
+```
+curl -H "Content-Type: application/json" -H "$(cat auth)" https://<qa-url-here>/sources | python -m json.tool
+
+curl -H "Content-Type: application/json" -H "$(cat auth)" https://<qa-url-here>/cohortdefinition-stats/by-source-id/2 | python -m json.tool
+
+curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -H "$(cat auth)" -X POST https://<qa-url-here>/cohort-data/by-source-id/2/by-cohort-definition-id/3
+```
+
+**Note that** the `<qa-url-here>` in these examples above needs to be replaced, and the ids used (`by-source-id/2`, `by-cohort-definition-id/3`) need
+to be replaced with real values from the QA environment. The main addition in these `curl` commands is the presence of `https` and the
+extra `-H "$(cat auth)"`.
+
+### Troubleshooting on QA
+
+#### How to make curl with Auth
+
+TODO - document...
+
+#### How to see the logs
+
+Find the pod(s):
+
+```
+kubectl get pods --all-namespaces | grep cohort-middleware
+```
+
+or:
+```
+kubectl get pods -l app=cohort-middleware
+```
+
+Then run:
+
+```
+kubectl logs <pod-name-here>
+```
+
+See also https://kubernetes.io/docs/reference/kubectl/cheatsheet/#interacting-with-running-pods
+
+
+#### In case of infra / network issues:
+
+Get help from **"PE team"**:
+- PE team = Platform Engineering team = [GPE project Jira ticket](https://ctds-planx.atlassian.net/browse/GPE) = #gen3-devops-oncall (slack channel)
+
+If networking changes are necessary:
+- see https://github.com/uc-cdis/cloud-automation/blob/master/gen3/bin/kube-setup-networkpolicy.sh
+
+If proxy changes are necessary:
+- see https://github.com/uc-cdis/cloud-automation/tree/master/kube/services/revproxy/gen3.nginx.conf

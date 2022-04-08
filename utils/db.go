@@ -36,7 +36,7 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 		omopDataSource, _ := gorm.Open(sqlserver.Open(dsn),
 			&gorm.Config{
 				NamingStrategy: schema.NamingStrategy{
-					TablePrefix:   dbSchema,
+					TablePrefix:   dbSchema + ".",
 					SingularTable: true,
 				}})
 		// TODO - should throw error if db connection fails! Currently fails "silently" by printing error to log and then just returning ...

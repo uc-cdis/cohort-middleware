@@ -64,7 +64,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 	cohortId, _ := strconv.Atoi(cohortIdStr)
 
 	// call model method:
-	conceptStats, err := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds.ConceptIds)
+	conceptStats, err := conceptModel.RetrieveStatsLargeBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds.ConceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()

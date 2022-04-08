@@ -19,7 +19,7 @@ func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 		cohortDefinitionId, _ := strconv.Atoi(cohortDefinitionId)
 		cohortDefinition, err := cohortDefinitionModel.GetCohortDefinitionById(cohortDefinitionId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve cohortDefinition", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()
 			return
 		}
@@ -37,7 +37,7 @@ func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
 	if cohortDefinitionName != "" {
 		cohortDefinition, err := cohortDefinitionModel.GetCohortDefinitionByName(cohortDefinitionName)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve cohortDefinition", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()
 			return
 		}
@@ -52,7 +52,7 @@ func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
 func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
 	cohortDefinitions, err := cohortDefinitionModel.GetAllCohortDefinitions()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve cohortDefinition", "error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 		c.Abort()
 		return
 	}
@@ -68,7 +68,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 		sourceId, _ := strconv.Atoi(sourceId)
 		cohortDefinitionsAndStats, err := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(sourceId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve cohortDefinition", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()
 			return
 		}

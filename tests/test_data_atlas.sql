@@ -9,9 +9,12 @@ values
 ;
 
 insert into atlas.source_daimon
-(source_daimon_id,source_id,daimon_type)
+(source_daimon_id,source_id,daimon_type,table_qualifier,priority)
 values
-    (1,1,0)
+    (1,1,0, 'OMOP', 1),
+    (2,1,1, 'OMOP', 1),
+    (3,1,2, 'RESULTS', 1),
+    (4,1,5, 'TEMP', 1)
 ;
 
 insert into atlas.cohort_definition

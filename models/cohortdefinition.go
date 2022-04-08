@@ -20,7 +20,7 @@ type CohortDefinitionStats struct {
 }
 
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {
-	db2 := db.GetAtlasDB()
+	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
 	db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
@@ -30,7 +30,7 @@ func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, er
 }
 
 func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinition, error) {
-	db2 := db.GetAtlasDB()
+	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
 	db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
@@ -40,7 +40,7 @@ func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinit
 }
 
 func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error) {
-	db2 := db.GetAtlasDB()
+	db2 := db.GetAtlasDB().Db
 	var cohortDefinition []*CohortDefinition
 	db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
@@ -49,7 +49,7 @@ func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error)
 }
 
 func (h CohortDefinition) GetAllCohortDefinitionsAndStats(sourceId int) ([]*CohortDefinitionStats, error) {
-	db2 := db.GetAtlasDB()
+	db2 := db.GetAtlasDB().Db
 	var cohortDefinitions []*CohortDefinitionStats
 	db2.Model(&CohortDefinition{}).
 		Select("id, name, null as cohort_size").
@@ -57,13 +57,16 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStats(sourceId int) ([]*Coho
 
 	// Connect to source db and gather stats:
 	var dataSourceModel = new(Source)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, "RESULTS")
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	for _, cohortDefinition := range cohortDefinitions {
 		var cohortSize int
-		resultsDataSource.Model(&Cohort{}).
+		result := resultsDataSource.Db.Model(&Cohort{}).
 			Select("count(*)").
 			Where("cohort_definition_id = ?", cohortDefinition.Id).
 			Scan(&cohortSize)
+		if result.Error != nil {
+			return nil, result.Error
+		}
 		cohortDefinition.CohortSize = cohortSize
 	}
 	return cohortDefinitions, nil

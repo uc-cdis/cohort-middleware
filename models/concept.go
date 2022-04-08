@@ -28,25 +28,25 @@ type Observation struct {
 
 func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var concept []*Concept
-	omopDataSource.Model(&Concept{}).
+	result := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name").
-		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
+		Joins("INNER JOIN " + omopDataSource.Schema + ".domain as domain ON concept.domain_id = domain.domain_id").
 		Order("concept_name").
 		Scan(&concept)
-	return concept, nil
+	return concept, result.Error
 }
 
 func (h Concept) GetConceptBySourceIdAndConceptId(sourceId int, conceptId int) *Concept {
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var concept *Concept
-	omopDataSource.Model(&Concept{}).
+	omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name").
-		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id"). //TODO - this is crashing with Out of Memory...limit it?? Add paging?
+		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id"). //TODO - this is crashing with Out of Memory...limit it?? Add paging?
 		Where("concept_id = ?", conceptId).
 		Scan(&concept)
 	return concept
@@ -72,22 +72,29 @@ func (h Concept) GetConceptId(prefixedConceptId string) int {
 
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, "OMOP")
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var conceptStats []*ConceptStats
-	omopDataSource.Model(&Concept{}).
+	result := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, 0 as n_missing_ratio").
-		Joins("INNER JOIN OMOP.domain as domain ON concept.domain_id = domain.domain_id").
+		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptStats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
 
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, "RESULTS")
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	var cohortSubjectIds []int
-	resultsDataSource.Model(&Cohort{}).
+	result = resultsDataSource.Db.Model(&Cohort{}).
 		Select("subject_id").
 		Where("cohort_definition_id = ?", cohortDefinitionId).
 		Scan(&cohortSubjectIds)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
 	var cohortSize = len(cohortSubjectIds)
 
 	// find, for each concept, the ratio of persons in the given cohortId that have
@@ -101,7 +108,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 		} else {
 			// calculate missing ratio for cohorts that actually have a size:
 			var nrPersonsWithData int
-			omopDataSource.Model(&Observation{}).
+			omopDataSource.Db.Model(&Observation{}).
 				Select("count(distinct(person_id))").
 				Where("observation_concept_id = ?", conceptStat.ConceptId).
 				Where("person_id in (?)", cohortSubjectIds).

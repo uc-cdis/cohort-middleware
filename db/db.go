@@ -2,13 +2,15 @@ package db
 
 import (
 	"fmt"
+
 	"github.com/uc-cdis/cohort-middleware/config"
+	"github.com/uc-cdis/cohort-middleware/utils"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/schema"
 )
 
-var atlasDB *gorm.DB
+var atlasDB *utils.DbAndSchema
 
 func Init() {
 	c := config.GetConfig()
@@ -26,7 +28,7 @@ func Init() {
 		port)
 
 	dbSchema := c.GetString("atlas_db.schema")
-	atlasDB, _ = gorm.Open(postgres.New(
+	db, _ := gorm.Open(postgres.New(
 		postgres.Config{
 			DSN:                  dsn,
 			PreferSimpleProtocol: true,
@@ -35,8 +37,11 @@ func Init() {
 			TablePrefix:   fmt.Sprintf("%s.", dbSchema),
 			SingularTable: true,
 		}})
+	atlasDB = new(utils.DbAndSchema)
+	atlasDB.Db = db
+	atlasDB.Schema = dbSchema
 }
 
-func GetAtlasDB() *gorm.DB {
+func GetAtlasDB() *utils.DbAndSchema {
 	return atlasDB
 }

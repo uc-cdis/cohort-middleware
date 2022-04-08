@@ -70,6 +70,7 @@ func (h Concept) GetConceptId(prefixedConceptId string) int {
 	return result
 }
 
+// DEPRECATED - too slow for larger cohorts
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
@@ -112,6 +113,62 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 				Select("count(distinct(person_id))").
 				Where("observation_concept_id = ?", conceptStat.ConceptId).
 				Where("person_id in (?)", cohortSubjectIds).
+				Where("(value_as_string is not null or value_as_number is not null)").
+				Scan(&nrPersonsWithData)
+			log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)
+			n_missing := cohortSize - nrPersonsWithData
+			conceptStat.NmissingRatio = float32(n_missing) / float32(cohortSize)
+		}
+	}
+
+	return conceptStats, nil
+}
+
+// Same as above, but for LARGE cohorts/dbs
+// Assumption is that both OMOP and RESULTS schemas
+// are on same DB
+func (h Concept) RetrieveStatsLargeBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
+	log.Printf(">> Using inner join impl. for large cohorts")
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+
+	var conceptStats []*ConceptStats
+	result := omopDataSource.Db.Model(&Concept{}).
+		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, 0 as n_missing_ratio").
+		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
+		Where("concept_id in (?)", conceptIds).
+		Order("concept_name").
+		Scan(&conceptStats)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	var cohortSize int
+	result = resultsDataSource.Db.Model(&Cohort{}).
+		Select("count(*) as cohort_size").
+		Where("cohort_definition_id = ?", cohortDefinitionId).
+		Scan(&cohortSize)
+	if result.Error != nil {
+		return nil, result.Error
+	}
+
+	// find, for each concept, the ratio of persons in the given cohortId that have
+	// an empty value for this concept:
+	for _, conceptStat := range conceptStats {
+		// since we are looping over items anyway, also set prefixed_concept_id and cohort_size:
+		conceptStat.PrefixedConceptId = h.GetPrefixedConceptId(conceptStat.ConceptId)
+		conceptStat.CohortSize = cohortSize
+		if cohortSize == 0 {
+			conceptStat.NmissingRatio = 0
+		} else {
+			// calculate missing ratio for cohorts that actually have a size:
+			var nrPersonsWithData int
+			omopDataSource.Db.Model(&Observation{}).
+				Select("count(distinct(person_id))").
+				Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
+				Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+				Where("observation_concept_id = ?", conceptStat.ConceptId).
 				Where("(value_as_string is not null or value_as_number is not null)").
 				Scan(&nrPersonsWithData)
 			log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)

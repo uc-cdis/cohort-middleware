@@ -54,7 +54,7 @@ func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType So
 type SourceType int64
 
 const (
-	Omop    SourceType = 1 //TODO - review w/ Andrew
+	Omop    SourceType = 0 //TODO - we might have to split up into OmopData and OmopVocab in future...
 	Results SourceType = 2
 	Temp    SourceType = 5
 )

@@ -13,6 +13,11 @@ type Concept struct {
 	DomainName  string `json:"domain_name"`
 }
 
+type ConceptAndPersonsWithDataStats struct {
+	ConceptId  int
+	NpersonIds int
+}
+
 type ConceptStats struct {
 	ConceptId         int     `json:"concept_id"`
 	PrefixedConceptId string  `json:"prefixed_concept_id"`
@@ -124,6 +129,15 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	return conceptStats, nil
 }
 
+func getNrPersonsWithData(conceptId int, conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats) int {
+	for _, conceptsAndDataInfo := range conceptsAndPersonsWithData {
+		if conceptsAndDataInfo.ConceptId == conceptId {
+			return conceptsAndDataInfo.NpersonIds
+		}
+	}
+	return 0
+}
+
 // Same as above, but for LARGE cohorts/dbs
 // Assumption is that both OMOP and RESULTS schemas
 // are on same DB
@@ -155,6 +169,16 @@ func (h Concept) RetrieveStatsLargeBySourceIdAndCohortIdAndConceptIds(sourceId i
 
 	// find, for each concept, the ratio of persons in the given cohortId that have
 	// an empty value for this concept:
+	var conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats
+	omopDataSource.Db.Model(&Observation{}).
+		Select("observation_concept_id as concept_id, count(distinct(person_id)) as nperson_ids").
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
+		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Where("observation_concept_id in (?)", conceptIds).
+		Where("(value_as_string is not null or value_as_number is not null)").
+		Group("observation_concept_id").
+		Scan(&conceptsAndPersonsWithData)
+
 	for _, conceptStat := range conceptStats {
 		// since we are looping over items anyway, also set prefixed_concept_id and cohort_size:
 		conceptStat.PrefixedConceptId = h.GetPrefixedConceptId(conceptStat.ConceptId)
@@ -163,14 +187,7 @@ func (h Concept) RetrieveStatsLargeBySourceIdAndCohortIdAndConceptIds(sourceId i
 			conceptStat.NmissingRatio = 0
 		} else {
 			// calculate missing ratio for cohorts that actually have a size:
-			var nrPersonsWithData int
-			omopDataSource.Db.Model(&Observation{}).
-				Select("count(distinct(person_id))").
-				Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-				Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-				Where("observation_concept_id = ?", conceptStat.ConceptId).
-				Where("(value_as_string is not null or value_as_number is not null)").
-				Scan(&nrPersonsWithData)
+			var nrPersonsWithData = getNrPersonsWithData(conceptStat.ConceptId, conceptsAndPersonsWithData)
 			log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)
 			n_missing := cohortSize - nrPersonsWithData
 			conceptStat.NmissingRatio = float32(n_missing) / float32(cohortSize)

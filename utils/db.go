@@ -15,9 +15,17 @@ type DbAndSchema struct {
 	Schema string
 }
 
-func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchema {
-	dsn := GenerateDsn(sourceConnectionString)
+var dataSourceDbMap = make(map[string]*DbAndSchema)
 
+func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchema {
+	sourceAndSchemaKey := "source:" + sourceConnectionString + ",schema:" + dbSchema
+	if dataSourceDbMap[sourceAndSchemaKey] != nil {
+		// return the already initialized object:
+		return dataSourceDbMap[sourceAndSchemaKey]
+	}
+	// otherwise, open a new connection:
+	dsn := GenerateDsn(sourceConnectionString)
+	dataSourceDb := new(DbAndSchema)
 	if strings.Contains(sourceConnectionString, "postgresql") {
 		log.Printf("trying to connect to 'postgresql' db...")
 		// workaround for schema names in postgres (can't be uppercase):
@@ -28,10 +36,7 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 					TablePrefix:   dbSchema + ".",
 					SingularTable: true,
 				}})
-		dataSourceDb := new(DbAndSchema)
 		dataSourceDb.Db = omopDataSource
-		dataSourceDb.Schema = dbSchema
-		return dataSourceDb
 	} else {
 		omopDataSource, _ := gorm.Open(sqlserver.Open(dsn),
 			&gorm.Config{
@@ -40,9 +45,9 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 					SingularTable: true,
 				}})
 		// TODO - should throw error if db connection fails! Currently fails "silently" by printing error to log and then just returning ...
-		dataSourceDb := new(DbAndSchema)
 		dataSourceDb.Db = omopDataSource
-		dataSourceDb.Schema = dbSchema
-		return dataSourceDb
 	}
+	dataSourceDb.Schema = dbSchema
+	dataSourceDbMap[sourceAndSchemaKey] = dataSourceDb
+	return dataSourceDb
 }

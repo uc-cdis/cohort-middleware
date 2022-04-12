@@ -1,0 +1,709 @@
+openapi: 3.0.0
+info:
+  title: cohort-middleware
+  version: '0.1.4'
+  description: cohort-middleware to manage OMOP data
+  contact:
+    name: CTDS
+    url: 'https://ctds.uchicago.edu'
+    email: ctds@uchicag.edu
+  license:
+    name: Apache 2.0
+servers:
+  - url: 'http://localhost:3000'
+paths:
+  /_health:
+    get:
+      summary: Get /_health
+      tags:
+        - operational
+      operationId: get-_health
+      description: Returns cohort-middleware health status
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+                description: ''
+                example: ok!
+                enum:
+                  - ok!
+          headers: {}
+      security: []
+  /_version:
+    get:
+      summary: Get /_version
+      tags:
+        - operational
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  version:
+                    type: object
+                    required:
+                      - GitCommit
+                      - GitVersion
+                    properties:
+                      GitCommit:
+                        type: string
+                        minLength: 1
+                        example: aaff5cd16dd714af823ace2dfce16a9ba7691533
+                      GitVersion:
+                        type: string
+                        minLength: 1
+                        example: aaff5cd
+                required:
+                  - version
+      operationId: get-_version
+      description: Get deployed cohort-middleware version
+      security: []
+  '/source/by-id/{id}':
+    get:
+      summary: 'Get /source/by-id/{id}'
+      tags:
+        - data
+      responses:
+        '200':
+          $ref: '#/components/responses/source'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error to retrieve source
+                    example: Error to retrieve source
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: 'get-source-by-id-:id'
+      description: Get source by source id
+      parameters: []
+      security:
+        - Bearer: []
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+  '/source/by-name/{name}':
+    get:
+      summary: 'Get /source/by-name/{name}'
+      tags:
+        - data
+      responses:
+        '200':
+          $ref: '#/components/responses/source'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error to retrieve source
+                    example: Error to retrieve source
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: 'get-source-by-name-:name'
+      description: Get source by source name
+      parameters: []
+      security:
+        - Bearer: []
+    parameters:
+      - schema:
+          type: string
+        name: name
+        in: path
+        required: true
+  /sources:
+    get:
+      summary: Get /sources
+      tags:
+        - data
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  sources:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Source'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    example: Error to retrieve source
+                    enum:
+                      - Error to retrieve source
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: get-sources
+      description: Get all available sources
+      parameters: []
+      security:
+        - Bearer: []
+    parameters: []
+  '/cohortdefinition/by-id/{id}':
+    get:
+      summary: 'Get /cohortdefinition/by-id/{id}'
+      tags:
+        - data
+      responses:
+        '200':
+          $ref: '#/components/responses/cohort_definition'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving cohortDefinition
+                    example: Error retrieving cohortDefinition
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: 'get-cohortdefinition-by-id-:id'
+      description: Get cohort definition by id
+      parameters: []
+      security:
+        - Bearer: []
+    parameters:
+      - schema:
+          type: string
+        name: id
+        in: path
+        required: true
+  '/cohortdefinition/by-name/{name}':
+    get:
+      summary: 'Get /cohortdefinition/by-name/{name}'
+      tags:
+        - data
+      responses:
+        '200':
+          $ref: '#/components/responses/cohort_definition'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving cohortDefinition
+                    example: Error retrieving cohortDefinition
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: get-cohortdefinition-by-name
+      security:
+        - Bearer: []
+      description: Get cohort definition by name
+    parameters:
+      - schema:
+          type: string
+        name: name
+        in: path
+        required: true
+  /cohortdefinitions:
+    get:
+      summary: Get /cohortdefinitions
+      tags:
+        - data
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  cohort_definitions:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/CohortDefinition'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving cohortDefinition
+                    example: Error retrieving cohortDefinition
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: get-cohortdefinitions
+      security:
+        - Bearer: []
+      description: Get all available cohort definitions
+  '/cohortdefinition-stats/by-source-id/{sourceid}':
+    get:
+      summary: 'Get /cohortdefinition-stats/by-source-id/{sourceid}'
+      tags:
+        - data
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties: {}
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving cohortDefinition
+                    example: Error retrieving cohortDefinition
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: get-cohortdefinition-stats-by-source-id
+      security:
+        - Bearer: []
+      x-internal: true
+      description: Get cohort definition statistics by source id
+      parameters: []
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+  '/concept/by-source-id/{sourceid}':
+    get:
+      summary: 'Get /concept/by-source-id/{sourceid}'
+      tags:
+        - data
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  concepts:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Concept'
+        '400':
+          $ref: '#/components/responses/bad_request'
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                    example: Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      operationId: get-concept-by-source-id-2
+      security:
+        - Bearer: []
+      description: Get concept by sources
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+  '/concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+      - $ref: '#/components/parameters/cohortid'
+    post:
+      summary: 'Post /concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}'
+      operationId: post-concept-stats-by-source-id-sourceid-by-cohort-definition-id-cohortid
+      security:
+        - Bearer: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties: {}
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  concepts:
+                    type: array
+                    uniqueItems: true
+                    minItems: 1
+                    items:
+                      required:
+                        - concept_id
+                        - prefixed_concept_id
+                        - concept_name
+                        - domain_id
+                        - domain_name
+                        - cohort_size
+                        - n_missing_ratio
+                      properties:
+                        concept_id:
+                          type: number
+                        prefixed_concept_id:
+                          type: string
+                          minLength: 1
+                        concept_name:
+                          type: string
+                          minLength: 1
+                        domain_id:
+                          type: string
+                          minLength: 1
+                        domain_name:
+                          type: string
+                          minLength: 1
+                        cohort_size:
+                          type: number
+                        n_missing_ratio:
+                          type: number
+                required:
+                  - concepts
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request - no request body
+                      - bad request
+                    example: bad request
+                required:
+                  - message
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      description: Get concept statistics by source id
+      tags:
+        - data
+  '/cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+      - $ref: '#/components/parameters/cohortid'
+    post:
+      summary: 'Post /cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}'
+      operationId: post-cohort-data-by-source-id-sourceid-by-cohort-definition-id-cohortid
+      responses:
+        '200':
+          description: OK
+          content:
+            text/plain:
+              schema:
+                type: string
+              examples:
+                example-1:
+                  value: 'sample.id,ID_concept_id1,ID_concept_id2 1,"A value with, comma!",B 2,Simple value,NA'
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request
+                      - bad request - no valid request body
+                required:
+                  - message
+              examples:
+                example-1:
+                  value:
+                    message: bad request
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      security:
+        - Bearer: []
+      x-internal: true
+      description: Get cohort data by source id
+      tags:
+        - data
+components:
+  schemas:
+    CohortDefinition:
+      description: ''
+      type: object
+      properties:
+        cohort_definition_id:
+          type: number
+          example: 9
+        cohort_name:
+          type: string
+          minLength: 1
+          example: Diabetes
+        cohort_description:
+          type: string
+          minLength: 1
+          example: Cohort with diagnosed diabetes disease
+      required:
+        - cohort_definition_id
+        - cohort_name
+        - cohort_description
+    Source:
+      description: ''
+      type: object
+      properties:
+        source:
+          type: object
+          required:
+            - source_id
+            - source_name
+          properties:
+            source_id:
+              type: number
+              example: 9
+            source_name:
+              type: string
+              minLength: 1
+              example: OMOP
+      required:
+        - source
+    Concept:
+      description: ''
+      type: object
+      properties:
+        concept_id:
+          type: string
+        concept_name:
+          type: string
+        domain.domain_id:
+          type: string
+        domain.domain_name:
+          type: string
+      required:
+        - concept_id
+        - concept_name
+        - domain.domain_id
+        - domain.domain_name
+  securitySchemes:
+    Bearer:
+      name: Authorization
+      type: apiKey
+      in: header
+      description: ''
+  responses:
+    cohort_definition:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            description: ''
+            type: object
+            properties:
+              cohort_definition:
+                $ref: '#/components/schemas/CohortDefinition'
+          examples:
+            example-1:
+              value:
+                cohort_definition:
+                  cohort_definition_id: 9
+                  cohort_name: Diabetes
+                  cohort_description: Cohort with diagnosed diabetes disease
+    bad_request:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            description: ''
+            type: object
+            properties:
+              message:
+                type: string
+                minLength: 1
+                enum:
+                  - bad request
+                example: bad request
+            required:
+              - message
+          examples:
+            example-1:
+              value:
+                message: bad request
+    source:
+      description: Example response
+      content:
+        application/json:
+          schema:
+            type: array
+            items:
+              $ref: '#/components/schemas/Source'
+  parameters:
+    sourceid:
+      name: sourceid
+      in: path
+      required: true
+      schema:
+        type: number
+    cohortid:
+      name: cohortid
+      in: path
+      required: true
+      schema:
+        type: number
+security:
+  - API Key: []
+tags:
+  - name: data
+  - name: operational

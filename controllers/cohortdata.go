@@ -135,14 +135,6 @@ func addConceptsToHeader(sourceId int, header []string, conceptIds []int) []stri
 	return header
 }
 
-func getConceptName(sourceId int, conceptId int) string {
-	concept := conceptModel.GetConceptBySourceIdAndConceptId(sourceId, conceptId)
-	if concept == nil {
-		log.Panicf("Concept not found for source %d and concept %d", sourceId, conceptId)
-	}
-	return concept.ConceptName
-}
-
 func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
 	for i := 0; i < nrConceptIds; i++ {
 		row = append(row, "NA")

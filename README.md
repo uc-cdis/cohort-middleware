@@ -1,6 +1,9 @@
 # Cohort-middleware
 
-![version](https://img.shields.io/github/release/uc-cdis/cohort-middleware.svg) [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE)
+![version](https://img.shields.io/github/release/uc-cdis/cohort-middleware.svg)
+[![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE)
+[![GitHub Actions](https://github.com/uc-cdis/cohort-middleware/workflows/Build Image and Push to Quay/badge.svg)](https://github.com/uc-cdis/cohort-middleware/actions)
+[![Coverage Status](https://coveralls.io/repos/github/uc-cdis/cohort-middleware/badge.svg?branch=master)](https://coveralls.io/github/uc-cdis/cohort-middleware?branch=master)
 
 Cohort-middleware provides a set of web-services (endpoints) for:
 
@@ -11,11 +14,29 @@ Cohort-middleware provides a set of web-services (endpoints) for:
 The cohorts and their clinical attribute values are retrieved from
 connected OHDSI/CMD/Atlas databases via SQL queries.
 
+## Table of Content
+
+- [Cohort-middleware](#cohort-middleware)
+  - [Table of Content](#table-of-content)
+  - [API Documentation](#api-documentation)
+  - [Overview diagram](#overview-diagram)
+  - [Running](#running)
+    - [Config file](#config-file)
+    - [DB schemas](#db-schemas)
+      - [Setting up databases for local development](#setting-up-databases-for-local-development)
+- [Deployment steps](#deployment-steps)
+  - [Deployment to QA](#deployment-to-qa)
+  - [Test the endpoints on QA](#test-the-endpoints-on-qa)
+    - [Troubleshooting on QA](#troubleshooting-on-qa)
+      - [How to make curl with Auth](#how-to-make-curl-with-auth)
+      - [How to see the logs](#how-to-see-the-logs)
+      - [In case of infra / network issues:](#in-case-of-infra--network-issues)
+
 ## API Documentation
 
 [OpenAPI documentation available here.](https://petstore.swagger.io/?url=https://raw.githubusercontent.com/uc-cdis/cohort-middleware/master/openapis/swagger.yaml)
 
-YAML file for the OpenAPI documentation is found in the openapis folder (in the root directory); see the README in that folder for more details.
+YAML file for the OpenAPI documentation is found in the `openapis` folder.
 
 ## Overview diagram
 

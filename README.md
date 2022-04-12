@@ -2,7 +2,7 @@
 
 ![version](https://img.shields.io/github/release/uc-cdis/cohort-middleware.svg)
 [![Apache license](http://img.shields.io/badge/license-Apache-blue.svg?style=flat)](LICENSE)
-[![GitHub Actions](https://github.com/uc-cdis/cohort-middleware/workflows/Build Image and Push to Quay/badge.svg)](https://github.com/uc-cdis/cohort-middleware/actions)
+[![GitHub Actions](https://github.com/uc-cdis/cohort-middleware/workflows/Build%20Image%20and%20Push%20to%20Quay/badge.svg)](https://github.com/uc-cdis/cohort-middleware/actions)
 [![Coverage Status](https://coveralls.io/repos/github/uc-cdis/cohort-middleware/badge.svg?branch=master)](https://coveralls.io/github/uc-cdis/cohort-middleware?branch=master)
 
 Cohort-middleware provides a set of web-services (endpoints) for:

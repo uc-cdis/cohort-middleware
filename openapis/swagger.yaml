@@ -417,6 +417,107 @@ paths:
       description: Get concept by sources
     parameters:
       - $ref: '#/components/parameters/sourceid'
+  '/concept/by-source-id/{sourceid} ':
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+    post:
+      summary: 'Post /concept/by-source-id/{sourceid}'
+      tags:
+        - data
+      operationId: post-concept-by-source-id-sourceid
+      security:
+        - Bearer: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ConceptIds:
+                  type: array
+                  items: {
+                    type: integer
+                  }
+            examples:
+                example-1:
+                  value:
+                    ConceptIds: [2000000324,2000006885]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  concepts:
+                    type: array
+                    uniqueItems: true
+                    minItems: 1
+                    items:
+                      required:
+                        - concept_id
+                        - prefixed_concept_id
+                        - concept_name
+                        - domain_id
+                        - domain_name
+                      properties:
+                        concept_id:
+                          type: number
+                        prefixed_concept_id:
+                          type: string
+                          minLength: 1
+                        concept_name:
+                          type: string
+                          minLength: 1
+                        domain_id:
+                          type: string
+                          minLength: 1
+                        domain_name:
+                          type: string
+                          minLength: 1
+                required:
+                  - concepts
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request - no request body
+                      - bad request
+                    example: bad request
+                required:
+                  - message
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      description: Get concepts by source id and list of concept ids
   '/concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':
     parameters:
       - $ref: '#/components/parameters/sourceid'
@@ -431,7 +532,16 @@ paths:
           application/json:
             schema:
               type: object
-              properties: {}
+              properties:
+                ConceptIds:
+                  type: array
+                  items: {
+                    type: integer
+                  }
+            examples:
+                example-1:
+                  value:
+                    ConceptIds: [2000000324,2000006885]
       responses:
         '200':
           description: OK
@@ -523,6 +633,21 @@ paths:
     post:
       summary: 'Post /cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}'
       operationId: post-cohort-data-by-source-id-sourceid-by-cohort-definition-id-cohortid
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                PrefixedConceptIds:
+                  type: array
+                  items: {
+                    type: string
+                  }
+            examples:
+                example-1:
+                  value:
+                    PrefixedConceptIds: ["ID_2000000324","ID_2000006885","..."]
       responses:
         '200':
           description: OK
@@ -532,7 +657,7 @@ paths:
                 type: string
               examples:
                 example-1:
-                  value: 'sample.id,ID_concept_id1,ID_concept_id2 1,"A value with, comma!",B 2,Simple value,NA'
+                  value: 'sample.id,ID_concept_id1,ID_concept_id2\n1,"A value with, comma!",B\n2,Simple value,NA'
         '400':
           description: Bad Request
           content:
@@ -577,7 +702,7 @@ paths:
       security:
         - Bearer: []
       x-internal: true
-      description: Get cohort data by source id
+      description: Get cohort data by source id and list of prefixed concept id strings
       tags:
         - data
 components:

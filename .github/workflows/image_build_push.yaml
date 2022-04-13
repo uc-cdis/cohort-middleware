@@ -1,13 +1,36 @@
-name: Build Image and Push to Quay 
+name: Build Image and Push to Quay
 
 on: push
 
+env:
+  REPO_NAME: ${{secrets.REPO_NAME}}
+
 jobs:
   ci:
-    name: Build Image and Push to Quay 
+    name: Build Image and Push to Quay
     uses: uc-cdis/.github/.github/workflows/image_build_push.yaml@master
     secrets:
       ECR_AWS_ACCESS_KEY_ID: ${{ secrets.ECR_AWS_ACCESS_KEY_ID }}
       ECR_AWS_SECRET_ACCESS_KEY: ${{ secrets.ECR_AWS_SECRET_ACCESS_KEY }}
       QUAY_USERNAME: ${{ secrets.QUAY_USERNAME }}
       QUAY_ROBOT_TOKEN: ${{ secrets.QUAY_ROBOT_TOKEN }}
+
+  test:
+    name: Build local image and run tests on image
+    runs-on: ubuntu-latest
+    steps:
+    - name: Extract image name
+      shell: bash
+      run: echo "##[set-output name=image_name;]$(echo cohort-middleware-local:${GITHUB_REF#refs/heads/})"
+      id: extract_image_name
+    - name: Check out code
+      uses: actions/checkout@v2
+    - name: Build the Docker image
+      run: |
+        ls -la .
+        docker build . --file ./Dockerfile --tag ${{ steps.extract_image_name.outputs.image_name }}
+    - name: Integration tests
+      run: |
+        docker run --rm \
+        ${{ steps.extract_image_name.outputs.image_name }} \
+        go test ./... -v -coverpkg=./...

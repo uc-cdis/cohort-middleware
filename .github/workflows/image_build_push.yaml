@@ -27,10 +27,7 @@ jobs:
       uses: actions/checkout@v2
     - name: Build the Docker image
       run: |
-        ls -la .
-        docker build . --file ./Dockerfile --tag ${{ steps.extract_image_name.outputs.image_name }}
+        ./tests/build_test_image/build.sh ${{ steps.extract_image_name.outputs.image_name }}
     - name: Integration tests
       run: |
-        docker run --rm \
-        ${{ steps.extract_image_name.outputs.image_name }} \
-        go test ./... -v -coverpkg=./...
+        ./tests/integration_tests/run.sh ${{ steps.extract_image_name.outputs.image_name }}

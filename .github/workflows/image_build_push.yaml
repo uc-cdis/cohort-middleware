@@ -31,3 +31,8 @@ jobs:
     - name: Integration tests
       run: |
         ./tests/integration_tests/run.sh ${{ steps.extract_image_name.outputs.image_name }}
+    - name: Submit coverage report
+      env:
+        COVERALLS_REPO_TOKEN: ${{ secrets.COVERALLS_TOKEN }}
+      run: |
+        ./tests/integration_tests/run.sh ${{ steps.extract_image_name.outputs.image_name }} $COVERALLS_REPO_TOKEN

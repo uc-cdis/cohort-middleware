@@ -9,15 +9,16 @@ hitting a real DB.
 1. Setup a local DB by running:
 
 ```
-../setup_local_db/init_db.sh
+cd tests/setup_local_db
+./init_db.sh
 ```
 
 # Run
 
-Run the tests with
+Run the tests (in root of this project folder) with:
 
 ```
-go test ./... -v -coverpkg=./...
+./tests/integration_tests/run.sh
 ```
 
 

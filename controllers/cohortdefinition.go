@@ -28,7 +28,6 @@ func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
-	return
 }
 
 func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
@@ -46,7 +45,6 @@ func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
-	return
 }
 
 func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
@@ -57,7 +55,6 @@ func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"cohort_definitions": cohortDefinitions})
-	return
 }
 
 func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {

@@ -58,7 +58,6 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	}
 	b := GenerateCSV(sourceId, cohortData, conceptIds)
 	c.String(http.StatusOK, b.String())
-	return
 }
 
 func getConceptIdsFromPrefixedConceptIds(ids []string) []int {

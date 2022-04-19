@@ -15,6 +15,7 @@ func Init(env string) {
 	log.Printf("Setting config for \"%s\"", env)
 	config.SetConfigName(env)
 	config.AddConfigPath("../config/")
+	config.AddConfigPath("../../config/")
 	config.AddConfigPath("config/")
 	err = config.ReadInConfig()
 	if err != nil {

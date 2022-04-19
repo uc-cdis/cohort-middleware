@@ -27,7 +27,6 @@ func (u SourceController) RetriveById(c *gin.Context) {
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
-	return
 }
 
 func (u SourceController) RetriveByName(c *gin.Context) {
@@ -44,7 +43,6 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
-	return
 }
 
 func (u SourceController) RetriveAll(c *gin.Context) {
@@ -55,5 +53,4 @@ func (u SourceController) RetriveAll(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"sources": source})
-	return
 }

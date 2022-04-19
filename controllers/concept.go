@@ -31,7 +31,6 @@ func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
-	return
 }
 
 type ConceptIds struct {
@@ -90,7 +89,6 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"concepts": conceptStats})
-	return
 }
 
 func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
@@ -111,5 +109,4 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"concepts": conceptStats})
-	return
 }

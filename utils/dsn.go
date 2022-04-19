@@ -10,10 +10,7 @@ import (
 func GenerateDsn(sourceConnectionString string) string {
 	sourceConnectionParts := strings.FieldsFunc(sourceConnectionString, func(r rune) bool {
 		separators := ":/;="
-		if strings.ContainsRune(separators, r) {
-			return true
-		}
-		return false
+		return strings.ContainsRune(separators, r)
 	})
 	dbVendor := sourceConnectionParts[1]
 	log.Printf("Found db vendor %s", dbVendor)

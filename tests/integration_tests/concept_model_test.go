@@ -33,11 +33,13 @@ func tearDownSuite() {
 }
 
 // TODO - move this to a generic test_utils
-func RunTestWrapper(setUp func(), tearDown func()) func(func()) {
-	return func(testFunc func()) {
+func RunTestWrapper(setUp func(), tearDown func()) func(*testing.T, func()) {
+	return func(t *testing.T, testFunc func()) {
 		setUp()
+		t.Cleanup(func() {
+			tearDown()
+		})
 		testFunc()
-		tearDown()
 	}
 }
 
@@ -54,7 +56,7 @@ func tearDown() {
 var conceptModel = new(models.Concept)
 
 func TestGetConceptId(t *testing.T) {
-	RunTest(func() {
+	RunTest(t, func() {
 		conceptId := conceptModel.GetConceptId("ID_12345")
 		if conceptId != 12345 {
 			t.Error()
@@ -63,7 +65,7 @@ func TestGetConceptId(t *testing.T) {
 }
 
 func TestGetPrefixedConceptId(t *testing.T) {
-	RunTest(func() {
+	RunTest(t, func() {
 		conceptId := conceptModel.GetPrefixedConceptId(12345)
 		if conceptId != "ID_12345" {
 			t.Error()
@@ -72,7 +74,7 @@ func TestGetPrefixedConceptId(t *testing.T) {
 }
 
 func TestRetriveAllBySourceId(t *testing.T) {
-	RunTest(func() {
+	RunTest(t, func() {
 		sourceId := 1 // TODO - this should not be hard-coded here, but come from a central place that is also used for populating test DB in the first place...see also comment in setupSuite...
 		concepts, _ := conceptModel.RetriveAllBySourceId(sourceId)
 		if len(concepts) != 4 {

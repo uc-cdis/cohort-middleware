@@ -4,28 +4,26 @@ on: push
 
 jobs:
   ci:
-    services:
-      atlas_db:
-        image: postgres:9.6
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
-          POSTGRES_DB: postgres
-        ports:
-        - 5433:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-      cdm_and_results_db:
-        image: postgres:9.6
-        env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
-          POSTGRES_DB: postgres
-        ports:
-        - 5434:5432
-        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@master
-    secrets:
-      REPO_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    # services:
+    #   atlas_db:
+    #     image: postgres:9.6
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
+    #       POSTGRES_DB: postgres
+    #     ports:
+    #     - 5433:5432
+    #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    #   cdm_and_results_db:
+    #     image: postgres:9.6
+    #     env:
+    #       POSTGRES_USER: postgres
+    #       POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
+    #       POSTGRES_DB: postgres
+    #     ports:
+    #     - 5434:5432
+    #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@use_default_github_token
 
 # https://docs.github.com/en/actions/using-workflows/reusing-workflows
 # jobs.<job_id>.uses

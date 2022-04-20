@@ -3,9 +3,7 @@ name: Golang CI Workflow
 on: push
 
 jobs:
-  prepare:
-    uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@master
-    runs-on: ubuntu-latest
+  ci:
     services:
       atlas_db:
         image: postgres:9.6
@@ -25,3 +23,8 @@ jobs:
         ports:
         - 5434:5432
         options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+    - name: Golang tests with coverage
+      uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@master
+      secrets:
+        REPO_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

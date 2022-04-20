@@ -1,5 +1,6 @@
 
 -- ========================================================
+DROP SCHEMA IF EXISTS results CASCADE;
 CREATE SCHEMA results;
 -- ========================================================
 
@@ -25,6 +26,7 @@ CREATE TABLE results.COHORT
 -- );
 
 -- ========================================================
+DROP SCHEMA IF EXISTS omop CASCADE;
 CREATE SCHEMA omop;
 -- ========================================================
 

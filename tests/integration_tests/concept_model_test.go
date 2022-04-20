@@ -8,7 +8,10 @@ import (
 	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/tests"
 )
+
+var testSourceId = 1 // TODO - this should also be used when populating "source" tables in test Atlas DB in the first place...see also comment in setupSuite...
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -21,15 +24,19 @@ func setupSuite() {
 	log.Println("setup for suite")
 	// connect to db with test data:
 	// TODO - this needs to be improved to also
-	//   populate the DB...now the tests assume a DB
+	//   populate the Atlas DB...now the tests assume an Atlas DB
 	//   with specific data that is initialized elsewhere...
 	config.Init("development")
 	db.Init()
+	// ensure we start w/ empty db:
+	tearDownSuite()
+	// load test seed data:
+	tests.ExecSQLScript("../setup_local_db/test_data_results_and_cdm.sql", testSourceId)
 }
 
 func tearDownSuite() {
 	log.Println("teardown for suite")
-	// nothing to do for now...
+	tests.ExecSQLScript("../setup_local_db/ddl_results_and_cdm.sql", testSourceId)
 }
 
 func setUp(t *testing.T) {
@@ -65,9 +72,9 @@ func TestGetPrefixedConceptId(t *testing.T) {
 
 func TestRetriveAllBySourceId(t *testing.T) {
 	setUp(t)
-	sourceId := 1 // TODO - this should not be hard-coded here, but come from a central place that is also used for populating test DB in the first place...see also comment in setupSuite...
+	sourceId := testSourceId
 	concepts, _ := conceptModel.RetriveAllBySourceId(sourceId)
 	if len(concepts) != 4 {
-		t.Error()
+		t.Errorf("Found %d", len(concepts))
 	}
 }

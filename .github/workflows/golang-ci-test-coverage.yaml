@@ -4,7 +4,28 @@ on: push
 
 jobs:
   ci:
-    name: Golang tests with coverage
-    uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@master
-    secrets:
-      REPO_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+    services:
+      atlas_db:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
+          POSTGRES_DB: postgres
+        ports:
+        - 5433:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      cdm_and_results_db:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
+          POSTGRES_DB: postgres
+        ports:
+        - 5434:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+    steps:
+    - name: Golang tests with coverage
+      uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@master
+      with:
+        secrets:
+          REPO_GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

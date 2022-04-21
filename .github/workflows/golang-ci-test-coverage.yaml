@@ -23,7 +23,9 @@ jobs:
     #     ports:
     #     - 5434:5432
     #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@use_default_github_token
+    #uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@use_default_github_token
+    steps:
+      - uses: uc-cdis/.github/.github/actions/golang-ci@add_golang_ci_action
 
 # https://docs.github.com/en/actions/using-workflows/reusing-workflows
 # jobs.<job_id>.uses

@@ -26,7 +26,12 @@ jobs:
     #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
     #uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@use_default_github_token
     steps:
-      - uses: uc-cdis/.github/.github/actions/golang-ci@add_golang_ci_action
+      - name: Checkout code / lint code / install dependencies for goveralls
+        uses: uc-cdis/.github/.github/actions/golang-ci@add_golang_ci_action
+      - name: Send coverage
+        env:
+          COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: goveralls -coverprofile=./profile.cov -service=github
 
 # https://docs.github.com/en/actions/using-workflows/reusing-workflows
 # jobs.<job_id>.uses

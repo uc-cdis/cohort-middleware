@@ -4,6 +4,7 @@ on: push
 
 jobs:
   ci:
+    runs-on: ubuntu-latest
     # services:
     #   atlas_db:
     #     image: postgres:9.6

@@ -178,6 +178,10 @@ Then run:
 
 ```
 kubectl logs <pod-name-here>
+
+or
+
+kubectl logs -f -l app=cohort-middleware
 ```
 
 See also https://kubernetes.io/docs/reference/kubectl/cheatsheet/#interacting-with-running-pods

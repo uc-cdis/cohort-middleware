@@ -28,6 +28,8 @@ jobs:
     steps:
       - name: Checkout code / lint code / install dependencies for goveralls
         uses: uc-cdis/.github/.github/actions/golang-ci@add_golang_ci_action
+        with:
+          COVERAGE_OUTPUT_LOCATION: "/profile.cov"
       - name: Send coverage
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}

@@ -36,6 +36,9 @@ func setupSuite() {
 
 func tearDownSuite() {
 	log.Println("teardown for suite")
+	tests.ExecAtlasSQLScript("../setup_local_db/ddl_atlas.sql")
+	// we need some basic atlas data in "source" table to be able to connect to results DB:  TODO - make this a minimal data .sql
+	tests.ExecAtlasSQLScript("../setup_local_db/test_data_atlas.sql")
 	tests.ExecSQLScript("../setup_local_db/ddl_results_and_cdm.sql", testSourceId)
 }
 

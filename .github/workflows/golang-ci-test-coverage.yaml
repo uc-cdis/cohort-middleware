@@ -5,26 +5,26 @@ on: push
 jobs:
   ci:
     runs-on: ubuntu-latest
-    # services:
-    #   atlas_db:
-    #     image: postgres:9.6
-    #     env:
-    #       POSTGRES_USER: postgres
-    #       POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
-    #       POSTGRES_DB: postgres
-    #     ports:
-    #     - 5433:5432
-    #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    #   cdm_and_results_db:
-    #     image: postgres:9.6
-    #     env:
-    #       POSTGRES_USER: postgres
-    #       POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
-    #       POSTGRES_DB: postgres
-    #     ports:
-    #     - 5434:5432
-    #     options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
-    #uses: uc-cdis/.github/.github/workflows/golang-ci-workflow.yaml@use_default_github_token
+    services:
+      atlas_db:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
+          POSTGRES_DB: postgres
+        ports:
+        - 5433:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+      cdm_and_results_db:
+        image: postgres:9.6
+        env:
+          POSTGRES_USER: postgres
+          POSTGRES_PASSWORD: mysecretpassword #pragma: allowlist secret
+          POSTGRES_DB: postgres
+        ports:
+        - 5434:5432
+        options: --health-cmd pg_isready --health-interval 10s --health-timeout 5s --health-retries 5
+
     env:
       COVERAGE_PROFILE_OUTPUT_LOCATION: "./profile.cov"
     steps:
@@ -36,9 +36,3 @@ jobs:
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: goveralls -coverprofile=${{ env.COVERAGE_PROFILE_OUTPUT_LOCATION }} -service=github
-
-# https://docs.github.com/en/actions/using-workflows/reusing-workflows
-# jobs.<job_id>.uses
-
-# jobs.<job_id>.services
-# https://docs.github.com/en/actions/using-workflows/workflow-syntax-for-github-actions#jobsjob_idservices

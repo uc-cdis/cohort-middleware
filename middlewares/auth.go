@@ -2,6 +2,7 @@ package middlewares
 
 import (
 	"fmt"
+	"log"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -34,6 +35,7 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		req, err := http.NewRequest("GET", arboristAuth, nil)
 		if err != nil {
+			log.Printf("arborist request: unhandled error in the middleware\n%s", err.Error())
 		}
 
 		req.Header.Set("Authorization", authorization)

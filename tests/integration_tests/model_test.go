@@ -12,6 +12,7 @@ import (
 )
 
 var testSourceId = 1 // TODO - this should also be used when populating "source" tables in test Atlas DB in the first place...see also comment in setupSuite...
+var allCohortDefinitions []*models.CohortDefinition
 var firstCohort *models.CohortDefinition
 var allConceptIds []int
 
@@ -36,8 +37,8 @@ func setupSuite() {
 	tests.ExecSQLScript("../setup_local_db/test_data_results_and_cdm.sql", testSourceId)
 
 	// initialize some handy variables to use in tests below:
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitions()
-	firstCohort = cohortDefinitions[0]
+	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitions()
+	firstCohort = allCohortDefinitions[0]
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	allConceptIds = tests.MapIntAttr(concepts, "ConceptId")
 }
@@ -110,5 +111,26 @@ func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	//  expected to have the same lenght here:
 	if len(conceptsInfo) != len(allConceptIds) {
 		t.Errorf("Found %d", len(conceptsInfo))
+	}
+}
+func TestGetAllCohortDefinitionsAndStats(t *testing.T) {
+	setUp(t)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(testSourceId)
+	if len(cohortDefinitions) != len(allCohortDefinitions) {
+		t.Errorf("Found %d", len(cohortDefinitions))
+	}
+	// check if stats fields are filled:
+	for _, cohortDefinition := range cohortDefinitions {
+		if cohortDefinition.CohortSize <= 0 {
+			t.Errorf("Expected positive value, found %d", cohortDefinition.CohortSize)
+		}
+	}
+}
+
+func TestGetCohortDefinitionByName(t *testing.T) {
+	setUp(t)
+	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(firstCohort.Name)
+	if cohortDefinition == nil || cohortDefinition.Name != firstCohort.Name {
+		t.Errorf("Expected %s", firstCohort.Name)
 	}
 }

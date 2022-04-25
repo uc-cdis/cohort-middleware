@@ -32,10 +32,13 @@ func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, er
 func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
-	db2.Model(&CohortDefinition{}).
+	result := db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
 		Where("name = ?", name).
 		Scan(&cohortDefinition)
+	if result.Error != nil {
+		return nil, result.Error
+	}
 	return cohortDefinition, nil
 }
 

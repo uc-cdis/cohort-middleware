@@ -12,6 +12,8 @@ import (
 )
 
 var testSourceId = 1 // TODO - this should also be used when populating "source" tables in test Atlas DB in the first place...see also comment in setupSuite...
+var firstCohort *models.CohortDefinition
+var allConceptIds []int
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -32,6 +34,12 @@ func setupSuite() {
 	tearDownSuite()
 	// load test seed data:
 	tests.ExecSQLScript("../setup_local_db/test_data_results_and_cdm.sql", testSourceId)
+
+	// initialize some handy variables to use in tests below:
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitions()
+	firstCohort = cohortDefinitions[0]
+	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
+	allConceptIds = tests.MapIntAttr(concepts, "ConceptId")
 }
 
 func tearDownSuite() {
@@ -56,6 +64,7 @@ func tearDown() {
 }
 
 var conceptModel = new(models.Concept)
+var cohortDefinitionModel = new(models.CohortDefinition)
 
 func TestGetConceptId(t *testing.T) {
 	setUp(t)
@@ -75,9 +84,31 @@ func TestGetPrefixedConceptId(t *testing.T) {
 
 func TestRetriveAllBySourceId(t *testing.T) {
 	setUp(t)
-	sourceId := testSourceId
-	concepts, _ := conceptModel.RetriveAllBySourceId(sourceId)
+	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	if len(concepts) != 4 {
 		t.Errorf("Found %d", len(concepts))
+	}
+}
+
+func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+	setUp(t)
+	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		firstCohort.Id,
+		allConceptIds)
+	// simple test: we expect stats for each valid conceptId, therefore the lists are
+	//  expected to have the same lenght here:
+	if len(conceptsStats) != len(allConceptIds) {
+		t.Errorf("Found %d", len(conceptsStats))
+	}
+}
+
+func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
+	setUp(t)
+	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptIds(testSourceId,
+		allConceptIds)
+	// simple test: we expect info for each valid conceptId, therefore the lists are
+	//  expected to have the same lenght here:
+	if len(conceptsInfo) != len(allConceptIds) {
+		t.Errorf("Found %d", len(conceptsInfo))
 	}
 }

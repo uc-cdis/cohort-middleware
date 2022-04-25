@@ -50,7 +50,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds.PrefixedConceptIds)
 
 	// call model method:
-	cohortData, err := cohortDataModel.RetrieveDataLargeBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
+	cohortData, err := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()

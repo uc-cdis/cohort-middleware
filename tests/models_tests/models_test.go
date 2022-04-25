@@ -1,4 +1,4 @@
-package tests
+package models_tests
 
 import (
 	"log"
@@ -11,7 +11,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/tests"
 )
 
-var testSourceId = 1 // TODO - this should also be used when populating "source" tables in test Atlas DB in the first place...see also comment in setupSuite...
+var testSourceId = tests.GetTestSourceId()
 var allCohortDefinitions []*models.CohortDefinition
 var firstCohort *models.CohortDefinition
 var allConceptIds []int
@@ -66,6 +66,7 @@ func tearDown() {
 
 var conceptModel = new(models.Concept)
 var cohortDefinitionModel = new(models.CohortDefinition)
+var cohortDataModel = new(models.CohortData)
 
 func TestGetConceptId(t *testing.T) {
 	setUp(t)
@@ -132,5 +133,40 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(firstCohort.Name)
 	if cohortDefinition == nil || cohortDefinition.Name != firstCohort.Name {
 		t.Errorf("Expected %s", firstCohort.Name)
+	}
+}
+
+func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
+	setUp(t)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(testSourceId)
+	var sumNumeric float32 = 0
+	textConcat := ""
+	for _, cohortDefinition := range cohortDefinitions {
+
+		cohortData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
+			testSourceId, cohortDefinition.Id, allConceptIds)
+
+		// 1- cohortData items > 0, assuming each cohort has a person wit at least one observation
+		if len(cohortData) <= 0 {
+			t.Errorf("Expected some cohort data")
+		}
+		previousPersonId := -1
+		for _, cohortDatum := range cohortData {
+			// check for order: person_id is not smaller than previous person_id
+			if cohortDatum.PersonId < previousPersonId {
+				t.Errorf("Data not ordered by person_id!")
+			}
+			previousPersonId = cohortDatum.PersonId
+			sumNumeric += cohortDatum.ConceptValueAsNumber
+			textConcat += cohortDatum.ConceptValueAsString
+		}
+	}
+	// check for data: sum of all numeric values > 0
+	if sumNumeric == 0 {
+		t.Errorf("Expected some numeric cohort data")
+	}
+	// check for data: concat of all string values != ""
+	if textConcat == "" {
+		t.Errorf("Expected some string cohort data")
 	}
 }

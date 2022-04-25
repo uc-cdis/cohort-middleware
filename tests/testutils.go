@@ -10,6 +10,10 @@ import (
 	"github.com/uc-cdis/cohort-middleware/models"
 )
 
+func GetTestSourceId() int {
+	return 1 // TODO - this should also be used when populating "source" tables in test Atlas DB in the first place...see also comment in setupSuite...
+}
+
 func ExecAtlasSQLScript(sqlFilePath string) {
 	ExecSQLScript(sqlFilePath, -1)
 }

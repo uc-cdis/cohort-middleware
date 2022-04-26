@@ -29,18 +29,44 @@ func ExecSQLScript(sqlFilePath string, sourceId int) {
 	if err2 != nil {
 		panic(err)
 	}
+	ExecSQLString(string(fileContents), sourceId)
+}
+
+func ExecAtlasSQLString(sqlString string) {
+	ExecSQLScript(sqlString, -1)
+}
+
+func ExecSQLString(sqlString string, sourceId int) {
 	// just take a random model:
 	var dataSourceModel = new(models.Source)
 	if sourceId == -1 {
 		// assume Atlas DB:
 		var atlasDB = db.GetAtlasDB()
-		atlasDB.Db.Model(models.Source{}).Exec(string(fileContents))
+		atlasDB.Db.Model(models.Source{}).Exec(sqlString)
 
 	} else {
 		// look up the data source in source table:
 		omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
-		omopDataSource.Db.Model(models.Source{}).Exec(string(fileContents))
+		omopDataSource.Db.Model(models.Source{}).Exec(sqlString)
 	}
+}
+
+func GetSchemaNameForType(sourceType models.SourceType) string {
+	sourceModel := new(models.Source)
+	dbSchema, _ := sourceModel.GetSourceSchemaNameBySourceIdAndSourceType(GetTestSourceId(), sourceType)
+	return dbSchema.SchemaName
+}
+
+// utility function to break something in the DB to be able to simulate DB issues
+func BreakSomething(sourceType models.SourceType, tableName string, fieldName string) {
+	ExecSQLString("ALTER TABLE IF EXISTS "+GetSchemaNameForType(sourceType)+"."+tableName+
+		" RENAME "+fieldName+" TO "+fieldName+"_broken", GetTestSourceId())
+}
+
+// utility function to fix breaks made with BreakSomething()
+func FixSomething(sourceType models.SourceType, tableName string, fieldName string) {
+	ExecSQLString("ALTER TABLE IF EXISTS "+GetSchemaNameForType(sourceType)+"."+tableName+
+		" RENAME "+fieldName+"_broken TO "+fieldName, GetTestSourceId())
 }
 
 func GetIntAttributeValue[T any](item T, attributeName string) int {

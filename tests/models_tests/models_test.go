@@ -183,6 +183,23 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 	}
 }
 
+func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
+	// Tests if the method returns an error when query fails.
+
+	// break something in the omop schema to cause a query failure in the next method:
+	tests.BreakSomething(models.Omop, "observation", "person_id")
+	// set last action to restore back:
+	// run test:
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(testSourceId)
+	_, error := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
+		testSourceId, cohortDefinitions[0].Id, allConceptIds)
+	if error == nil {
+		t.Errorf("Expected error")
+	}
+	// revert the broken part:
+	tests.FixSomething(models.Omop, "observation", "person_id")
+}
+
 func TestGetVersion(t *testing.T) {
 	// mock values (in reality these are set at build time - see Dockerfile "go build" "-ldflags" argument):
 	version.GitCommit = "abc"

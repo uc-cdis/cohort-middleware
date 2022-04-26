@@ -9,6 +9,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
+	"github.com/uc-cdis/cohort-middleware/version"
 )
 
 var testSourceId = tests.GetTestSourceId()
@@ -68,7 +69,7 @@ var conceptModel = new(models.Concept)
 var cohortDefinitionModel = new(models.CohortDefinition)
 var cohortDataModel = new(models.CohortData)
 
-//var versionModel = new(models.Version)
+var versionModel = new(models.Version)
 var sourceModel = new(models.Source)
 
 func TestGetConceptId(t *testing.T) {
@@ -182,12 +183,15 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 	}
 }
 
-// func TestGetVersion(t *testing.T) {
-// 	v := versionModel.GetVersion()
-// 	if v.GitCommit == "" || v.GitVersion == "" {
-// 		t.Errorf("Expected some value")
-// 	}
-// }
+func TestGetVersion(t *testing.T) {
+	// mock values (in reality these are set at build time - see Dockerfile "go build" "-ldflags" argument):
+	version.GitCommit = "abc"
+	version.GitVersion = "def"
+	v := versionModel.GetVersion()
+	if v.GitCommit != version.GitCommit || v.GitVersion != version.GitVersion {
+		t.Errorf("Wrong value")
+	}
+}
 
 func TestGetSourceByName(t *testing.T) {
 	allSources, _ := sourceModel.GetAllSources()

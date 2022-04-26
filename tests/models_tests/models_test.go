@@ -68,12 +68,23 @@ var conceptModel = new(models.Concept)
 var cohortDefinitionModel = new(models.CohortDefinition)
 var cohortDataModel = new(models.CohortData)
 
+//var versionModel = new(models.Version)
+var sourceModel = new(models.Source)
+
 func TestGetConceptId(t *testing.T) {
 	setUp(t)
 	conceptId := conceptModel.GetConceptId("ID_12345")
 	if conceptId != 12345 {
 		t.Error()
 	}
+	// the GetConceptId below should result in panic/error:
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	conceptModel.GetConceptId("AD_12345")
+
 }
 
 func TestGetPrefixedConceptId(t *testing.T) {
@@ -168,5 +179,36 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 	// check for data: concat of all string values != ""
 	if textConcat == "" {
 		t.Errorf("Expected some string cohort data")
+	}
+}
+
+// func TestGetVersion(t *testing.T) {
+// 	v := versionModel.GetVersion()
+// 	if v.GitCommit == "" || v.GitVersion == "" {
+// 		t.Errorf("Expected some value")
+// 	}
+// }
+
+func TestGetSourceByName(t *testing.T) {
+	allSources, _ := sourceModel.GetAllSources()
+	foundSource, _ := sourceModel.GetSourceByName(allSources[0].SourceName)
+	if allSources[0].SourceName != foundSource.SourceName {
+		t.Errorf("Expected data not found")
+	}
+}
+
+func TestGetSourceById(t *testing.T) {
+	allSources, _ := sourceModel.GetAllSources()
+	foundSource, _ := sourceModel.GetSourceById(allSources[0].SourceId)
+	if allSources[0].SourceId != foundSource.SourceId {
+		t.Errorf("Expected data not found")
+	}
+}
+
+func TestGetCohortDefinitionById(t *testing.T) {
+	allCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitions()
+	foundCohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionById(allCohortDefinitions[0].Id)
+	if allCohortDefinitions[0].Id != foundCohortDefinition.Id {
+		t.Errorf("Expected data not found")
 	}
 }

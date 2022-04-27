@@ -6,12 +6,14 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
 )
 
 var testSourceId = tests.GetTestSourceId()
+var cohortDataController = new(controllers.CohortDataController)
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -40,6 +42,18 @@ func setUp(t *testing.T) {
 
 func tearDown() {
 	log.Println("teardown for test")
+}
+
+func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsWrongParams(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
+	// Params above are wrong, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
 }
 
 func TestGenerateCSV(t *testing.T) {

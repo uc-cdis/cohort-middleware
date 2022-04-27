@@ -1,8 +1,11 @@
 package tests
 
 import (
+	"bufio"
 	"io/ioutil"
 	"log"
+	"net"
+	"net/http"
 	"path/filepath"
 	"reflect"
 
@@ -93,4 +96,55 @@ func Map[T, U any](items []T, f func(T) U) []U {
 		result[i] = f(items[i])
 	}
 	return result
+}
+
+type CustomResponseWriter struct{}
+
+func (w *CustomResponseWriter) Header() http.Header {
+	result := make(http.Header)
+	result.Add("Content-Type", "test")
+	return result
+}
+
+func (w *CustomResponseWriter) Write(b []byte) (int, error) {
+
+	// implement it as per your requirement
+	return 0, nil
+}
+
+func (w *CustomResponseWriter) WriteHeader(statusCode int) {
+	// do nothing
+}
+
+func (w *CustomResponseWriter) CloseNotify() <-chan bool {
+	return nil
+}
+
+func (w *CustomResponseWriter) Flush() {
+	//do nothing
+}
+
+func (w *CustomResponseWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
+	return nil, nil, nil
+}
+
+func (w *CustomResponseWriter) Pusher() (pusher http.Pusher) {
+	return nil
+}
+
+func (w *CustomResponseWriter) Status() int {
+	return 0
+}
+
+func (w *CustomResponseWriter) Size() int {
+	return 0
+}
+func (w *CustomResponseWriter) WriteHeaderNow() {
+	//do nothing
+}
+func (w *CustomResponseWriter) WriteString(s string) (n int, err error) {
+	return 0, nil
+}
+func (w *CustomResponseWriter) Written() bool {
+	return true
 }

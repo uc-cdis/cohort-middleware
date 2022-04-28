@@ -4,6 +4,10 @@ import (
 	"log"
 )
 
+type CohortDataI interface {
+	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*PersonConceptAndValue, error)
+}
+
 type CohortData struct{}
 
 type PersonConceptAndValue struct {

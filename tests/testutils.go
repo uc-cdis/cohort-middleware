@@ -98,7 +98,9 @@ func Map[T, U any](items []T, f func(T) U) []U {
 	return result
 }
 
-type CustomResponseWriter struct{}
+type CustomResponseWriter struct {
+	CustomResponseWriterOut string
+}
 
 func (w *CustomResponseWriter) Header() http.Header {
 	result := make(http.Header)
@@ -108,7 +110,7 @@ func (w *CustomResponseWriter) Header() http.Header {
 
 func (w *CustomResponseWriter) Write(b []byte) (int, error) {
 
-	// implement it as per your requirement
+	w.CustomResponseWriterOut = string(b)
 	return 0, nil
 }
 
@@ -137,7 +139,7 @@ func (w *CustomResponseWriter) Status() int {
 }
 
 func (w *CustomResponseWriter) Size() int {
-	return 0
+	return len(w.CustomResponseWriterOut)
 }
 func (w *CustomResponseWriter) WriteHeaderNow() {
 	//do nothing

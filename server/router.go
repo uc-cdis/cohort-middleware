@@ -4,6 +4,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
+	"github.com/uc-cdis/cohort-middleware/models"
 	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
 )
 
@@ -41,7 +42,7 @@ func NewRouter() *gin.Engine {
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", concepts.RetrieveStatsBySourceIdAndCohortIdAndConceptIds)
 
 		// full data endpoints:
-		cohortData := new(controllers.CohortDataController)
+		cohortData := controllers.NewCohortDataController(*new(models.CohortData))
 		authorized.POST("/cohort-data/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrieveDataBySourceIdAndCohortIdAndConceptIds)
 	}
 

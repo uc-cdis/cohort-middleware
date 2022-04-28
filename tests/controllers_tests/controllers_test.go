@@ -1,8 +1,11 @@
 package controllers_tests
 
 import (
+	"io"
 	"log"
+	"net/http"
 	"os"
+	"strconv"
 	"strings"
 	"testing"
 
@@ -13,7 +16,6 @@ import (
 )
 
 var testSourceId = tests.GetTestSourceId()
-var cohortDataController = new(controllers.CohortDataController)
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -44,6 +46,20 @@ func tearDown() {
 	log.Println("teardown for test")
 }
 
+var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel))
+
+type dummyCohortDataModel struct {
+}
+
+func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*models.PersonConceptAndValue, error) {
+	cohortData := []*models.PersonConceptAndValue{
+		{PersonId: 1, ConceptId: 10, ConceptValueAsString: "abc", ConceptValueAsNumber: 0.0},
+		{PersonId: 1, ConceptId: 22, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
+		{PersonId: 2, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
+	}
+	return cohortData, nil
+}
+
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -56,6 +72,24 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsWrongParams(t *testing.T)
 	}
 }
 
+func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"PrefixedConceptIds\":[\"ID_2000000324\",\"ID_2000006885\"]}"))
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
+	// Params above are wrong, so request should abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !strings.Contains(result.CustomResponseWriterOut, "sample.id,") {
+		t.Errorf("Expected output starting with 'sample.id,...'")
+	}
+}
 func TestGenerateCSV(t *testing.T) {
 	setUp(t)
 	cohortData := []*models.PersonConceptAndValue{

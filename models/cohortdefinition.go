@@ -4,6 +4,13 @@ import (
 	"github.com/uc-cdis/cohort-middleware/db"
 )
 
+type CohortDefinitionI interface {
+	GetCohortDefinitionById(id int) (*CohortDefinition, error)
+	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
+	GetAllCohortDefinitions() ([]*CohortDefinition, error)
+	GetAllCohortDefinitionsAndStats(sourceId int) ([]*CohortDefinitionStats, error)
+}
+
 type CohortDefinition struct {
 	Id             int    `json:"cohort_definition_id"`
 	Name           string `json:"cohort_name"`

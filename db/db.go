@@ -43,5 +43,8 @@ func Init() {
 }
 
 func GetAtlasDB() *utils.DbAndSchema {
+	if atlasDB == nil {
+		panic("AtlasDB not initialized")
+	}
 	return atlasDB
 }

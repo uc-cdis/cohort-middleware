@@ -26,7 +26,6 @@ func TestMain(m *testing.M) {
 
 func setupSuite() {
 	log.Println("setup for suite")
-	// connect to db with test data:
 }
 
 func tearDownSuite() {
@@ -102,7 +101,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.
 	requestContext.Request = new(http.Request)
 	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"PrefixedConceptIds\":[\"ID_2000000324\",\"ID_2000006885\"]}"))
 	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
-	// Params above are wrong, so request should abort:
+	// Params above are correct, so request should NOT abort:
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
 	}
@@ -182,6 +181,7 @@ func TestRetriveStatsBySourceId(t *testing.T) {
 	cohortDefinitionController.RetriveStatsBySourceId(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
+	// expect result with all of the dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "name1") ||
 		!strings.Contains(result.CustomResponseWriterOut, "name2") ||
 		!strings.Contains(result.CustomResponseWriterOut, "name3") {

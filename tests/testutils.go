@@ -14,7 +14,7 @@ import (
 )
 
 func GetTestSourceId() int {
-	return 1 // TODO - this should also be used when populating "source" tables in test Atlas DB in the first place...see also comment in setupSuite...
+	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
 }
 
 func ExecAtlasSQLScript(sqlFilePath string) {
@@ -66,7 +66,7 @@ func BreakSomething(sourceType models.SourceType, tableName string, fieldName st
 		" RENAME "+fieldName+" TO "+fieldName+"_broken", GetTestSourceId())
 }
 
-// utility function to fix breaks made with BreakSomething()
+// utility function to fix things broken by BreakSomething()
 func FixSomething(sourceType models.SourceType, tableName string, fieldName string) {
 	ExecSQLString("ALTER TABLE IF EXISTS "+GetSchemaNameForType(sourceType)+"."+tableName+
 		" RENAME "+fieldName+"_broken TO "+fieldName, GetTestSourceId())
@@ -98,6 +98,7 @@ func Map[T, U any](items []T, f func(T) U) []U {
 	return result
 }
 
+// to use when mocking request context (gin.Context) in controller tests:
 type CustomResponseWriter struct {
 	CustomResponseWriterOut string
 }

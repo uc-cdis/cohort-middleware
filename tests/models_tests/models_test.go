@@ -26,10 +26,7 @@ func TestMain(m *testing.M) {
 
 func setupSuite() {
 	log.Println("setup for suite")
-	// connect to db with test data:
-	// TODO - this needs to be improved to also
-	//   populate the Atlas DB...now the tests assume an Atlas DB
-	//   with specific data that is initialized elsewhere...
+	// connect to test db:
 	config.Init("development")
 	db.Init()
 	// ensure we start w/ empty db:
@@ -47,7 +44,7 @@ func setupSuite() {
 func tearDownSuite() {
 	log.Println("teardown for suite")
 	tests.ExecAtlasSQLScript("../setup_local_db/ddl_atlas.sql")
-	// we need some basic atlas data in "source" table to be able to connect to results DB:  TODO - make this a minimal data .sql
+	// we need some basic atlas data in "source" table to be able to connect to results DB, and this script has it:
 	tests.ExecAtlasSQLScript("../setup_local_db/test_data_atlas.sql")
 	tests.ExecSQLScript("../setup_local_db/ddl_results_and_cdm.sql", testSourceId)
 }

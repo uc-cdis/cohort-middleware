@@ -123,17 +123,22 @@ func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 		t.Errorf("Found %d", len(conceptsInfo))
 	}
 }
-func TestGetAllCohortDefinitionsAndStats(t *testing.T) {
+func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	if len(cohortDefinitions) != len(allCohortDefinitions) {
 		t.Errorf("Found %d", len(cohortDefinitions))
 	}
-	// check if stats fields are filled:
+	// check if stats fields are filled and if order is as expected:
+	previousSize := 1000000
 	for _, cohortDefinition := range cohortDefinitions {
 		if cohortDefinition.CohortSize <= 0 {
 			t.Errorf("Expected positive value, found %d", cohortDefinition.CohortSize)
 		}
+		if cohortDefinition.CohortSize > previousSize {
+			t.Errorf("Data not ordered by size descending!")
+		}
+		previousSize = cohortDefinition.CohortSize
 	}
 }
 
@@ -147,7 +152,7 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	var sumNumeric float32 = 0
 	textConcat := ""
 	for _, cohortDefinition := range cohortDefinitions {
@@ -187,7 +192,7 @@ func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId
 	tests.BreakSomething(models.Omop, "observation", "person_id")
 	// set last action to restore back:
 	// run test:
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	_, error := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
 		testSourceId, cohortDefinitions[0].Id, allConceptIds)
 	if error == nil {

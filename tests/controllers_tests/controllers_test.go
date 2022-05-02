@@ -62,7 +62,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 
 type dummyCohortDefinitionDataModel struct{}
 
-func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStats(sourceId int) ([]*models.CohortDefinitionStats, error) {
+func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
 		{Id: 1, CohortSize: 10, Name: "name1"},
 		{Id: 2, CohortSize: 22, Name: "name2"},

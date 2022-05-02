@@ -8,7 +8,7 @@ type CohortDefinitionI interface {
 	GetCohortDefinitionById(id int) (*CohortDefinition, error)
 	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
-	GetAllCohortDefinitionsAndStats(sourceId int) ([]*CohortDefinitionStats, error)
+	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error)
 }
 
 type CohortDefinition struct {
@@ -58,26 +58,22 @@ func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	return cohortDefinition, nil
 }
 
-func (h CohortDefinition) GetAllCohortDefinitionsAndStats(sourceId int) ([]*CohortDefinitionStats, error) {
-	db2 := db.GetAtlasDB().Db
-	var cohortDefinitions []*CohortDefinitionStats
-	db2.Model(&CohortDefinition{}).
-		Select("id, name, null as cohort_size").
-		Scan(&cohortDefinitions)
+func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error) {
 
 	// Connect to source db and gather stats:
 	var dataSourceModel = new(Source)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-	for _, cohortDefinition := range cohortDefinitions {
-		var cohortSize int
-		result := resultsDataSource.Db.Model(&Cohort{}).
-			Select("count(*)").
-			Where("cohort_definition_id = ?", cohortDefinition.Id).
-			Scan(&cohortSize)
-		if result.Error != nil {
-			return nil, result.Error
-		}
-		cohortDefinition.CohortSize = cohortSize
+	var cohortDefinitionStats []*CohortDefinitionStats
+	resultsDataSource.Db.Model(&Cohort{}).
+		Select("cohort_definition_id as id, '' as name, count(*) as cohort_size").
+		Group("cohort_definition_id").
+		Order("count(*) desc").
+		Scan(&cohortDefinitionStats)
+
+	// add name details:
+	for _, cohortDefinitionStat := range cohortDefinitionStats {
+		var cohortDefinition, _ = h.GetCohortDefinitionById(cohortDefinitionStat.Id)
+		cohortDefinitionStat.Name = cohortDefinition.Name
 	}
-	return cohortDefinitions, nil
+	return cohortDefinitionStats, nil
 }

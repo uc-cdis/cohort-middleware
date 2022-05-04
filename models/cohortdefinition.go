@@ -9,6 +9,7 @@ type CohortDefinitionI interface {
 	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error)
+	GetCohortDefinitionsAndStatsBySourceIdAndCohortIdAndBreakDownOnConceptId(sourceId int, cohortId int, conceptId int) (*CohortDefinitionStatsBreakdown, error)
 }
 
 type CohortDefinition struct {
@@ -24,6 +25,24 @@ type CohortDefinitionStats struct {
 	Id         int    `json:"cohort_definition_id"`
 	Name       string `json:"cohort_name"`
 	CohortSize int    `json:"size"`
+}
+
+type CohortDefinitionStatsBreakdown struct {
+	Id               int              `json:"cohort_definition_id"`
+	Name             string           `json:"cohort_name"`
+	CohortSize       int              `json:"size"`
+	ConceptBreakdown ConceptBreakdown `json:"concept_breakdown"`
+}
+
+type ConceptBreakdown struct {
+	ConceptId   int                 `json:"concept_id"`
+	ConceptName string              `json:"concept_name"`
+	Breakdown   []ConceptValueStats `json:"breakdown"`
+}
+
+type ConceptValueStats struct {
+	ConceptValue              string `json:"concept_value"`
+	NPersonsInCohortWithValue int    `json:"persons_in_cohort_with_value"`
 }
 
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {
@@ -76,4 +95,22 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 		cohortDefinitionStat.Name = cohortDefinition.Name
 	}
 	return cohortDefinitionStats, nil
+}
+
+func (h CohortDefinition) GetCohortDefinitionsAndStatsBySourceIdAndCohortIdAndBreakDownOnConceptId(sourceId int, cohortId int, conceptId int) (*CohortDefinitionStatsBreakdown, error) {
+
+	cohortDefinitionStats := CohortDefinitionStatsBreakdown{
+		Id:         1,
+		CohortSize: 999999,
+		Name:       "cohort name1",
+		ConceptBreakdown: ConceptBreakdown{
+			ConceptId:   1,
+			ConceptName: "TEST CONCEPT",
+			Breakdown: []ConceptValueStats{
+				{ConceptValue: "ABC", NPersonsInCohortWithValue: 222},
+				{ConceptValue: "DEF", NPersonsInCohortWithValue: 333},
+			},
+		},
+	}
+	return &cohortDefinitionStats, nil
 }

@@ -1,13 +1,12 @@
 package controllers
 
 import (
-	"fmt"
-	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDefinitionController struct {
@@ -63,22 +62,10 @@ func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"cohort_definitions": cohortDefinitions})
 }
 
-func parseNumericId(c *gin.Context, paramName string) (int, error) {
-	// parse and validate:
-	numericIdStr := c.Param(paramName)
-	log.Printf("Querying %s: %s", paramName, numericIdStr)
-	if numericId, err := strconv.Atoi(numericIdStr); err != nil {
-		log.Printf("bad request - %s should be a number", paramName)
-		return -1, fmt.Errorf("bad request - %s should be a number", paramName)
-	} else {
-		return numericId, nil
-	}
-}
-
 func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
 
-	sourceId, err1 := parseNumericId(c, "sourceid")
+	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
 	if err1 == nil {
 		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId)
 		if err != nil {
@@ -90,24 +77,5 @@ func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
-	c.Abort()
-}
-
-func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndBreakDownOnConceptId(c *gin.Context) {
-	sourceId, err1 := parseNumericId(c, "sourceid")
-	cohortId, err2 := parseNumericId(c, "cohortid")
-	conceptId, err3 := parseNumericId(c, "conceptid")
-
-	if err1 == nil && err2 == nil && err3 == nil {
-		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetCohortDefinitionsAndStatsBySourceIdAndCohortIdAndBreakDownOnConceptId(sourceId, cohortId, conceptId)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
-			c.Abort()
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"cohort_definition_and_concept_breakdown_stats": cohortDefinitionsAndStats})
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
 }

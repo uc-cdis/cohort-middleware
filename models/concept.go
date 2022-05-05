@@ -36,6 +36,11 @@ type ConceptSimple struct {
 	DomainName        string `json:"domain_name"`
 }
 
+type ConceptBreakdown2 struct {
+	ConceptValue              string `json:"concept_value"`
+	NpersonsInCohortWithValue int    `json:"persons_in_cohort_with_value"`
+}
+
 type Observation struct {
 }
 
@@ -156,4 +161,35 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	}
 
 	return conceptStats, nil
+}
+
+func getConceptValueType(conceptId int) string {
+	return "string" // TODO - add logic to return "string" or "number" depending on concept type
+}
+
+// This function will return cohort size broken down over the different values
+// of the given "breakdown concept" by querying, for each distinct concept value,
+// how many persons in the cohort have that value in their observation records.
+// E.g. if we have a cohort of size N and a concept that can have values "A" or "B",
+// then it will return something like:
+//  {ConceptValue: "A", NPersonsInCohortWithValue: M},
+//  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*ConceptBreakdown2, error) {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	// find, for each concept, the ratio of persons in the given cohortId that have
+	// an empty value for this concept:
+	var valueFieldName = "value_as_" + getConceptValueType(breakdownConceptId)
+	var result []*ConceptBreakdown2
+	omopDataSource.Db.Model(&Observation{}).
+		Select(valueFieldName+" as concept_value, count(distinct(person_id)) as npersons_in_cohort_with_value").
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
+		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Where("observation_concept_id = ?", breakdownConceptId).
+		Where(valueFieldName + " is not null").
+		Group(valueFieldName).
+		Scan(&result)
+	return result, nil
 }

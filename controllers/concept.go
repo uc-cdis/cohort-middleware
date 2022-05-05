@@ -127,3 +127,22 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
 }
+
+func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptId(c *gin.Context) {
+	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
+	cohortId, err2 := utils.ParseNumericId(c, "cohortid")
+	filterConceptId, err3 := utils.ParseNumericId(c, "filterconceptid")
+	breakdownConceptId, err4 := utils.ParseNumericId(c, "breakdownconceptid")
+	if err1 == nil && err2 == nil && err3 == nil && err4 == nil {
+		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptId(sourceId, cohortId, filterConceptId, breakdownConceptId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
+			c.Abort()
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	c.Abort()
+}

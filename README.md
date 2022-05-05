@@ -122,6 +122,7 @@ curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3 | python -m json.tool
 curl http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000000324 | python3 -m json.tool
+curl http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/by-concept-id/2000006885/breakdown-by-concept-id/2000000324 | python3 -m json.tool
 
 ```
 

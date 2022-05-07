@@ -13,9 +13,11 @@ import (
 )
 
 var testSourceId = tests.GetTestSourceId()
-var allCohortDefinitions []*models.CohortDefinition
-var firstCohort *models.CohortDefinition
+var allCohortDefinitions []*models.CohortDefinitionStats
+var smallestCohort *models.CohortDefinitionStats
+var largestCohort *models.CohortDefinitionStats
 var allConceptIds []int
+var genderConceptId = tests.GetTestGenderConceptId()
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -35,8 +37,9 @@ func setupSuite() {
 	tests.ExecSQLScript("../setup_local_db/test_data_results_and_cdm.sql", testSourceId)
 
 	// initialize some handy variables to use in tests below:
-	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitions()
-	firstCohort = allCohortDefinitions[0]
+	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	largestCohort = allCohortDefinitions[0]
+	smallestCohort = allCohortDefinitions[len(allCohortDefinitions)-1]
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	allConceptIds = tests.MapIntAttr(concepts, "ConceptId")
 }
@@ -104,7 +107,7 @@ func TestRetriveAllBySourceId(t *testing.T) {
 func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
 	setUp(t)
 	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
-		firstCohort.Id,
+		smallestCohort.Id,
 		allConceptIds)
 	// simple test: we expect stats for each valid conceptId, therefore the lists are
 	//  expected to have the same lenght here:
@@ -123,6 +126,31 @@ func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 		t.Errorf("Found %d", len(conceptsInfo))
 	}
 }
+
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *testing.T) {
+	setUp(t)
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		smallestCohort.Id,
+		allConceptIds, allConceptIds[0])
+	// none of the subjects has a value is all the concepts, so we expect len==0 here:
+	if len(stats) != 0 {
+		t.Errorf("Expected no results, found %d", len(stats))
+	}
+}
+
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *testing.T) {
+	setUp(t)
+	filterIds := make([]int, 1)
+	filterIds[0] = genderConceptId
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		largestCohort.Id,
+		filterIds, genderConceptId)
+	// we expect values since all of the test cohorts have at least one subject with gender info:
+	if len(stats) < 2 {
+		t.Errorf("Expected at least two results, found %d", len(stats))
+	}
+}
+
 func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	setUp(t)
 	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
@@ -144,9 +172,9 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 
 func TestGetCohortDefinitionByName(t *testing.T) {
 	setUp(t)
-	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(firstCohort.Name)
-	if cohortDefinition == nil || cohortDefinition.Name != firstCohort.Name {
-		t.Errorf("Expected %s", firstCohort.Name)
+	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(smallestCohort.Name)
+	if cohortDefinition == nil || cohortDefinition.Name != smallestCohort.Name {
+		t.Errorf("Expected %s", smallestCohort.Name)
 	}
 }
 

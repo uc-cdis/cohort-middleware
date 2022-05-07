@@ -37,7 +37,7 @@ type ConceptSimple struct {
 	DomainName        string `json:"domain_name"`
 }
 
-type ConceptBreakdown2 struct {
+type ConceptBreakdown struct {
 	ConceptValue              string `json:"concept_value"`
 	NpersonsInCohortWithValue int    `json:"persons_in_cohort_with_value"`
 }
@@ -175,20 +175,20 @@ func getConceptValueType(conceptId int) string {
 // then it will return something like:
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*ConceptBreakdown2, error) {
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*ConceptBreakdown, error) {
+	// TODO - this query is identical to query in function below if that function is called with empty filterConceptIds[]... use that instead...?
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 
 	// count persons, grouping by concept value:
 	var valueFieldName = "value_as_" + getConceptValueType(breakdownConceptId)
-	var result []*ConceptBreakdown2
+	var result []*ConceptBreakdown
 	omopDataSource.Db.Model(&Observation{}).
 		Select(valueFieldName+" as concept_value, count(distinct(person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
 		Where("observation_concept_id = ?", breakdownConceptId).
-		Where(valueFieldName + " is not null").
 		Group(valueFieldName).
 		Scan(&result)
 	return result, nil
@@ -199,14 +199,14 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
 // where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown2, error) {
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 
 	// count persons, grouping by concept value:
 	var breakdownValueFieldName = "observation.value_as_" + getConceptValueType(breakdownConceptId)
-	var result []*ConceptBreakdown2
+	var result []*ConceptBreakdown
 	query := omopDataSource.Db.Model(&Observation{}).
 		Select(breakdownValueFieldName+" as concept_value, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").

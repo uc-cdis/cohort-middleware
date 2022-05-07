@@ -128,13 +128,11 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 	c.Abort()
 }
 
-func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptId(c *gin.Context) {
-	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
-	cohortId, err2 := utils.ParseNumericId(c, "cohortid")
-	filterConceptId, err3 := utils.ParseNumericId(c, "filterconceptid")
-	breakdownConceptId, err4 := utils.ParseNumericId(c, "breakdownconceptid")
-	if err1 == nil && err2 == nil && err3 == nil && err4 == nil {
-		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptId(sourceId, cohortId, filterConceptId, breakdownConceptId)
+func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
+	breakdownConceptId, err2 := utils.ParseNumericId(c, "breakdownconceptid")
+	if err1 == nil && err2 == nil {
+		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
 			c.Abort()

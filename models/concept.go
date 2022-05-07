@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -193,30 +194,34 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 	return result, nil
 }
 
-// Similar to function above, but only count persons that have a non-null value for the given filterConceptId.
+// Similar to function above, but only count persons that have a non-null value for each of the ids in the given filterConceptIds.
 // So, using the example documented in the function above, it will return something like:
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
-// where X is the number of persons that have NO value or just a "null" value for given filterConceptId.
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptId(sourceId int, cohortDefinitionId int, filterConceptId int, breakdownConceptId int) ([]*ConceptBreakdown2, error) {
+// where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown2, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 
 	// count persons, grouping by concept value:
 	var breakdownValueFieldName = "observation.value_as_" + getConceptValueType(breakdownConceptId)
-	var filterValueFieldName = "observation_filter.value_as_" + getConceptValueType(filterConceptId)
 	var result []*ConceptBreakdown2
-	omopDataSource.Db.Model(&Observation{}).
+	query := omopDataSource.Db.Model(&Observation{}).
 		Select(breakdownValueFieldName+" as concept_value, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Joins("INNER JOIN "+omopDataSource.Schema+".observation as observation_filter ON observation_filter.person_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-		Where("observation.observation_concept_id = ?", breakdownConceptId).
-		Where(breakdownValueFieldName+" is not null").
-		Where("observation_filter.observation_concept_id = ?", filterConceptId).
-		Where(filterValueFieldName + " is not null").
-		Group(breakdownValueFieldName).
+		Where("observation.observation_concept_id = ?", breakdownConceptId)
+
+	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that it becomes an intersection of all:
+	for _, filterConceptId := range filterConceptIds {
+		observationTableAlias := fmt.Sprintf("observation_filter_%d", filterConceptId)
+		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
+		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id").
+			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
+			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
+	}
+	query.Group(breakdownValueFieldName).
 		Scan(&result)
 	return result, nil
 }

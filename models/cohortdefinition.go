@@ -29,11 +29,11 @@ type CohortDefinitionStats struct {
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
-	db2.Model(&CohortDefinition{}).
+	result := db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
 		Where("id = ?", id).
 		Scan(&cohortDefinition)
-	return cohortDefinition, nil
+	return cohortDefinition, result.Error
 }
 
 func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinition, error) {
@@ -43,19 +43,16 @@ func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinit
 		Select("id, name, description").
 		Where("name = ?", name).
 		Scan(&cohortDefinition)
-	if result.Error != nil {
-		return nil, result.Error
-	}
-	return cohortDefinition, nil
+	return cohortDefinition, result.Error
 }
 
 func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition []*CohortDefinition
-	db2.Model(&CohortDefinition{}).
+	result := db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
 		Scan(&cohortDefinition)
-	return cohortDefinition, nil
+	return cohortDefinition, result.Error
 }
 
 func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error) {
@@ -64,7 +61,7 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 	var dataSourceModel = new(Source)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	var cohortDefinitionStats []*CohortDefinitionStats
-	resultsDataSource.Db.Model(&Cohort{}).
+	result := resultsDataSource.Db.Model(&Cohort{}).
 		Select("cohort_definition_id as id, '' as name, count(*) as cohort_size").
 		Group("cohort_definition_id").
 		Order("count(*) desc").
@@ -75,5 +72,5 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 		var cohortDefinition, _ = h.GetCohortDefinitionById(cohortDefinitionStat.Id)
 		cohortDefinitionStat.Name = cohortDefinition.Name
 	}
-	return cohortDefinitionStats, nil
+	return cohortDefinitionStats, result.Error
 }

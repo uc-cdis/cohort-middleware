@@ -1,6 +1,7 @@
 package controllers_tests
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net/http"
@@ -34,6 +35,7 @@ func tearDownSuite() {
 
 func setUp(t *testing.T) {
 	log.Println("setup for test")
+	dummyCohortDefinitionDataModelReturnError = false
 
 	// ensure tearDown is called when test "t" is done:
 	t.Cleanup(func() {
@@ -46,7 +48,11 @@ func tearDown() {
 }
 
 var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel))
-var cohortDefinitionControllerNoDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition))
+
+// instance of the controller that talks to the regular model implementation (that needs a real DB):
+var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition))
+
+// instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel))
 
 type dummyCohortDataModel struct{}
@@ -62,6 +68,8 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 
 type dummyCohortDefinitionDataModel struct{}
 
+var dummyCohortDefinitionDataModelReturnError bool = false
+
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
 		{Id: 1, CohortSize: 10, Name: "name1"},
@@ -71,7 +79,16 @@ func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySi
 	return cohortDefinitionStats, nil
 }
 func (h dummyCohortDefinitionDataModel) GetCohortDefinitionById(id int) (*models.CohortDefinition, error) {
-	return nil, nil
+	cohortDefinition := models.CohortDefinition{
+		Id:             1,
+		Name:           "test 1",
+		Description:    "test desc 1",
+		ExpressionType: "?",
+	}
+	if dummyCohortDefinitionDataModelReturnError {
+		return nil, fmt.Errorf("error!")
+	}
+	return &cohortDefinition, nil
 }
 func (h dummyCohortDefinitionDataModel) GetCohortDefinitionByName(name string) (*models.CohortDefinition, error) {
 	return nil, nil
@@ -169,7 +186,7 @@ func TestRetriveStatsBySourceIdDbPanic(t *testing.T) {
 			}
 		}
 	}()
-	cohortDefinitionControllerNoDb.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionControllerNeedsDb.RetriveStatsBySourceId(requestContext)
 	t.Errorf("Expected error")
 }
 
@@ -186,5 +203,44 @@ func TestRetriveStatsBySourceId(t *testing.T) {
 		!strings.Contains(result.CustomResponseWriterOut, "name2") ||
 		!strings.Contains(result.CustomResponseWriterOut, "name3") {
 		t.Errorf("Expected 3 rows in result")
+	}
+}
+
+func TestRetriveByIdWrongParam(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveById(requestContext)
+	// Params above are wrong, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+}
+
+func TestRetriveById(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "id", Value: "1"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveById(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect result with all of the dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "test 1") {
+		t.Errorf("Expected data in result")
+	}
+}
+
+func TestRetriveByIdModelError(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "id", Value: "1"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	// set flag to let mock model layer return error instead of mock data:
+	dummyCohortDefinitionDataModelReturnError = true
+	cohortDefinitionController.RetriveById(requestContext)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
 	}
 }

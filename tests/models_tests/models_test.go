@@ -74,7 +74,7 @@ var sourceModel = new(models.Source)
 
 func TestGetConceptId(t *testing.T) {
 	setUp(t)
-	conceptId := conceptModel.GetConceptId("ID_12345")
+	conceptId := models.GetConceptId("ID_12345")
 	if conceptId != 12345 {
 		t.Error()
 	}
@@ -84,13 +84,13 @@ func TestGetConceptId(t *testing.T) {
 			t.Errorf("The code did not panic")
 		}
 	}()
-	conceptModel.GetConceptId("AD_12345")
+	models.GetConceptId("AD_12345")
 
 }
 
 func TestGetPrefixedConceptId(t *testing.T) {
 	setUp(t)
-	conceptId := conceptModel.GetPrefixedConceptId(12345)
+	conceptId := models.GetPrefixedConceptId(12345)
 	if conceptId != "ID_12345" {
 		t.Error()
 	}

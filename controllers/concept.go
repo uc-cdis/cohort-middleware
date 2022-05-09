@@ -12,16 +12,20 @@ import (
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
-type ConceptController struct{}
+type ConceptController struct {
+	conceptModel models.ConceptI
+}
 
-var conceptModel = new(models.Concept)
+func NewConceptController(conceptModel models.ConceptI) ConceptController {
+	return ConceptController{conceptModel: conceptModel}
+}
 
 func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 	sourceId := c.Param("sourceid")
 
 	if sourceId != "" {
 		sourceId, _ := strconv.Atoi(sourceId)
-		concepts, err := conceptModel.RetriveAllBySourceId(sourceId)
+		concepts, err := u.conceptModel.RetriveAllBySourceId(sourceId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 			c.Abort()
@@ -81,7 +85,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 	}
 
 	// call model method:
-	conceptStats, err := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds)
+	conceptStats, err := u.conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()
@@ -101,7 +105,7 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 	}
 
 	// call model method:
-	conceptStats, err := conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
+	conceptStats, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()
@@ -115,7 +119,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 	cohortId, err2 := utils.ParseNumericId(c, "cohortid")
 	breakdownConceptId, err3 := utils.ParseNumericId(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil && err3 == nil {
-		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
+		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
 			c.Abort()
@@ -132,7 +136,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConcept
 	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
 	breakdownConceptId, err2 := utils.ParseNumericId(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil {
-		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
+		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
 			c.Abort()

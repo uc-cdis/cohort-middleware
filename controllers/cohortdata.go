@@ -66,8 +66,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 func getConceptIdsFromPrefixedConceptIds(ids []string) []int {
 	var result []int
 	for _, id := range ids {
-		var conceptModel = new(models.Concept)
-		idAsNumber := conceptModel.GetConceptId(id)
+		idAsNumber := models.GetConceptId(id)
 		result = append(result, idAsNumber)
 	}
 	return result
@@ -128,10 +127,9 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 }
 
 func addConceptsToHeader(sourceId int, header []string, conceptIds []int) []string {
-	var conceptModel = new(models.Concept)
 	for i := 0; i < len(conceptIds); i++ {
 		//var conceptName = getConceptName(sourceId, conceptIds[i]) // instead of name, we now prefer ID_concept_id...below:
-		var conceptPrefixedId = conceptModel.GetPrefixedConceptId(conceptIds[i])
+		var conceptPrefixedId = models.GetPrefixedConceptId(conceptIds[i])
 		header = append(header, conceptPrefixedId)
 	}
 	return header

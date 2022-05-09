@@ -105,10 +105,26 @@ func (h dummyConceptDataModel) RetriveAllBySourceId(sourceId int) ([]*models.Con
 	return nil, nil
 }
 func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int) ([]*models.ConceptSimple, error) {
-	return nil, nil
+	// dummy data with _some_ of the relevant fields:
+	conceptSimple := []*models.ConceptSimple{
+		{ConceptId: 1234, ConceptName: "Concept A"},
+		{ConceptId: 5678, ConceptName: "Concept B"},
+	}
+	if dummyModelReturnError {
+		return nil, fmt.Errorf("error!")
+	}
+	return conceptSimple, nil
 }
 func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*models.ConceptStats, error) {
-	return nil, nil
+	// dummy data with _some_ of the relevant fields:
+	conceptStats := []*models.ConceptStats{
+		{ConceptId: 1234, CohortSize: 11, NmissingRatio: 0.56},
+		{ConceptId: 4567, CohortSize: 22, NmissingRatio: 0.67},
+	}
+	if dummyModelReturnError {
+		return nil, fmt.Errorf("error!")
+	}
+	return conceptStats, nil
 }
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
 	return nil, nil
@@ -304,5 +320,66 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *t
 	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
+	}
+}
+
+func TestRetrieveInfoBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	conceptController.RetrieveInfoBySourceIdAndCohortIdAndConceptIds(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "Concept A") ||
+		!strings.Contains(result.CustomResponseWriterOut, "Concept B") {
+		t.Errorf("Expected data in result")
+	}
+}
+
+func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	conceptController.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "n_missing_ratio") ||
+		!strings.Contains(result.CustomResponseWriterOut, "cohort_size") {
+		t.Errorf("Expected data not found in result")
+	}
+}
+
+func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	// set flag to let mock model layer return error instead of mock data:
+	dummyModelReturnError = true
+	conceptController.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	// error message:
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect specific error message:
+	if !strings.Contains(result.CustomResponseWriterOut, "Error retrieving concept details") {
+		t.Errorf("Expected error did not occur...other error occurred instead")
 	}
 }

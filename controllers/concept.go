@@ -105,13 +105,13 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 	}
 
 	// call model method:
-	conceptStats, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
+	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"concepts": conceptStats})
+	c.JSON(http.StatusOK, gin.H{"concepts": conceptInfo})
 }
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {

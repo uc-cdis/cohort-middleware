@@ -35,7 +35,7 @@ func tearDownSuite() {
 
 func setUp(t *testing.T) {
 	log.Println("setup for test")
-	dummyCohortDefinitionDataModelReturnError = false
+	dummyModelReturnError = false
 
 	// ensure tearDown is called when test "t" is done:
 	t.Cleanup(func() {
@@ -55,6 +55,8 @@ var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionControlle
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel))
 
+var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel))
+
 type dummyCohortDataModel struct{}
 
 func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*models.PersonConceptAndValue, error) {
@@ -68,7 +70,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 
 type dummyCohortDefinitionDataModel struct{}
 
-var dummyCohortDefinitionDataModelReturnError bool = false
+var dummyModelReturnError bool = false
 
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
@@ -85,7 +87,7 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionById(id int) (*models
 		Description:    "test desc 1",
 		ExpressionType: "?",
 	}
-	if dummyCohortDefinitionDataModelReturnError {
+	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
 	}
 	return &cohortDefinition, nil
@@ -95,6 +97,31 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionByName(name string) (
 }
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitions() ([]*models.CohortDefinition, error) {
 	return nil, nil
+}
+
+type dummyConceptDataModel struct{}
+
+func (h dummyConceptDataModel) RetriveAllBySourceId(sourceId int) ([]*models.Concept, error) {
+	return nil, nil
+}
+func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int) ([]*models.ConceptSimple, error) {
+	return nil, nil
+}
+func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*models.ConceptStats, error) {
+	return nil, nil
+}
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
+	return nil, nil
+}
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
+	conceptBreakdown := []*models.ConceptBreakdown{
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
+	}
+	if dummyModelReturnError {
+		return nil, fmt.Errorf("error!")
+	}
+	return conceptBreakdown, nil
 }
 
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsWrongParams(t *testing.T) {
@@ -226,7 +253,7 @@ func TestRetriveById(t *testing.T) {
 	cohortDefinitionController.RetriveById(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
-	// expect result with all of the dummy data:
+	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "test 1") {
 		t.Errorf("Expected data in result")
 	}
@@ -238,8 +265,43 @@ func TestRetriveByIdModelError(t *testing.T) {
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "id", Value: "1"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	// set flag to let mock model layer return error instead of mock data:
-	dummyCohortDefinitionDataModelReturnError = true
+	dummyModelReturnError = true
 	cohortDefinitionController.RetriveById(requestContext)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+}
+
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
+		t.Errorf("Expected data in result")
+	}
+}
+
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	// set flag to let mock model layer return error instead of mock data:
+	dummyModelReturnError = true
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}

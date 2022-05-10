@@ -67,7 +67,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 	sourceId := c.Param("sourceid")
 	if sourceId != "" {
 		sourceId, _ := strconv.Atoi(sourceId)
-		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStats(sourceId)
+		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()

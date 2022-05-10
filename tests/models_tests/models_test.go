@@ -3,6 +3,7 @@ package models_tests
 import (
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/uc-cdis/cohort-middleware/config"
@@ -101,6 +102,19 @@ func TestRetriveAllBySourceId(t *testing.T) {
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	if len(concepts) != 4 {
 		t.Errorf("Found %d", len(concepts))
+	}
+	if concepts[0].ConceptType == "?" {
+		t.Errorf("Expected ConceptType value, Found '?' as value instead'")
+	}
+	if strings.Contains(string(concepts[0].ConceptType), "_") || len(concepts[0].ConceptType) == 0 {
+		t.Errorf("Expected ConceptType value to be length > 0 and not contain _, but found %s", concepts[0].ConceptType)
+	}
+	// in the current version we extract the concept type from concept class id (see models/customgormtypes.go). This test
+	// ensures this is the case:
+	for _, concept := range concepts {
+		if !strings.Contains(concept.ConceptClassId, string(concept.ConceptType)) {
+			t.Errorf("The ConceptType should be a substring of ConceptClassId")
+		}
 	}
 }
 

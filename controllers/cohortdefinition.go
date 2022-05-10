@@ -8,16 +8,20 @@ import (
 	"github.com/uc-cdis/cohort-middleware/models"
 )
 
-type CohortDefinitionController struct{}
+type CohortDefinitionController struct {
+	cohortDefinitionModel models.CohortDefinitionI
+}
 
-var cohortDefinitionModel = new(models.CohortDefinition)
+func NewCohortDefinitionController(cohortDefinitionModel models.CohortDefinitionI) CohortDefinitionController {
+	return CohortDefinitionController{cohortDefinitionModel: cohortDefinitionModel}
+}
 
 func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 	cohortDefinitionId := c.Param("id")
 
 	if cohortDefinitionId != "" {
 		cohortDefinitionId, _ := strconv.Atoi(cohortDefinitionId)
-		cohortDefinition, err := cohortDefinitionModel.GetCohortDefinitionById(cohortDefinitionId)
+		cohortDefinition, err := u.cohortDefinitionModel.GetCohortDefinitionById(cohortDefinitionId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()
@@ -34,7 +38,7 @@ func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
 	cohortDefinitionName := c.Param("name")
 
 	if cohortDefinitionName != "" {
-		cohortDefinition, err := cohortDefinitionModel.GetCohortDefinitionByName(cohortDefinitionName)
+		cohortDefinition, err := u.cohortDefinitionModel.GetCohortDefinitionByName(cohortDefinitionName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()
@@ -48,7 +52,7 @@ func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
 }
 
 func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
-	cohortDefinitions, err := cohortDefinitionModel.GetAllCohortDefinitions()
+	cohortDefinitions, err := u.cohortDefinitionModel.GetAllCohortDefinitions()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 		c.Abort()
@@ -63,7 +67,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 	sourceId := c.Param("sourceid")
 	if sourceId != "" {
 		sourceId, _ := strconv.Atoi(sourceId)
-		cohortDefinitionsAndStats, err := cohortDefinitionModel.GetAllCohortDefinitionsAndStats(sourceId)
+		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStats(sourceId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
 			c.Abort()

@@ -13,13 +13,16 @@ import (
 )
 
 type CohortDataController struct {
+	cohortDataModel models.CohortDataI
 }
 
 type PrefixedConceptIds struct {
 	PrefixedConceptIds []string
 }
 
-var cohortDataModel = new(models.CohortData)
+func NewCohortDataController(cohortDataModel models.CohortDataI) CohortDataController {
+	return CohortDataController{cohortDataModel: cohortDataModel}
+}
 
 func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
@@ -50,7 +53,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds.PrefixedConceptIds)
 
 	// call model method:
-	cohortData, err := cohortDataModel.RetrieveDataLargeBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
+	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
 		c.Abort()

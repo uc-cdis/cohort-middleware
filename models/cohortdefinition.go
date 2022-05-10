@@ -4,6 +4,13 @@ import (
 	"github.com/uc-cdis/cohort-middleware/db"
 )
 
+type CohortDefinitionI interface {
+	GetCohortDefinitionById(id int) (*CohortDefinition, error)
+	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
+	GetAllCohortDefinitions() ([]*CohortDefinition, error)
+	GetAllCohortDefinitionsAndStats(sourceId int) ([]*CohortDefinitionStats, error)
+}
+
 type CohortDefinition struct {
 	Id             int    `json:"cohort_definition_id"`
 	Name           string `json:"cohort_name"`
@@ -32,10 +39,13 @@ func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, er
 func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
-	db2.Model(&CohortDefinition{}).
+	result := db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
 		Where("name = ?", name).
 		Scan(&cohortDefinition)
+	if result.Error != nil {
+		return nil, result.Error
+	}
 	return cohortDefinition, nil
 }
 

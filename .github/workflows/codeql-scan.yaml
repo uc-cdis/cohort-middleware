@@ -5,4 +5,4 @@ on: [push, pull_request]
 jobs:
   codeql-scan:
     name: CodeQL Scan
-    uses: uc-cdis/.github/.github/workflows/codeql-scan.yaml@feat/codeql-scan
+    uses: uc-cdis/.github/.github/workflows/codeql-scan.yaml@master

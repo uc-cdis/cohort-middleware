@@ -7,6 +7,13 @@ import (
 	"strings"
 )
 
+type ConceptI interface {
+	RetriveAllBySourceId(sourceId int) ([]*Concept, error)
+	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int) ([]*ConceptSimple, error)
+	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*ConceptBreakdown, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown, error)
+}
 type Concept struct {
 	ConceptId   int    `json:"concept_id"`
 	ConceptName string `json:"concept_name"`
@@ -61,12 +68,12 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 // Very simple function, just to add a prefix in front of the conceptId.
 // It is a public method here, since it is needed in different places...
 // ...so we need to keep it consistent:
-func (h Concept) GetPrefixedConceptId(conceptId int) string {
+func GetPrefixedConceptId(conceptId int) string {
 	return "ID_" + strconv.Itoa(conceptId)
 }
 
 // The reverse of above function:
-func (h Concept) GetConceptId(prefixedConceptId string) int {
+func GetConceptId(prefixedConceptId string) int {
 	// validate: it should start with ID_
 	if strings.Index(prefixedConceptId, "ID_") != 0 {
 		log.Panicf("Prefixed concept id should start with ID_ . However, found this instead: %s", prefixedConceptId)
@@ -102,7 +109,7 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 	}
 	for _, conceptItem := range conceptItems {
 		// set prefixed_concept_id:
-		conceptItem.PrefixedConceptId = h.GetPrefixedConceptId(conceptItem.ConceptId)
+		conceptItem.PrefixedConceptId = GetPrefixedConceptId(conceptItem.ConceptId)
 	}
 	return conceptItems, nil
 }
@@ -148,7 +155,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 
 	for _, conceptStat := range conceptStats {
 		// since we are looping over items anyway, also set prefixed_concept_id and cohort_size:
-		conceptStat.PrefixedConceptId = h.GetPrefixedConceptId(conceptStat.ConceptId)
+		conceptStat.PrefixedConceptId = GetPrefixedConceptId(conceptStat.ConceptId)
 		conceptStat.CohortSize = cohortSize
 		if cohortSize == 0 {
 			conceptStat.NmissingRatio = 0

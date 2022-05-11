@@ -6,6 +6,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDefinitionController struct {
@@ -64,9 +65,8 @@ func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
 func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
 
-	sourceId := c.Param("sourceid")
-	if sourceId != "" {
-		sourceId, _ := strconv.Atoi(sourceId)
+	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
+	if err1 == nil {
 		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err})
@@ -76,6 +76,6 @@ func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": cohortDefinitionsAndStats})
 		return
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
 	c.Abort()
 }

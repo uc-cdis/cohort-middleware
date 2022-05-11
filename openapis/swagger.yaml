@@ -626,6 +626,173 @@ paths:
       description: Get concept statistics by source id
       tags:
         - data
+  '/concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}/breakdown-by-concept-id/{breakdownconceptid}':
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+      - $ref: '#/components/parameters/cohortid'
+      - $ref: '#/components/parameters/breakdownconceptid'
+    post:
+      summary: 'Post /concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}/breakdown-by-concept-id/{breakdownconceptid}'
+      operationId: post-concept-stats-by-source-id-sourceid-by-cohort-definition-id-cohortid-breakdown-by-concept-id-breakdownconceptid
+      security:
+        - Bearer: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ConceptIds:
+                  type: array
+                  items: {
+                    type: integer
+                  }
+            examples:
+                example-1:
+                  value:
+                    ConceptIds: [2000000324,2000006885]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  concept_breakdown:
+                    type: array
+                    uniqueItems: true
+                    minItems: 1
+                    items:
+                      required:
+                        - concept_value
+                        - persons_in_cohort_with_value
+                      properties:
+                        concept_value:
+                          type: string
+                          minLength: 1
+                        persons_in_cohort_with_value:
+                          type: number
+                required:
+                  - concept_breakdown
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request - no request body
+                      - bad request
+                    example: bad request
+                required:
+                  - message
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      description: Get statistics for given cohort id, filtered to count only persons that have values in one or more concepts (defined in POST request body), and broken down by concept values of the given breakdown concept id
+      tags:
+        - data
+  '/concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}/breakdown-by-concept-id/{breakdownconceptid} ':
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+      - $ref: '#/components/parameters/cohortid'
+      - $ref: '#/components/parameters/breakdownconceptid'
+    get:
+      summary: 'Get /concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}/breakdown-by-concept-id/{breakdownconceptid}'
+      operationId: get-concept-stats-by-source-id-sourceid-by-cohort-definition-id-cohortid-breakdown-by-concept-id-breakdownconceptid
+      security:
+        - Bearer: []
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  concept_breakdown:
+                    type: array
+                    uniqueItems: true
+                    minItems: 1
+                    items:
+                      required:
+                        - concept_value
+                        - persons_in_cohort_with_value
+                      properties:
+                        concept_value:
+                          type: string
+                          minLength: 1
+                        persons_in_cohort_with_value:
+                          type: number
+                required:
+                  - concept_breakdown
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request - no request body
+                      - bad request
+                    example: bad request
+                required:
+                  - message
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      description: Get statistics for size of given cohort id, broken down by concept values of the given breakdown concept id
+      tags:
+        - data
   '/cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':
     parameters:
       - $ref: '#/components/parameters/sourceid'
@@ -823,6 +990,12 @@ components:
         type: number
     cohortid:
       name: cohortid
+      in: path
+      required: true
+      schema:
+        type: number
+    breakdownconceptid:
+      name: breakdownconceptid
       in: path
       required: true
       schema:

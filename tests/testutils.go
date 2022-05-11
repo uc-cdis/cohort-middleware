@@ -17,6 +17,10 @@ func GetTestSourceId() int {
 	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
 }
 
+func GetTestGenderConceptId() int {
+	return 2000000324
+}
+
 func ExecAtlasSQLScript(sqlFilePath string) {
 	ExecSQLScript(sqlFilePath, -1)
 }

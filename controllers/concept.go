@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type ConceptController struct{}
@@ -39,10 +40,9 @@ type ConceptIds struct {
 
 func parseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
 	// parse and validate all parameters:
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	if _, err := strconv.Atoi(sourceIdStr); err != nil {
-		return -1, nil, errors.New("bad request - source_id should be a number")
+	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
+	if err1 != nil {
+		return -1, nil, err1
 	}
 	decoder := json.NewDecoder(c.Request.Body)
 	var conceptIds ConceptIds
@@ -52,7 +52,6 @@ func parseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
 	}
 	log.Printf("Querying concept ids: %v", conceptIds.ConceptIds)
 
-	sourceId, _ := strconv.Atoi(sourceIdStr)
 	return sourceId, conceptIds.ConceptIds, nil
 }
 
@@ -109,4 +108,39 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"concepts": conceptStats})
+}
+
+func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {
+	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
+	cohortId, err2 := utils.ParseNumericId(c, "cohortid")
+	breakdownConceptId, err3 := utils.ParseNumericId(c, "breakdownconceptid")
+	if err1 == nil && err2 == nil && err3 == nil {
+		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
+			c.Abort()
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	c.Abort()
+}
+
+func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
+	breakdownConceptId, err2 := utils.ParseNumericId(c, "breakdownconceptid")
+	if err1 == nil && err2 == nil {
+		breakdownStats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
+			c.Abort()
+			return
+		}
+		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
+		return
+	}
+	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	c.Abort()
 }

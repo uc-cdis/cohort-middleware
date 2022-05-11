@@ -13,12 +13,11 @@ type ConceptI interface {
 	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
-	ConceptId      int         `json:"concept_id"`
-	ConceptName    string      `json:"concept_name"`
-	DomainId       string      `json:"domain_id"`
-	DomainName     string      `json:"domain_name"`
-	ConceptClassId string      `json:"concept_class_id"`
-	ConceptType    ConceptType `json:"concept_type"`
+	ConceptId   int         `json:"concept_id"`
+	ConceptName string      `json:"concept_name"`
+	DomainId    string      `json:"domain_id"`
+	DomainName  string      `json:"domain_name"`
+	ConceptType ConceptType `json:"concept_type"`
 }
 
 type ConceptAndPersonsWithDataStats struct {
@@ -27,23 +26,23 @@ type ConceptAndPersonsWithDataStats struct {
 }
 
 type ConceptStats struct {
-	ConceptId         int     `json:"concept_id"`
-	PrefixedConceptId string  `json:"prefixed_concept_id"`
-	ConceptName       string  `json:"concept_name"`
-	DomainId          string  `json:"domain_id"`
-	DomainName        string  `json:"domain_name"`
-	ConceptType       string  `json:"concept_type"`
-	CohortSize        int     `json:"cohort_size"`
-	NmissingRatio     float32 `json:"n_missing_ratio"`
+	ConceptId         int         `json:"concept_id"`
+	PrefixedConceptId string      `json:"prefixed_concept_id"`
+	ConceptName       string      `json:"concept_name"`
+	DomainId          string      `json:"domain_id"`
+	DomainName        string      `json:"domain_name"`
+	ConceptType       ConceptType `json:"concept_type"`
+	CohortSize        int         `json:"cohort_size"`
+	NmissingRatio     float32     `json:"n_missing_ratio"`
 }
 
 type ConceptSimple struct {
-	ConceptId         int    `json:"concept_id"`
-	PrefixedConceptId string `json:"prefixed_concept_id"`
-	ConceptName       string `json:"concept_name"`
-	DomainId          string `json:"domain_id"`
-	DomainName        string `json:"domain_name"`
-	ConceptType       string `json:"concept_type"`
+	ConceptId         int         `json:"concept_id"`
+	PrefixedConceptId string      `json:"prefixed_concept_id"`
+	ConceptName       string      `json:"concept_name"`
+	DomainId          string      `json:"domain_id"`
+	DomainName        string      `json:"domain_name"`
+	ConceptType       ConceptType `json:"concept_type"`
 }
 
 type ConceptBreakdown struct {
@@ -60,7 +59,7 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 
 	var concepts []*Concept
 	result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id, concept_class_id as concept_type").
+		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
 		Joins("INNER JOIN " + omopDataSource.Schema + ".domain as domain ON concept.domain_id = domain.domain_id").
 		Order("concept_name").
 		Scan(&concepts)

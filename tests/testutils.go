@@ -11,6 +11,7 @@ import (
 
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 func GetTestSourceId() int {
@@ -58,6 +59,12 @@ func ExecSQLString(sqlString string, sourceId int) {
 	}
 }
 
+func GetOmopDataSource() *utils.DbAndSchema {
+	var dataSourceModel = new(models.Source)
+	omopDataSource := dataSourceModel.GetDataSource(GetTestSourceId(), models.Omop)
+	return omopDataSource
+}
+
 func GetSchemaNameForType(sourceType models.SourceType) string {
 	sourceModel := new(models.Source)
 	dbSchema, _ := sourceModel.GetSourceSchemaNameBySourceIdAndSourceType(GetTestSourceId(), sourceType)
@@ -84,6 +91,7 @@ func GetIntAttributeValue[T any](item T, attributeName string) int {
 
 // returns an int array with the attribute values of the given attribute
 // for each item in "items" array.
+// TODO - can also simply be done wit something like: db.Model(&users).Pluck("age", &ages), where var ages []int64
 func MapIntAttr[T any](items []T, attributeName string) []int {
 	result := make([]int, len(items))
 	for i := range items {

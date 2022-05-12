@@ -5,10 +5,10 @@
 insert into omop.concept
 (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
 values
-    (2000006885,'Average height ','Measurement','Measurement','Measurement','S','F','1970-01-01','2099-12-31',NULL),
-    (2000000323,'MVP Age Group','Person','Person','Person','S','F','1970-01-01','2099-12-31',NULL),
-    (2000000324,'Sex, indicated by the subject','Person','Person','Observation Type',NULL,'OMOP4822310','1970-01-01','2099-12-31',NULL),
-    (2000000280,'BMI at enrollment','Measurement','Measurement','Measurement','S','2','1970-01-01','2099-12-31',NULL)
+    (2000006885,'Average height ','Measurement','Measurement','Measurement_contin','S','F','1970-01-01','2099-12-31',NULL),
+    (2000000323,'MVP Age Group','Person','Person','Person_contin','S','F','1970-01-01','2099-12-31',NULL),
+    (2000000324,'Sex, indicated by the subject','Person','Person','Observ_categ',NULL,'OMOP4822310','1970-01-01','2099-12-31',NULL),
+    (2000000280,'BMI at enrollment','Measurement','Measurement','Measurement_contin','S','2','1970-01-01','2099-12-31',NULL)
 ;
 
 -- These are the concepts we are looking for in the demo:

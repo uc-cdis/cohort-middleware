@@ -77,6 +77,9 @@ CREATE TABLE omop.observation
     obs_event_field_concept_id integer NOT NULL  DEFAULT 0,
     value_as_datetime timestamp without time zone
 );
+ALTER TABLE omop.observation  ADD CONSTRAINT xpk_observation PRIMARY KEY ( observation_id ) ;
+drop sequence if exists observation_id_seq;
+create sequence observation_id_seq start with 1;
 
 CREATE TABLE omop.concept
 (

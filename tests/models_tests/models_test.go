@@ -127,7 +127,7 @@ func TestCustomGormDataTypeConceptType(t *testing.T) {
 		Select("concept_class_id, concept_class_id as concept_type").
 		Scan(&concepts)
 
-	if len(concepts) != 4 {
+	if len(concepts) != 10 {
 		t.Errorf("Found %d", len(concepts))
 	}
 
@@ -150,7 +150,7 @@ func TestCustomGormDataTypeConceptTypeWrongMapping(t *testing.T) {
 		Select("concept_class_id, concept_name as concept_type").
 		Scan(&concepts)
 
-	if len(concepts) != 4 {
+	if len(concepts) != 10 {
 		t.Errorf("Found %d", len(concepts))
 	}
 

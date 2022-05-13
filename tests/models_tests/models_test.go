@@ -155,7 +155,8 @@ func TestCustomGormDataTypeConceptTypeWrongMapping(t *testing.T) {
 	}
 
 	// in the current version we extract the concept type from concept class id (see models/customgormtypes.go). This test
-	// ensures this is the case:
+	// checks if the expected error is shown when the mapping is not set correctly (i.e. when another field with different data
+	// is queried "as concept_type"):
 	for _, concept := range concepts {
 		if !strings.Contains(string(concept.ConceptType), "unexpected missing value") {
 			t.Errorf("The ConceptType should contain 'missing value' error in this case")
@@ -191,7 +192,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *te
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		smallestCohort.Id,
 		allConceptIds, allConceptIds[0])
-	// none of the subjects has a value is all the concepts, so we expect len==0 here:
+	// none of the subjects has a value in all the concepts, so we expect len==0 here:
 	if len(stats) != 0 {
 		t.Errorf("Expected no results, found %d", len(stats))
 	}

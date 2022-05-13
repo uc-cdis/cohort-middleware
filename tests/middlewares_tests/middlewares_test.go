@@ -49,7 +49,7 @@ func TestPrepareNewArboristRequest(t *testing.T) {
 	requestContext.Request.Header = map[string][]string{
 		"Authorization": {"dummy_token_value"},
 	}
-	u, _ := url.Parse("https://cohort-middleware/api/abc/123")
+	u, _ := url.Parse("https://some-cohort-middl-server/api/abc/123")
 	requestContext.Request.URL = u
 	arboristEndpoint := "https://arboristdummyurl"
 	resultArboristRequest, error := middlewares.PrepareNewArboristRequest(requestContext, arboristEndpoint)
@@ -57,7 +57,7 @@ func TestPrepareNewArboristRequest(t *testing.T) {
 	expectedResult := "resource=/cohort-middleware/api/abc/123&service=cohort-middleware&method=access"
 	// check if expected result URL was produced:
 	if error != nil || resultArboristRequest.URL.RawQuery != expectedResult {
-		t.Errorf("Unexpected error %s", error)
+		t.Errorf("Unexpected error or resource query is not as expected")
 	}
 }
 

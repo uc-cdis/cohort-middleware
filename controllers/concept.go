@@ -135,8 +135,8 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
 	breakdownConceptId, err2 := utils.ParseNumericArg(c, "breakdownconceptid")
-	breakdownConceptId, err2 := utils.ParseNumericId(c, "breakdownconceptid")
-	if err1 == nil && err2 == nil {
+	valueFormat, err3 := utils.ParseStringArg(c, "valueformat")
+	if err1 == nil && err2 == nil && err3 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})

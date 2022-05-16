@@ -40,8 +40,9 @@ func NewRouter() *gin.Engine {
 		authorized.GET("/concept/by-source-id/:sourceid", concepts.RetriveAllBySourceId)
 		authorized.POST("/concept/by-source-id/:sourceid", concepts.RetrieveInfoBySourceIdAndCohortIdAndConceptIds)
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", concepts.RetrieveStatsBySourceIdAndCohortIdAndConceptIds)
-		authorized.GET("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortId)
-		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds)
+		authorized.GET("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid/using/:valueformat", concepts.RetrieveBreakdownStatsBySourceIdAndCohortId)
+		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid/using/:valueformat", concepts.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds)
+		// TODO - add arg "breakdown-by-values-in...or using" value_as_concept_id, value_as_string, value_as_number...
 
 		// full data endpoints:
 		cohortData := controllers.NewCohortDataController(*new(models.CohortData))

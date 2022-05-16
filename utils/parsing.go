@@ -19,3 +19,16 @@ func ParseNumericArg(c *gin.Context, paramName string) (int, error) {
 		return numericId, nil
 	}
 }
+
+// parse and validate mandatory request argument.
+func ParseStringArg(c *gin.Context, paramName string) (string, error) {
+	// parse and validate:
+	stringArgValue := c.Param(paramName)
+	log.Printf("Querying %s: ", paramName)
+	if stringArgValue == "" {
+		log.Printf("bad request - %s should be set", paramName)
+		return "", fmt.Errorf("bad request - %s should set", paramName)
+	} else {
+		return stringArgValue, nil
+	}
+}

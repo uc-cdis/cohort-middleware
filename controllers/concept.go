@@ -44,7 +44,7 @@ type ConceptIds struct {
 
 func parseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
 	// parse and validate all parameters:
-	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
+	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
 	if err1 != nil {
 		return -1, nil, err1
 	}
@@ -115,9 +115,9 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 }
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {
-	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
-	cohortId, err2 := utils.ParseNumericId(c, "cohortid")
-	breakdownConceptId, err3 := utils.ParseNumericId(c, "breakdownconceptid")
+	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
+	cohortId, err2 := utils.ParseNumericArg(c, "cohortid")
+	breakdownConceptId, err3 := utils.ParseNumericArg(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil && err3 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 		if err != nil {
@@ -134,6 +134,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
+	breakdownConceptId, err2 := utils.ParseNumericArg(c, "breakdownconceptid")
 	breakdownConceptId, err2 := utils.ParseNumericId(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)

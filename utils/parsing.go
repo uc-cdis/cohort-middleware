@@ -8,11 +8,11 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func ParseNumericId(c *gin.Context, paramName string) (int, error) {
+func ParseNumericArg(c *gin.Context, paramName string) (int, error) {
 	// parse and validate:
-	numericIdStr := c.Param(paramName)
-	log.Printf("Querying %s: %s", paramName, numericIdStr)
-	if numericId, err := strconv.Atoi(numericIdStr); err != nil {
+	numericArgValue := c.Param(paramName)
+	log.Printf("Querying %s: ", paramName)
+	if numericId, err := strconv.Atoi(numericArgValue); err != nil {
 		log.Printf("bad request - %s should be a number", paramName)
 		return -1, fmt.Errorf("bad request - %s should be a number", paramName)
 	} else {

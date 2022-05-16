@@ -65,7 +65,7 @@ func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
 func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
 	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
 
-	sourceId, err1 := utils.ParseNumericId(c, "sourceid")
+	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
 	if err1 == nil {
 		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId)
 		if err != nil {

@@ -6,6 +6,7 @@ import (
 	"log"
 	"net/http"
 	"os"
+	"reflect"
 	"strconv"
 	"strings"
 	"testing"
@@ -127,7 +128,14 @@ func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(s
 	return conceptStats, nil
 }
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
-	return nil, nil
+	conceptBreakdown := []*models.ConceptBreakdown{
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
+	}
+	if dummyModelReturnError {
+		return nil, fmt.Errorf("error!")
+	}
+	return conceptBreakdown, nil
 }
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
@@ -381,5 +389,97 @@ func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *testing.T)
 	// expect specific error message:
 	if !strings.Contains(result.CustomResponseWriterOut, "Error retrieving concept details") {
 		t.Errorf("Expected error did not occur...other error occurred instead")
+	}
+}
+
+func TestGenerateAttritionCSV(t *testing.T) {
+	setUp(t)
+	headerAndNonFilteredRow := [][]string{
+		{"Cohort", "Size", "Cohort_val_1", "Cohort_val_2"},
+		{"test cohort", "5", "2", "3"},
+	}
+	filteredRows := [][]string{
+		{"filtered_val", "4", "2", "2"},
+	}
+	b := controllers.GenerateAttritionCSV(headerAndNonFilteredRow, filteredRows)
+	csvLines := strings.Split(strings.TrimRight(b.String(), "\n"), "\n")
+	if len(csvLines) != 3 {
+		t.Errorf("Expected 1 header line + 2 data lines, found %d lines in total",
+			len(csvLines))
+		t.Errorf("Lines: %s", csvLines)
+	}
+
+	expectedLines := []string{
+		"Cohort,Size,Cohort_val_1,Cohort_val_2",
+		"test cohort,5,2,3",
+		"filtered_val,4,2,2",
+	}
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if csvLines[i] != expectedLine {
+			t.Errorf("CSV line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, csvLines[i])
+		}
+		i++
+	}
+
+}
+
+func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
+	setUp(t)
+	sourceId := 1
+	cohortId := 1
+	breakdownConceptId := 1
+	cohortName := "hello"
+
+	result, _ := conceptController.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
+	if len(result) != 2 {
+		t.Errorf("Expected 1 header line + 1 data lines, found %d lines in total",
+			len(result))
+		t.Errorf("Lines: %s", result)
+	}
+
+	expectedLines := [][]string{
+		{"Cohort", "Size", "value1", "value2"},
+		{"hello", "13", "5", "8"},
+	}
+
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, result[i]) {
+			t.Errorf("header or non filter row line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, result[i])
+		}
+		i++
+	}
+}
+
+func TestGetFilteredConceptRows(t *testing.T) {
+	setUp(t)
+	sourceId := 1
+	cohortId := 1
+	breakdownConceptId := 1
+	conceptIds := []int{1234, 5678}
+	sortedConceptValues := []string{"value1", "value2"}
+
+	result, _ := conceptController.GetFilteredConceptRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
+	if len(result) != 2 {
+		t.Errorf("Expected 2 data lines, found %d lines in total",
+			len(result))
+		t.Errorf("Lines: %s", result)
+	}
+
+	expectedLines := [][]string{
+		{"Concept A", "13", "5", "8"},
+		{"Concept B", "13", "5", "8"},
+	}
+
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, result[i]) {
+			t.Errorf("header or non filter row line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, result[i])
+		}
+		i++
 	}
 }

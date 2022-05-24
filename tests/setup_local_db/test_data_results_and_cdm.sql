@@ -35,6 +35,9 @@ values
     (6,2000000324,1958,11,11,'1958-11-11 00:00:00',NULL,8515,0,NULL,NULL,NULL,'e6b6627f-4e38-dfc8-078c-11406151c522','F',0,'asian',0,'',0)
 ;
 
+-- add a mix of:
+--  - good observation records with a real `observation_concept_id` and a real value in `value_as_string` or `value_as_number`
+--  - bad observation records, where `observation_concept_id` is missing or the `value_as_string` or `value_as_number` are both NULL:
 insert into omop.observation
 (observation_id,person_id,observation_concept_id,observation_date,observation_datetime,observation_type_concept_id,value_as_number,value_as_string,value_as_concept_id,qualifier_concept_id,unit_concept_id,provider_id,visit_occurrence_id,visit_detail_id,observation_source_value,observation_source_concept_id,unit_source_value,qualifier_source_value,observation_event_id,obs_event_field_concept_id,value_as_datetime)
 values

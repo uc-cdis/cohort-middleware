@@ -176,6 +176,23 @@ func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
 	}
 }
 
+func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsCheckRatio(t *testing.T) {
+	setUp(t)
+	filterIds := make([]int, 1)
+	filterIds[0] = genderConceptId
+	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		largestCohort.Id,
+		filterIds)
+	// simple test: in the test data we keep the gender concept *missing* at a ratio of 1/3 for the largest cohort. Here
+	// we check if the missing ratio calculation is working correctly:
+	if len(conceptsStats) != 1 {
+		t.Errorf("Found %d", len(conceptsStats))
+	}
+	if conceptsStats[0].NmissingRatio != 1.0/3.0 {
+		t.Errorf("Found wrong ratio %f", conceptsStats[0].NmissingRatio)
+	}
+}
+
 func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	setUp(t)
 	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptIds(testSourceId,

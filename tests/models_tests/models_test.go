@@ -127,7 +127,7 @@ func TestCustomGormDataTypeConceptType(t *testing.T) {
 		Select("concept_class_id, concept_class_id as concept_type").
 		Scan(&concepts)
 
-	if len(concepts) != 4 {
+	if len(concepts) != 10 {
 		t.Errorf("Found %d", len(concepts))
 	}
 
@@ -150,12 +150,13 @@ func TestCustomGormDataTypeConceptTypeWrongMapping(t *testing.T) {
 		Select("concept_class_id, concept_name as concept_type").
 		Scan(&concepts)
 
-	if len(concepts) != 4 {
+	if len(concepts) != 10 {
 		t.Errorf("Found %d", len(concepts))
 	}
 
 	// in the current version we extract the concept type from concept class id (see models/customgormtypes.go). This test
-	// ensures this is the case:
+	// checks if the expected error is shown when the mapping is not set correctly (i.e. when another field with different data
+	// is queried "as concept_type"):
 	for _, concept := range concepts {
 		if !strings.Contains(string(concept.ConceptType), "unexpected missing value") {
 			t.Errorf("The ConceptType should contain 'missing value' error in this case")
@@ -175,6 +176,23 @@ func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
 	}
 }
 
+func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsCheckRatio(t *testing.T) {
+	setUp(t)
+	filterIds := make([]int, 1)
+	filterIds[0] = genderConceptId
+	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		largestCohort.Id,
+		filterIds)
+	// simple test: in the test data we keep the gender concept *missing* at a ratio of 1/3 for the largest cohort. Here
+	// we check if the missing ratio calculation is working correctly:
+	if len(conceptsStats) != 1 {
+		t.Errorf("Found %d", len(conceptsStats))
+	}
+	if conceptsStats[0].NmissingRatio != 1.0/3.0 {
+		t.Errorf("Found wrong ratio %f", conceptsStats[0].NmissingRatio)
+	}
+}
+
 func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	setUp(t)
 	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptIds(testSourceId,
@@ -191,7 +209,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *te
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		smallestCohort.Id,
 		allConceptIds, allConceptIds[0])
-	// none of the subjects has a value is all the concepts, so we expect len==0 here:
+	// none of the subjects has a value in all the concepts, so we expect len==0 here:
 	if len(stats) != 0 {
 		t.Errorf("Expected no results, found %d", len(stats))
 	}

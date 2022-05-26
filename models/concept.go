@@ -125,7 +125,8 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	}
 
 	// find, for each concept, the ratio of persons in the given cohortId that have
-	// an empty value for this concept:
+	// no value for this concept by first finding the ones that do have some value and
+	// then subtracting them from cohort size before dividing:
 	var conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats
 	omopDataSource.Db.Model(&Observation{}).
 		Select("observation_concept_id as concept_id, count(distinct(person_id)) as nperson_ids").

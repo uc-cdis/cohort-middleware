@@ -135,7 +135,20 @@ curl -d '{"PrefixedConceptIds":["ID_2000000324","ID_2000006885"]}' -H "Content-T
 
 ## Deployment to QA
 
+- Add config .yaml as a secret:
+  - If the config secret does not yet exist, create it [with name expected in this deployment .yaml file](https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml):
+  ```
+  kubectl create secret generic <secret_name_here> \
+    --from-file=./test.yaml \
+  ```
+  where `./test.yaml` follows the general structure of `./config/development.yaml`.
+
+  - Check if it worked with:
+  ```
+  kubectl get secrets/<secret_name_here> -o yaml
+  ```
 - PRs to `master` get the docker image built on quay (via github action). See https://quay.io/repository/cdis/cohort-middleware?tab=tags
+  - The following config file determines which branch or tag is used on QA: https://github.com/uc-cdis/gitops-qa/blob/master/qa-mickey.planx-pla.net/manifest.json
 - Once the image is built, it can be pulled. E.g. for branch `branch1`: `docker pull quay.io/cdis/cohort-middleware:branch1`
 - If testing on QA:
    - ssh to QA machine

@@ -247,6 +247,16 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	}
 }
 
+func TestGetCohortName(t *testing.T) {
+	setUp(t)
+	allCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitions()
+	firstCohortId := allCohortDefinitions[0].Id
+	cohortName, _ := cohortDefinitionModel.GetCohortName(firstCohortId)
+	if cohortName != allCohortDefinitions[0].Name {
+		t.Errorf("Expected %s", allCohortDefinitions[0].Name)
+	}
+}
+
 func TestGetCohortDefinitionByName(t *testing.T) {
 	setUp(t)
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(smallestCohort.Name)

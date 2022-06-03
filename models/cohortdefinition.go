@@ -1,6 +1,8 @@
 package models
 
 import (
+	"fmt"
+
 	"github.com/uc-cdis/cohort-middleware/db"
 )
 
@@ -73,4 +75,13 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 		cohortDefinitionStat.Name = cohortDefinition.Name
 	}
 	return cohortDefinitionStats, result.Error
+}
+
+func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {
+	cohortDefinition, err := h.GetCohortDefinitionById(cohortId)
+	if err != nil {
+		return "", fmt.Errorf("Could not retrieve cohort name due to error: %s", err.Error())
+	}
+
+	return cohortDefinition.Name, nil
 }

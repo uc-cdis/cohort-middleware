@@ -76,12 +76,12 @@ For HARE info, see https://pubmed.ncbi.nlm.nih.gov/31564439/.
 insert into omop.concept
 (concept_id,concept_code,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,valid_start_date,valid_end_date,invalid_reason)
 values
-    (2090006880,'HARE_CODE','HARE',        'HARE ethnicity','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006881,'HIS', 'Hispanic',         'HARE ethnicity','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006882,'ASN','non-Hispanic Asian','HARE ethnicity','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006883,'EUR','non-Hispanic White','HARE ethnicity','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006884,'AFR','non-Hispanic Black','HARE ethnicity','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006885,'NA', 'Missing',           'HARE ethnicity','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL)
+    (2090006880,'HARE_CODE','HARE',        'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2090006881,'HIS', 'Hispanic',         'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2090006882,'ASN','non-Hispanic Asian','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2090006883,'EUR','non-Hispanic White','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2090006884,'AFR','non-Hispanic Black','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2090006885,'NA', 'Missing',           'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL)
 ;
 
 -- insert `observation` records:

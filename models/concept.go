@@ -7,10 +7,10 @@ import (
 
 type ConceptI interface {
 	RetriveAllBySourceId(sourceId int) ([]*Concept, error)
-	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int) ([]*ConceptSimple, error)
-	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error)
-	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*ConceptBreakdown, error)
-	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown, error)
+	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error)
+	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
 	ConceptId   int         `json:"concept_id"`
@@ -21,12 +21,12 @@ type Concept struct {
 }
 
 type ConceptAndPersonsWithDataStats struct {
-	ConceptId  int
+	ConceptId  int64
 	NpersonIds int
 }
 
 type ConceptStats struct {
-	ConceptId         int         `json:"concept_id"`
+	ConceptId         int64       `json:"concept_id"`
 	PrefixedConceptId string      `json:"prefixed_concept_id"`
 	ConceptName       string      `json:"concept_name"`
 	DomainId          string      `json:"domain_id"`
@@ -37,7 +37,7 @@ type ConceptStats struct {
 }
 
 type ConceptSimple struct {
-	ConceptId         int         `json:"concept_id"`
+	ConceptId         int64       `json:"concept_id"`
 	PrefixedConceptId string      `json:"prefixed_concept_id"`
 	ConceptName       string      `json:"concept_name"`
 	DomainId          string      `json:"domain_id"`
@@ -66,7 +66,7 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 	return concepts, result.Error
 }
 
-func getNrPersonsWithData(conceptId int, conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats) int {
+func getNrPersonsWithData(conceptId int64, conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats) int {
 	for _, conceptsAndDataInfo := range conceptsAndPersonsWithData {
 		if conceptsAndDataInfo.ConceptId == conceptId {
 			return conceptsAndDataInfo.NpersonIds
@@ -76,7 +76,7 @@ func getNrPersonsWithData(conceptId int, conceptsAndPersonsWithData []*ConceptAn
 }
 
 // Retrieve just a simple list of concept names and domain info for given list of conceptIds.
-func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int) ([]*ConceptSimple, error) {
+func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
@@ -94,12 +94,15 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 		// set prefixed_concept_id:
 		conceptItem.PrefixedConceptId = GetPrefixedConceptId(conceptItem.ConceptId)
 	}
+	if len(conceptItems) != len(conceptIds) {
+		return nil, fmt.Errorf("unexpected error: did not find all concepts")
+	}
 	return conceptItems, nil
 }
 
 // Retrieve concept name, domain and missing ratio statistics for given list of conceptIds.
 // Assumption is that both OMOP and RESULTS schemas are on same DB.
-func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*ConceptStats, error) {
+func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
@@ -155,7 +158,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	return conceptStats, nil
 }
 
-func getConceptValueType(conceptId int) string {
+func getConceptValueType(conceptId int64) string {
 	return "string" // TODO - add logic to return "string" or "number" depending on concept type
 }
 
@@ -166,7 +169,7 @@ func getConceptValueType(conceptId int) string {
 // then it will return something like:
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*ConceptBreakdown, error) {
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	// TODO - this query is identical to query in function below if that function is called with empty filterConceptIds[]... use that instead...?
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
@@ -190,7 +193,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
 // where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*ConceptBreakdown, error) {
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)

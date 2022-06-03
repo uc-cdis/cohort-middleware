@@ -5,14 +5,14 @@ import (
 )
 
 type CohortDataI interface {
-	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*PersonConceptAndValue, error)
+	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
 }
 
 type CohortData struct{}
 
 type PersonConceptAndValue struct {
 	PersonId             int
-	ConceptId            int
+	ConceptId            int64
 	ConceptValueAsString string
 	ConceptValueAsNumber float32
 }
@@ -20,7 +20,7 @@ type PersonConceptAndValue struct {
 // Retrieves observation data.
 // Assumption is that both OMOP and RESULTS schemas
 // are on same DB.
-func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*PersonConceptAndValue, error) {
+func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error) {
 	log.Printf(">> Using inner join impl. for large cohorts")
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)

@@ -31,7 +31,7 @@ func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 		sourceId, _ := strconv.Atoi(sourceId)
 		concepts, err := u.conceptModel.RetriveAllBySourceId(sourceId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -55,7 +55,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 	// call model method:
 	conceptStats, err := u.conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
 		return
 	}
@@ -75,7 +75,7 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 	// call model method:
 	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
 		return
 	}
@@ -85,11 +85,11 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {
 	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
 	cohortId, err2 := utils.ParseNumericArg(c, "cohortid")
-	breakdownConceptId, err3 := utils.ParseNumericArg(c, "breakdownconceptid")
+	breakdownConceptId, err3 := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil && err3 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -102,11 +102,11 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 	sourceId, cohortId, conceptIds, err1 := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
-	breakdownConceptId, err2 := utils.ParseNumericArg(c, "breakdownconceptid")
+	breakdownConceptId, err2 := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -144,8 +144,8 @@ func generateConceptRow(cohortName string, conceptValuesToPeopleCount map[string
 	return row
 }
 
-func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, conceptIds []int, breakdownConceptId int, sortedConceptValues []string) ([][]string, error) {
-	conceptIdToName := make(map[int]string)
+func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, conceptIds []int64, breakdownConceptId int64, sortedConceptValues []string) ([][]string, error) {
+	conceptIdToName := make(map[int64]string)
 	conceptInformations, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve concept informations due to error: %s", err.Error())
@@ -156,6 +156,7 @@ func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, co
 
 	var rows [][]string
 	for idx, conceptId := range conceptIds {
+		// run each query with a longer list of filterConceptIds, until the last query is run with them all:
 		filterConceptIds := conceptIds[0 : idx+1]
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, filterConceptIds, breakdownConceptId)
 		if err != nil {
@@ -163,7 +164,9 @@ func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, co
 		}
 
 		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
-		generatedRow := generateConceptRow(conceptIdToName[conceptId], conceptValuesToPeopleCount, sortedConceptValues)
+		conceptName := conceptIdToName[conceptId]
+		log.Printf("Generating row for concept name %s", conceptName)
+		generatedRow := generateConceptRow(conceptName, conceptValuesToPeopleCount, sortedConceptValues)
 		rows = append(rows, generatedRow)
 	}
 
@@ -172,19 +175,19 @@ func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, co
 
 func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	sourceId, cohortId, conceptIds, err1 := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
-	breakdownConceptId, err2 := utils.ParseNumericArg(c, "breakdownconceptid")
+	breakdownConceptId, err2 := utils.ParseBigNumericArg(c, "breakdownconceptid")
 
 	if err1 == nil && err2 == nil {
 		cohortName, err := cohortDefinitionModel.GetCohortName(cohortId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohort name", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohort name", "error": err.Error()})
 			c.Abort()
 			return
 		}
 
 		headerAndNonFilteredRow, err := u.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -193,7 +196,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		sortedConceptValues := header[2:]
 		filteredRows, err := u.GetFilteredConceptRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -216,7 +219,7 @@ func getSortedConceptValues(conceptValuesToPeopleCount map[string]int) []string 
 	return concepts
 }
 
-func (u ConceptController) GenerateHeaderAndNonFilteredRow(cohortName string, sourceId int, cohortId int, breakdownConceptId int) ([][]string, error) {
+func (u ConceptController) GenerateHeaderAndNonFilteredRow(cohortName string, sourceId int, cohortId int, breakdownConceptId int64) ([][]string, error) {
 	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 	if err != nil {
 		return nil, fmt.Errorf("error retrieving stats due to error: %s", err.Error())

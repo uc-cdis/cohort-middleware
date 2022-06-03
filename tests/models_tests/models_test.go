@@ -17,7 +17,7 @@ var testSourceId = tests.GetTestSourceId()
 var allCohortDefinitions []*models.CohortDefinitionStats
 var smallestCohort *models.CohortDefinitionStats
 var largestCohort *models.CohortDefinitionStats
-var allConceptIds []int
+var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
 
 func TestMain(m *testing.M) {
@@ -178,7 +178,7 @@ func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
 
 func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsCheckRatio(t *testing.T) {
 	setUp(t)
-	filterIds := make([]int, 1)
+	filterIds := make([]int64, 1)
 	filterIds[0] = genderConceptId
 	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		largestCohort.Id,
@@ -217,7 +217,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *te
 
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *testing.T) {
 	setUp(t)
-	filterIds := make([]int, 1)
+	filterIds := make([]int64, 1)
 	filterIds[0] = genderConceptId
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		largestCohort.Id,

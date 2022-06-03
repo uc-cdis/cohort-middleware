@@ -22,6 +22,18 @@ func ParseNumericArg(c *gin.Context, paramName string) (int, error) {
 	}
 }
 
+func ParseBigNumericArg(c *gin.Context, paramName string) (int64, error) {
+	// parse and validate:
+	numericArgValue := c.Param(paramName)
+	log.Printf("Querying %s: ", paramName)
+	if numericId, err := strconv.ParseInt(numericArgValue, 10, 64); err != nil {
+		log.Printf("bad request - %s should be a number", paramName)
+		return -1, fmt.Errorf("bad request - %s should be a number", paramName)
+	} else {
+		return numericId, nil
+	}
+}
+
 func ParseStringArg(c *gin.Context, paramName string) (string, error) {
 	// parse and validate:
 	stringArgValue := c.Param(paramName)
@@ -34,7 +46,7 @@ func ParseStringArg(c *gin.Context, paramName string) (string, error) {
 	}
 }
 
-func Pos(value int, list []int) int {
+func Pos(value int64, list []int64) int {
 	for p, v := range list {
 		if v == value {
 			return p
@@ -53,10 +65,10 @@ func ContainsNonNil(errors []error) bool {
 }
 
 type ConceptIds struct {
-	ConceptIds []int
+	ConceptIds []int64
 }
 
-func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
+func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
 	// parse and validate all parameters:
 	sourceId, err1 := ParseNumericArg(c, "sourceid")
 	if err1 != nil {
@@ -69,11 +81,14 @@ func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
 		return -1, nil, errors.New("bad request - no request body")
 	}
 	log.Printf("Querying concept ids: %v", conceptIds.ConceptIds)
+	if len(conceptIds.ConceptIds) == 0 {
+		return -1, nil, errors.New("bad request - no concept ids in body")
+	}
 
 	return sourceId, conceptIds.ConceptIds, nil
 }
 
-func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int, error) {
+func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, error) {
 	// parse and validate all parameters:
 	sourceId, conceptIds, err := ParseSourceIdAndConceptIds(c)
 	if err != nil {

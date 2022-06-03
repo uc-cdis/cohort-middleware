@@ -41,3 +41,11 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 	}
 	return cohortData, nil
 }
+
+// TODO -
+func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
+	int filterConceptId, filterConceptValue, conceptIds) {
+		var sourceId, filterConceptId, caseCohortId, controlCohortId int
+		var filterConceptValue string
+		var conceptIds []int
+}

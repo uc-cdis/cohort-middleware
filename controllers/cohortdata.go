@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDataController struct {
@@ -143,7 +144,7 @@ func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
 }
 
 func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue, conceptIds []int) []string {
-	var conceptIdIdx int = pos(cohortItem.ConceptId, conceptIds)
+	var conceptIdIdx int = utils.Pos(cohortItem.ConceptId, conceptIds)
 	if conceptIdIdx != -1 {
 		// conceptIdIdx+1 because first column is sample.id:
 		conceptIdxInRow := conceptIdIdx + 1
@@ -156,11 +157,28 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 	return row
 }
 
-func pos(value int, list []int) int {
-	for p, v := range list {
-		if v == value {
-			return p
+func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
+	errors := make([]error, 5)
+	var sourceId, filterConceptId, caseCohortId, controlCohortId int
+	var filterConceptValue string
+	var conceptIds []int
+	sourceId, conceptIds, errors[0] = utils.ParseSourceIdAndConceptIds(c)
+	filterConceptId, errors[1] = utils.ParseNumericArg(c, "filterconceptid")
+	filterConceptValue, errors[2] = utils.ParseStringArg(c, "filtervalue")
+	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
+	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+	} else {
+		breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
+			filterConceptId, filterConceptValue, conceptIds)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err})
+			c.Abort()
+			return
 		}
+		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
+		return
 	}
-	return -1
 }

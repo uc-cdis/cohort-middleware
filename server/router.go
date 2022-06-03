@@ -46,8 +46,11 @@ func NewRouter() *gin.Engine {
 
 		// TODO - add arg "breakdown-by-values-in...or using" value_as_concept_id, value_as_string, value_as_number...
 
-		// full data endpoints:
+		// cohort stats and checks:
 		cohortData := controllers.NewCohortDataController(*new(models.CohortData))
+		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-case-control-cohort-definition-ids/:casecohortid/:controlcohortid/filter-by-concept-id-and-value/:filterconceptid/:filtervalue", cohortData.RetrieveCohortOverlapStats)
+
+		// full data endpoints:
 		authorized.POST("/cohort-data/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrieveDataBySourceIdAndCohortIdAndConceptIds)
 	}
 

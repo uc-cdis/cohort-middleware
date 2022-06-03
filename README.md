@@ -126,9 +126,12 @@ curl -d '{"ConceptIds":[2000006885]}'  -H "Content-Type: application/json" -X PO
 
 ```
 
-CSV full data endpoint:
+CSV full data endpoints:
 ```bash
-curl -d '{"PrefixedConceptIds":["ID_2000000324","ID_2000006885"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
+curl -d '{"PrefixedConceptIds":["ID_2000000324","ID_2000006885","2090006880"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
+
+curl -d '{"ConceptIds":[2000000324,2000000323]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2090006880/csv
+
 ```
 
 # Deployment steps

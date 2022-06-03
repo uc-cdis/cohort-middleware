@@ -3,8 +3,6 @@ package controllers
 import (
 	"bytes"
 	"encoding/csv"
-	"encoding/json"
-	"errors"
 	"fmt"
 	"log"
 	"net/http"
@@ -44,45 +42,9 @@ func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 	c.Abort()
 }
 
-type ConceptIds struct {
-	ConceptIds []int
-}
-
-func parseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
-	// parse and validate all parameters:
-	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
-	if err1 != nil {
-		return -1, nil, err1
-	}
-	decoder := json.NewDecoder(c.Request.Body)
-	var conceptIds ConceptIds
-	err := decoder.Decode(&conceptIds)
-	if err != nil {
-		return -1, nil, errors.New("bad request - no request body")
-	}
-	log.Printf("Querying concept ids: %v", conceptIds.ConceptIds)
-
-	return sourceId, conceptIds.ConceptIds, nil
-}
-
-func parseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int, error) {
-	// parse and validate all parameters:
-	sourceId, conceptIds, err := parseSourceIdAndConceptIds(c)
-	if err != nil {
-		return -1, -1, nil, err
-	}
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
-	if _, err := strconv.Atoi(cohortIdStr); err != nil {
-		return -1, -1, nil, errors.New("bad request - cohort_definition_id should be a number")
-	}
-	cohortId, _ := strconv.Atoi(cohortIdStr)
-	return sourceId, cohortId, conceptIds, nil
-}
-
 func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 
-	sourceId, cohortId, conceptIds, err := parseSourceIdAndCohortIdAndConceptIds(c)
+	sourceId, cohortId, conceptIds, err := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
 	if err != nil {
 		log.Printf("Error parsing request parameters")
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -102,7 +64,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 
 func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
 
-	sourceId, conceptIds, err := parseSourceIdAndConceptIds(c)
+	sourceId, conceptIds, err := utils.ParseSourceIdAndConceptIds(c)
 	if err != nil {
 		log.Printf("Error parsing request parameters")
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
@@ -139,7 +101,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 }
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
-	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
+	sourceId, cohortId, conceptIds, err1 := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
 	breakdownConceptId, err2 := utils.ParseNumericArg(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
@@ -186,7 +148,7 @@ func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, co
 	conceptIdToName := make(map[int]string)
 	conceptInformations, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
-		return nil, fmt.Errorf("Could not retrieve concept informations due to error: %s", err.Error())
+		return nil, fmt.Errorf("could not retrieve concept informations due to error: %s", err.Error())
 	}
 	for _, conceptInformation := range conceptInformations {
 		conceptIdToName[conceptInformation.ConceptId] = conceptInformation.ConceptName
@@ -197,7 +159,7 @@ func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, co
 		filterConceptIds := conceptIds[0 : idx+1]
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, filterConceptIds, breakdownConceptId)
 		if err != nil {
-			return nil, fmt.Errorf("Could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
+			return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
 		}
 
 		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
@@ -209,7 +171,7 @@ func (u ConceptController) GetFilteredConceptRows(sourceId int, cohortId int, co
 }
 
 func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
-	sourceId, cohortId, conceptIds, err1 := parseSourceIdAndCohortIdAndConceptIds(c)
+	sourceId, cohortId, conceptIds, err1 := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
 	breakdownConceptId, err2 := utils.ParseNumericArg(c, "breakdownconceptid")
 
 	if err1 == nil && err2 == nil {
@@ -257,7 +219,7 @@ func getSortedConceptValues(conceptValuesToPeopleCount map[string]int) []string 
 func (u ConceptController) GenerateHeaderAndNonFilteredRow(cohortName string, sourceId int, cohortId int, breakdownConceptId int) ([][]string, error) {
 	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 	if err != nil {
-		return nil, fmt.Errorf("Error retrieving stats due to error: %s", err.Error())
+		return nil, fmt.Errorf("error retrieving stats due to error: %s", err.Error())
 	}
 	conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
 

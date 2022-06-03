@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 	"strconv"
@@ -18,4 +20,70 @@ func ParseNumericArg(c *gin.Context, paramName string) (int, error) {
 	} else {
 		return numericId, nil
 	}
+}
+
+func ParseStringArg(c *gin.Context, paramName string) (string, error) {
+	// parse and validate:
+	stringArgValue := c.Param(paramName)
+	log.Printf("Querying %s: ", paramName)
+	if stringArgValue == "" {
+		log.Printf("bad request - %s should be set", paramName)
+		return "", fmt.Errorf("bad request - %s should set", paramName)
+	} else {
+		return stringArgValue, nil
+	}
+}
+
+func Pos(value int, list []int) int {
+	for p, v := range list {
+		if v == value {
+			return p
+		}
+	}
+	return -1
+}
+
+func ContainsNonNil(errors []error) bool {
+	for _, v := range errors {
+		if v != nil {
+			return true
+		}
+	}
+	return false
+}
+
+type ConceptIds struct {
+	ConceptIds []int
+}
+
+func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int, error) {
+	// parse and validate all parameters:
+	sourceId, err1 := ParseNumericArg(c, "sourceid")
+	if err1 != nil {
+		return -1, nil, err1
+	}
+	decoder := json.NewDecoder(c.Request.Body)
+	var conceptIds ConceptIds
+	err := decoder.Decode(&conceptIds)
+	if err != nil {
+		return -1, nil, errors.New("bad request - no request body")
+	}
+	log.Printf("Querying concept ids: %v", conceptIds.ConceptIds)
+
+	return sourceId, conceptIds.ConceptIds, nil
+}
+
+func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int, error) {
+	// parse and validate all parameters:
+	sourceId, conceptIds, err := ParseSourceIdAndConceptIds(c)
+	if err != nil {
+		return -1, -1, nil, err
+	}
+	cohortIdStr := c.Param("cohortid")
+	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
+	if _, err := strconv.Atoi(cohortIdStr); err != nil {
+		return -1, -1, nil, errors.New("bad request - cohort_definition_id should be a number")
+	}
+	cohortId, _ := strconv.Atoi(cohortIdStr)
+	return sourceId, cohortId, conceptIds, nil
 }

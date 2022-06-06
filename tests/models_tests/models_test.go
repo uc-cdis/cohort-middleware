@@ -100,7 +100,7 @@ func TestGetPrefixedConceptId(t *testing.T) {
 func TestRetriveAllBySourceId(t *testing.T) {
 	setUp(t)
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
-	if len(concepts) != 4 {
+	if len(concepts) != 10 {
 		t.Errorf("Found %d", len(concepts))
 	}
 	if strings.Contains(string(concepts[0].ConceptType), "unexpected missing value") {

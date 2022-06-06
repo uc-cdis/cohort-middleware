@@ -80,7 +80,7 @@ func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
 	if err != nil {
 		return -1, nil, errors.New("bad request - no request body")
 	}
-	log.Printf("Querying concept ids: %v", conceptIds.ConceptIds)
+	log.Printf("Querying concept ids...")
 	if len(conceptIds.ConceptIds) == 0 {
 		return -1, nil, errors.New("bad request - no concept ids in body")
 	}
@@ -95,7 +95,7 @@ func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, e
 		return -1, -1, nil, err
 	}
 	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
+	log.Printf("Querying cohort for cohort definition id...")
 	if _, err := strconv.Atoi(cohortIdStr); err != nil {
 		return -1, -1, nil, errors.New("bad request - cohort_definition_id should be a number")
 	}

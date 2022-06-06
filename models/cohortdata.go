@@ -68,8 +68,8 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 
 	// iterate over the otherFilterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
-	for _, filterConceptId := range otherFilterConceptIds {
-		observationTableAlias := fmt.Sprintf("observation_filter_%d", filterConceptId)
+	for i, filterConceptId := range otherFilterConceptIds {
+		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id").
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).

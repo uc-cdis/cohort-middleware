@@ -69,6 +69,12 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 	return cohortData, nil
 }
 
+func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
+	filterConceptId int64, filterConceptValue string, otherFilterConceptIds []int64) (models.CohortOverlapStats, error) {
+	var tmp models.CohortOverlapStats
+	return tmp, nil
+}
+
 type dummyCohortDefinitionDataModel struct{}
 
 var dummyModelReturnError bool = false

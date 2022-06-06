@@ -159,11 +159,12 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 
 func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	errors := make([]error, 5)
-	var sourceId, filterConceptId, caseCohortId, controlCohortId int
+	var sourceId, caseCohortId, controlCohortId int
+	var filterConceptId int64
 	var filterConceptValue string
 	var conceptIds []int64
 	sourceId, conceptIds, errors[0] = utils.ParseSourceIdAndConceptIds(c)
-	filterConceptId, errors[1] = utils.ParseNumericArg(c, "filterconceptid")
+	filterConceptId, errors[1] = utils.ParseBigNumericArg(c, "filterconceptid")
 	filterConceptValue, errors[2] = utils.ParseStringArg(c, "filtervalue")
 	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")

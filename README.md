@@ -124,6 +124,8 @@ curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/j
 curl http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2090006880 | python3 -m json.tool
 curl -d '{"ConceptIds":[2000006885]}'  -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2090006880 | python3 -m json.tool
 
+curl -d '{"ConceptIds":[2000006885]}'  -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-stats/check-overlap/by-source-id/1/by-case-control-cohort-definition-ids/2/3/filter-by-concept-id-and-value/2090006880/ASN | python3 -m json.tool
+
 ```
 
 CSV full data endpoints:

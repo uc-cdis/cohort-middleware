@@ -19,6 +19,7 @@ var smallestCohort *models.CohortDefinitionStats
 var largestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
+var hareConceptId = tests.GetTestHareConceptId()
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -219,11 +220,24 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 	setUp(t)
 	filterIds := make([]int64, 1)
 	filterIds[0] = genderConceptId
+	breakdownConceptId := genderConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		largestCohort.Id,
-		filterIds, genderConceptId)
+		filterIds, breakdownConceptId)
 	// we expect values since all of the test cohorts have at least one subject with gender info:
 	if len(stats) < 2 {
+		t.Errorf("Expected at least two results, found %d", len(stats))
+	}
+}
+
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
+	setUp(t)
+	breakdownConceptId := hareConceptId
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
+		largestCohort.Id,
+		breakdownConceptId)
+	// we expect 5 rows since the largest test cohort has all HARE values represented in its population:
+	if len(stats) != 5 {
 		t.Errorf("Expected at least two results, found %d", len(stats))
 	}
 }

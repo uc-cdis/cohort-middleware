@@ -22,6 +22,10 @@ func GetTestGenderConceptId() int64 {
 	return 2000000324
 }
 
+func GetTestHareConceptId() int64 {
+	return 2090006880
+}
+
 func ExecAtlasSQLScript(sqlFilePath string) {
 	ExecSQLScript(sqlFilePath, -1)
 }

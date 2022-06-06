@@ -131,7 +131,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	// no value for this concept by first finding the ones that do have some value and
 	// then subtracting them from cohort size before dividing:
 	var conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats
-	omopDataSource.Db.Model(&Observation{}).
+	meta_result = omopDataSource.Db.Model(&Observation{}).
 		Select("observation_concept_id as concept_id, count(distinct(person_id)) as nperson_ids").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
@@ -155,7 +155,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 		}
 	}
 
-	return conceptStats, nil
+	return conceptStats, meta_result.Error
 }
 
 func getConceptValueType(conceptId int64) string {
@@ -170,26 +170,14 @@ func getConceptValueType(conceptId int64) string {
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
-	// TODO - this query is identical to query in function below if that function is called with empty filterConceptIds[]... use that instead...?
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// count persons, grouping by concept value:
-	var valueFieldName = "value_as_" + getConceptValueType(breakdownConceptId)
-	var conceptBreakdownList []*ConceptBreakdown
-	meta_result := omopDataSource.Db.Model(&Observation{}).
-		Select(valueFieldName+" as concept_value, count(distinct(person_id)) as npersons_in_cohort_with_value").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-		Where("observation_concept_id = ?", breakdownConceptId).
-		Group(valueFieldName).
-		Scan(&conceptBreakdownList)
-	return conceptBreakdownList, meta_result.Error
+	// this is identical to the result of the function below if called with empty filterConceptIds[]... so call that:
+	filterConceptIds := make([]int64, 0)
+	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortDefinitionId, filterConceptIds, breakdownConceptId)
 }
 
-// Similar to function above, but only count persons that have a non-null value for each of the ids in the given filterConceptIds.
-// So, using the example documented in the function above, it will return something like:
+// Basically same goal as described in function above, but only count persons that have a non-null value for each
+// of the ids in the given filterConceptIds. So, using the example documented in the function above, it will
+// return something like:
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
 // where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.

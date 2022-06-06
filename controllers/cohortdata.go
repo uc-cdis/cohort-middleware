@@ -179,7 +179,7 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 			c.Abort()
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
+		c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
 		return
 	}
 }

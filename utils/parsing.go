@@ -74,6 +74,9 @@ func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
 	if err1 != nil {
 		return -1, nil, err1
 	}
+	if c.Request == nil || c.Request.Body == nil {
+		return -1, nil, errors.New("bad request - no request body")
+	}
 	decoder := json.NewDecoder(c.Request.Body)
 	var conceptIds ConceptIds
 	err := decoder.Decode(&conceptIds)

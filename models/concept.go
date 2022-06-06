@@ -58,12 +58,12 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var concepts []*Concept
-	result := omopDataSource.Db.Model(&Concept{}).
+	meta_result := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
 		Joins("INNER JOIN " + omopDataSource.Schema + ".domain as domain ON concept.domain_id = domain.domain_id").
 		Order("concept_name").
 		Scan(&concepts)
-	return concepts, result.Error
+	return concepts, meta_result.Error
 }
 
 func getNrPersonsWithData(conceptId int64, conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats) int {
@@ -81,14 +81,14 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var conceptItems []*ConceptSimple
-	result := omopDataSource.Db.Model(&Concept{}).
+	meta_result := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
 		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptItems)
-	if result.Error != nil {
-		return nil, result.Error
+	if meta_result.Error != nil {
+		return nil, meta_result.Error
 	}
 	for _, conceptItem := range conceptItems {
 		// set prefixed_concept_id:
@@ -107,24 +107,24 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var conceptStats []*ConceptStats
-	result := omopDataSource.Db.Model(&Concept{}).
+	meta_result := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, 0 as n_missing_ratio, concept_class_id as concept_type").
 		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptStats)
-	if result.Error != nil {
-		return nil, result.Error
+	if meta_result.Error != nil {
+		return nil, meta_result.Error
 	}
 
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	var cohortSize int
-	result = resultsDataSource.Db.Model(&Cohort{}).
+	meta_result = resultsDataSource.Db.Model(&Cohort{}).
 		Select("count(*) as cohort_size").
 		Where("cohort_definition_id = ?", cohortDefinitionId).
 		Scan(&cohortSize)
-	if result.Error != nil {
-		return nil, result.Error
+	if meta_result.Error != nil {
+		return nil, meta_result.Error
 	}
 
 	// find, for each concept, the ratio of persons in the given cohortId that have
@@ -177,15 +177,15 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 
 	// count persons, grouping by concept value:
 	var valueFieldName = "value_as_" + getConceptValueType(breakdownConceptId)
-	var result []*ConceptBreakdown
-	omopDataSource.Db.Model(&Observation{}).
+	var conceptBreakdownList []*ConceptBreakdown
+	meta_result := omopDataSource.Db.Model(&Observation{}).
 		Select(valueFieldName+" as concept_value, count(distinct(person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
 		Where("observation_concept_id = ?", breakdownConceptId).
 		Group(valueFieldName).
-		Scan(&result)
-	return result, nil
+		Scan(&conceptBreakdownList)
+	return conceptBreakdownList, meta_result.Error
 }
 
 // Similar to function above, but only count persons that have a non-null value for each of the ids in the given filterConceptIds.
@@ -200,14 +200,15 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 
 	// count persons, grouping by concept value:
 	var breakdownValueFieldName = "observation.value_as_" + getConceptValueType(breakdownConceptId)
-	var result []*ConceptBreakdown
+	var conceptBreakdownList []*ConceptBreakdown
 	query := omopDataSource.Db.Model(&Observation{}).
 		Select(breakdownValueFieldName+" as concept_value, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
 		Where("observation.observation_concept_id = ?", breakdownConceptId)
 
-	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that it becomes an intersection of all:
+	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
+	// set of persons that have a non-null value for each and every one of the concepts:
 	for _, filterConceptId := range filterConceptIds {
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", filterConceptId)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
@@ -215,7 +216,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
 			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
 	}
-	query.Group(breakdownValueFieldName).
-		Scan(&result)
-	return result, nil
+	meta_result := query.Group(breakdownValueFieldName).
+		Scan(&conceptBreakdownList)
+	return conceptBreakdownList, meta_result.Error
 }

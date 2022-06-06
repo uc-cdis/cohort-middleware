@@ -331,6 +331,70 @@ func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId
 	tests.FixSomething(models.Omop, "observation", "person_id")
 }
 
+// for given source and cohort, counts how many persons have the given HARE value
+func getNrPersonsWithHareConceptValue(sourceId int, cohortId int, hareConceptValue string) int64 {
+	conceptIds := make([]int64, 1)
+	conceptIds[0] = hareConceptId
+	personLevelData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
+	var count int64 = 0
+	for _, personLevelDatum := range personLevelData {
+		if personLevelDatum.ConceptValueAsString == hareConceptValue {
+			count++
+		}
+	}
+	return count
+}
+
+func TestRetrieveCohortOverlapStats(t *testing.T) {
+	// Tests if we get the expected overlap
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	filterConceptId := hareConceptId
+	filterConceptValue := "ASN"
+	otherFilterConceptIds := make([]int64, 0)
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds)
+	// get the number of persons in this cohort that have this filterConceptValue:
+	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
+	if stats.CaseControlOverlapAfterFilter != nr_expected {
+		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
+func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
+	// Tests if a scenario where NO overlap is expected indeed results in 0
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := smallestCohort.Id
+	filterConceptId := hareConceptId
+	filterConceptValue := "NON-EXISTING-VALUE" // should result in 0 overlap
+	otherFilterConceptIds := make([]int64, 0)
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds)
+	if stats.CaseControlOverlapAfterFilter != 0 {
+		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
+func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
+	// Tests if a scenario where NO overlap is expected indeed results in 0
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := largestCohort.Id // to ensure THIS part does not break it, just repeat the same here...
+	filterConceptId := hareConceptId
+	filterConceptValue := "ASN"
+	// set this list to some dummy non-existing ids:
+	otherFilterConceptIds := make([]int64, 2)
+	otherFilterConceptIds[0] = -1
+	otherFilterConceptIds[1] = -2
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds)
+	if stats.CaseControlOverlapAfterFilter != 0 {
+		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
 func TestGetVersion(t *testing.T) {
 	// mock values (in reality these are set at build time - see Dockerfile "go build" "-ldflags" argument):
 	version.GitCommit = "abc"

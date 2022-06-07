@@ -98,7 +98,7 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 	header = addConceptsToHeader(sourceId, header, conceptIds)
 	rows = append(rows, header)
 
-	var currentPersonId = -1
+	var currentPersonId int64 = -1
 	var row []string
 	for _, cohortDatum := range cohortData {
 		// if new person, start new row:
@@ -107,7 +107,7 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 				rows = append(rows, row)
 			}
 			row = []string{}
-			row = append(row, strconv.Itoa(cohortDatum.PersonId))
+			row = append(row, strconv.FormatInt(cohortDatum.PersonId, 10))
 			row = appendInitEmptyConceptValues(row, len(conceptIds))
 			currentPersonId = cohortDatum.PersonId
 		}

@@ -13,7 +13,7 @@ type CohortDataI interface {
 type CohortData struct{}
 
 type PersonConceptAndValue struct {
-	PersonId             int
+	PersonId             int64
 	ConceptId            int64
 	ConceptValueAsString string
 	ConceptValueAsNumber float32

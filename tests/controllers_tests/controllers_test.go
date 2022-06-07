@@ -228,7 +228,7 @@ func TestGenerateCSV(t *testing.T) {
 	cohortData := []*models.PersonConceptAndValue{
 		{PersonId: 1, ConceptId: 10, ConceptValueAsString: "abc", ConceptValueAsNumber: 0.0},
 		{PersonId: 1, ConceptId: 22, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
-		{PersonId: 2, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
+		{PersonId: 2789580123456, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
 	}
 	conceptIds := []int64{10, 22}
 
@@ -244,7 +244,7 @@ func TestGenerateCSV(t *testing.T) {
 	expectedLines := []string{
 		"sample.id,ID_10,ID_22",
 		"1,abc,1.50",
-		"2,\"A value with, comma!\",NA",
+		"2789580123456,\"A value with, comma!\",NA",
 	}
 	i := 0
 	for _, expectedLine := range expectedLines {

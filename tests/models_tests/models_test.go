@@ -293,7 +293,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 		if len(cohortData) <= 0 {
 			t.Errorf("Expected some cohort data")
 		}
-		previousPersonId := -1
+		var previousPersonId int64 = -1
 		for _, cohortDatum := range cohortData {
 			// check for order: person_id is not smaller than previous person_id
 			if cohortDatum.PersonId < previousPersonId {

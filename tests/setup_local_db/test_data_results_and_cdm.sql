@@ -77,24 +77,24 @@ For HARE info, see https://pubmed.ncbi.nlm.nih.gov/31564439/.
 insert into omop.concept
 (concept_id,concept_code,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,valid_start_date,valid_end_date,invalid_reason)
 values
-    (2090006880,'HARE_CODE','HARE',        'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006881,'HIS', 'Hispanic',         'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006882,'ASN','non-Hispanic Asian','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006883,'EUR','non-Hispanic White','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006884,'AFR','non-Hispanic Black','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
-    (2090006885,'NA', 'Missing',           'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL)
+    (2000007027,'HARE_CODE','HARE',        'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2000007028,'HIS', 'Hispanic',         'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2000007029,'ASN','non-Hispanic Asian','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2000007030,'AFR','non-Hispanic Black','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2000007031,'EUR','non-Hispanic White','Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL),
+    (2000007032,'OTH','Other',             'Person','Person','Observ_categ','S','1970-01-01','2099-12-31',NULL)
 ;
 
 -- insert `observation` records:
 insert into omop.observation
 (observation_id,                        person_id, observation_concept_id, value_as_concept_id, value_as_string, observation_source_value, observation_type_concept_id)
 values
-    (nextval('observation_id_seq'),          1,           2090006880,           2090006881,            'HIS',           'HIS',                    38000276),
-    (nextval('observation_id_seq'),          2,           2090006880,           2090006882,            'ASN',           'ASN',                    38000276),
-    (nextval('observation_id_seq'),          3,           2090006880,           2090006883,            'EUR',           'EUR',                    38000276),
-    (nextval('observation_id_seq'),          4,           2090006880,           2090006884,            'AFR',           'AFR',                    38000276),
-    (nextval('observation_id_seq'),          5,           2090006880,           2090006885,            'NA',            'NA',                     38000276),
-    (nextval('observation_id_seq'),          6,           2090006880,           2090006882,            'ASN',           'ASN',                    38000276)
+    (nextval('observation_id_seq'),          1,           2000007027,           2000007028,            'HIS',           'HIS',                    38000276),
+    (nextval('observation_id_seq'),          2,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276),
+    (nextval('observation_id_seq'),          3,           2000007027,           2000007031,            'EUR',           'EUR',                    38000276),
+    (nextval('observation_id_seq'),          4,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276),
+    (nextval('observation_id_seq'),          5,           2000007027,           2000007032,            'OTH',           'OTH',                     38000276),
+    (nextval('observation_id_seq'),          6,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276)
 ;
 
 -- ========================================================

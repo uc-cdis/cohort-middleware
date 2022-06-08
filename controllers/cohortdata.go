@@ -10,6 +10,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/models"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDataController struct {
@@ -55,7 +56,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
 		return
 	}
@@ -63,8 +64,8 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	c.String(http.StatusOK, b.String())
 }
 
-func getConceptIdsFromPrefixedConceptIds(ids []string) []int {
-	var result []int
+func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
+	var result []int64
 	for _, id := range ids {
 		idAsNumber := models.GetConceptId(id)
 		result = append(result, idAsNumber)
@@ -86,7 +87,7 @@ func getConceptIdsFromPrefixedConceptIds(ids []string) []int {
 //   2,Simple value,NA
 // where "NA" means that the person did not have a data element for that concept
 // or that the data element had a NULL/empty value.
-func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int) *bytes.Buffer {
+func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int64) *bytes.Buffer {
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 	w.Comma = ',' // CSV
@@ -97,7 +98,7 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 	header = addConceptsToHeader(sourceId, header, conceptIds)
 	rows = append(rows, header)
 
-	var currentPersonId = -1
+	var currentPersonId int64 = -1
 	var row []string
 	for _, cohortDatum := range cohortData {
 		// if new person, start new row:
@@ -106,7 +107,7 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 				rows = append(rows, row)
 			}
 			row = []string{}
-			row = append(row, strconv.Itoa(cohortDatum.PersonId))
+			row = append(row, strconv.FormatInt(cohortDatum.PersonId, 10))
 			row = appendInitEmptyConceptValues(row, len(conceptIds))
 			currentPersonId = cohortDatum.PersonId
 		}
@@ -126,7 +127,7 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 	return b
 }
 
-func addConceptsToHeader(sourceId int, header []string, conceptIds []int) []string {
+func addConceptsToHeader(sourceId int, header []string, conceptIds []int64) []string {
 	for i := 0; i < len(conceptIds); i++ {
 		//var conceptName = getConceptName(sourceId, conceptIds[i]) // instead of name, we now prefer ID_concept_id...below:
 		var conceptPrefixedId = models.GetPrefixedConceptId(conceptIds[i])
@@ -142,8 +143,8 @@ func appendInitEmptyConceptValues(row []string, nrConceptIds int) []string {
 	return row
 }
 
-func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue, conceptIds []int) []string {
-	var conceptIdIdx int = pos(cohortItem.ConceptId, conceptIds)
+func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue, conceptIds []int64) []string {
+	var conceptIdIdx int = utils.Pos(cohortItem.ConceptId, conceptIds)
 	if conceptIdIdx != -1 {
 		// conceptIdIdx+1 because first column is sample.id:
 		conceptIdxInRow := conceptIdIdx + 1
@@ -156,11 +157,28 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 	return row
 }
 
-func pos(value int, list []int) int {
-	for p, v := range list {
-		if v == value {
-			return p
-		}
+func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
+	errors := make([]error, 5)
+	var sourceId, caseCohortId, controlCohortId int
+	var filterConceptId int64
+	var filterConceptValue string
+	var conceptIds []int64
+	sourceId, conceptIds, errors[0] = utils.ParseSourceIdAndConceptIds(c)
+	filterConceptId, errors[1] = utils.ParseBigNumericArg(c, "filterconceptid")
+	filterConceptValue, errors[2] = utils.ParseStringArg(c, "filtervalue")
+	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
+	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
 	}
-	return -1
+	breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, conceptIds)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
 }

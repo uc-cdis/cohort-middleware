@@ -18,7 +18,7 @@ func (u SourceController) RetriveById(c *gin.Context) {
 		sourceId, _ := strconv.Atoi(c.Param("id"))
 		source, err := sourceModel.GetSourceById(sourceId)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -34,7 +34,7 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 	if sourceName != "" {
 		source, err := sourceModel.GetSourceByName(sourceName)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 			c.Abort()
 			return
 		}
@@ -48,7 +48,7 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 func (u SourceController) RetriveAll(c *gin.Context) {
 	source, err := sourceModel.GetAllSources()
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 		c.Abort()
 		return
 	}

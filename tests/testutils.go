@@ -18,8 +18,12 @@ func GetTestSourceId() int {
 	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
 }
 
-func GetTestGenderConceptId() int {
+func GetTestGenderConceptId() int64 {
 	return 2000000324
+}
+
+func GetTestHareConceptId() int64 {
+	return 2000007027
 }
 
 func ExecAtlasSQLScript(sqlFilePath string) {
@@ -83,19 +87,19 @@ func FixSomething(sourceType models.SourceType, tableName string, fieldName stri
 		" RENAME "+fieldName+"_broken TO "+fieldName, GetTestSourceId())
 }
 
-func GetIntAttributeValue[T any](item T, attributeName string) int {
+func GetInt64AttributeValue[T any](item T, attributeName string) int64 {
 	r := reflect.ValueOf(item)
 	f := reflect.Indirect(r).FieldByName(attributeName)
-	return int(f.Int())
+	return f.Int()
 }
 
 // returns an int array with the attribute values of the given attribute
 // for each item in "items" array.
 // TODO - can also simply be done wit something like: db.Model(&users).Pluck("age", &ages), where var ages []int64
-func MapIntAttr[T any](items []T, attributeName string) []int {
-	result := make([]int, len(items))
+func MapIntAttr[T any](items []T, attributeName string) []int64 {
+	result := make([]int64, len(items))
 	for i := range items {
-		result[i] = GetIntAttributeValue(items[i], attributeName)
+		result[i] = GetInt64AttributeValue(items[i], attributeName)
 	}
 	return result
 }

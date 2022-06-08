@@ -60,13 +60,19 @@ var conceptController = controllers.NewConceptController(*new(dummyConceptDataMo
 
 type dummyCohortDataModel struct{}
 
-func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*models.PersonConceptAndValue, error) {
+func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.PersonConceptAndValue, error) {
 	cohortData := []*models.PersonConceptAndValue{
 		{PersonId: 1, ConceptId: 10, ConceptValueAsString: "abc", ConceptValueAsNumber: 0.0},
 		{PersonId: 1, ConceptId: 22, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
 		{PersonId: 2, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
 	}
 	return cohortData, nil
+}
+
+func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
+	filterConceptId int64, filterConceptValue string, otherFilterConceptIds []int64) (models.CohortOverlapStats, error) {
+	var zeroOverlap models.CohortOverlapStats
+	return zeroOverlap, nil
 }
 
 type dummyCohortDefinitionDataModel struct{}
@@ -105,18 +111,19 @@ type dummyConceptDataModel struct{}
 func (h dummyConceptDataModel) RetriveAllBySourceId(sourceId int) ([]*models.Concept, error) {
 	return nil, nil
 }
-func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int) ([]*models.ConceptSimple, error) {
+func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*models.ConceptSimple, error) {
 	// dummy data with _some_ of the relevant fields:
 	conceptSimple := []*models.ConceptSimple{
 		{ConceptId: 1234, ConceptName: "Concept A"},
 		{ConceptId: 5678, ConceptName: "Concept B"},
+		{ConceptId: 2090006880, ConceptName: "Concept C"},
 	}
 	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
 	}
 	return conceptSimple, nil
 }
-func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int) ([]*models.ConceptStats, error) {
+func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.ConceptStats, error) {
 	// dummy data with _some_ of the relevant fields:
 	conceptStats := []*models.ConceptStats{
 		{ConceptId: 1234, CohortSize: 11, NmissingRatio: 0.56},
@@ -127,7 +134,7 @@ func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(s
 	}
 	return conceptStats, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
 		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
@@ -137,7 +144,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 	}
 	return conceptBreakdown, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int, breakdownConceptId int) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
 		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
@@ -178,14 +185,52 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.
 		t.Errorf("Expected output starting with 'sample.id,...'")
 	}
 }
+
+func TestRetrieveCohortOverlapStats(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "filterconceptid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "filtervalue", Value: "TEST"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "casecohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[2000000324,2000006885]}"))
+
+	cohortDataController.RetrieveCohortOverlapStats(requestContext)
+	// Params above are correct, so request should NOT abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap_after_filter") {
+		t.Errorf("Expected output containing 'case_control_overlap_after_filter...'")
+	}
+}
+
+func TestRetrieveCohortOverlapStatsBadRequest(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "filterconceptidwrong", Value: "1"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+
+	cohortDataController.RetrieveCohortOverlapStats(requestContext)
+	// Params above are incorrect, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected this request to abort")
+	}
+}
+
 func TestGenerateCSV(t *testing.T) {
 	setUp(t)
 	cohortData := []*models.PersonConceptAndValue{
 		{PersonId: 1, ConceptId: 10, ConceptValueAsString: "abc", ConceptValueAsNumber: 0.0},
 		{PersonId: 1, ConceptId: 22, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
-		{PersonId: 2, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
+		{PersonId: 2789580123456, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
 	}
-	conceptIds := []int{10, 22}
+	conceptIds := []int64{10, 22}
 
 	b := controllers.GenerateCSV(
 		testSourceId, cohortData, conceptIds)
@@ -199,7 +244,7 @@ func TestGenerateCSV(t *testing.T) {
 	expectedLines := []string{
 		"sample.id,ID_10,ID_22",
 		"1,abc,1.50",
-		"2,\"A value with, comma!\",NA",
+		"2789580123456,\"A value with, comma!\",NA",
 	}
 	i := 0
 	for _, expectedLine := range expectedLines {
@@ -429,7 +474,7 @@ func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	setUp(t)
 	sourceId := 1
 	cohortId := 1
-	breakdownConceptId := 1
+	var breakdownConceptId int64 = 1
 	cohortName := "hello"
 
 	result, _ := conceptController.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
@@ -458,13 +503,13 @@ func TestGetFilteredConceptRows(t *testing.T) {
 	setUp(t)
 	sourceId := 1
 	cohortId := 1
-	breakdownConceptId := 1
-	conceptIds := []int{1234, 5678}
+	var breakdownConceptId int64 = 1
+	conceptIds := []int64{1234, 5678, 2090006880}
 	sortedConceptValues := []string{"value1", "value2"}
 
 	result, _ := conceptController.GetFilteredConceptRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
-	if len(result) != 2 {
-		t.Errorf("Expected 2 data lines, found %d lines in total",
+	if len(result) != 3 {
+		t.Errorf("Expected 3 data lines, found %d lines in total",
 			len(result))
 		t.Errorf("Lines: %s", result)
 	}
@@ -472,6 +517,7 @@ func TestGetFilteredConceptRows(t *testing.T) {
 	expectedLines := [][]string{
 		{"Concept A", "13", "5", "8"},
 		{"Concept B", "13", "5", "8"},
+		{"Concept C", "13", "5", "8"},
 	}
 
 	i := 0

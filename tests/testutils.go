@@ -23,7 +23,7 @@ func GetTestGenderConceptId() int64 {
 }
 
 func GetTestHareConceptId() int64 {
-	return 2090006880
+	return 2000007027
 }
 
 func ExecAtlasSQLScript(sqlFilePath string) {

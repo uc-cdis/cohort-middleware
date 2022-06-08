@@ -171,15 +171,14 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	if utils.ContainsNonNil(errors) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 		c.Abort()
-	} else {
-		breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
-			filterConceptId, filterConceptValue, conceptIds)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
-			c.Abort()
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
 		return
 	}
+	breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, conceptIds)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
 }

@@ -1,40 +1,10 @@
 package models
 
 import (
-	"database/sql/driver"
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
 )
-
-// See https://gorm.io/docs/data_types.html for more details on custom data types
-
-type ConceptType string
-
-func (u ConceptType) Value() (driver.Value, error) {
-	return string(u), nil
-}
-
-func (u *ConceptType) Scan(value interface{}) error {
-	valueAsString, ok := value.(string)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal value: %s", value)
-	}
-	result := "unexpected missing value: concept_type is supposed to be a derived value from another field value that ends with an underscore followed by a suffix (e.g. '_typeX') "
-	if strings.Contains(valueAsString, "_") {
-		items := strings.Split(valueAsString, "_")
-		// the assumption here is that valueAsString is a value with a _suffixX where suffixX is the concept type
-		// we want. So we want only the last part of the value, after it is split by "_":
-		result = items[len(items)-1]
-	}
-	*u = ConceptType(result)
-	return nil
-}
-
-func (u ConceptType) GormDataType() string {
-	return "concepttype"
-}
 
 // More type "tranformation" related functions below....
 

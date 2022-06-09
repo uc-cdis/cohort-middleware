@@ -31,6 +31,7 @@ func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 		sourceId, _ := strconv.Atoi(sourceId)
 		concepts, err := u.conceptModel.RetriveAllBySourceId(sourceId)
 		if err != nil {
+			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 			c.Abort()
 			return
@@ -38,6 +39,7 @@ func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 		c.JSON(http.StatusOK, gin.H{"concepts": concepts})
 		return
 	}
+	log.Printf("Error: bad request")
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
 }
@@ -46,7 +48,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 
 	sourceId, cohortId, conceptIds, err := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
 	if err != nil {
-		log.Printf("Error parsing request parameters")
+		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		c.Abort()
 		return
@@ -55,6 +57,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 	// call model method:
 	conceptStats, err := u.conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds)
 	if err != nil {
+		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
 		return
@@ -66,7 +69,7 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 
 	sourceId, conceptIds, err := utils.ParseSourceIdAndConceptIds(c)
 	if err != nil {
-		log.Printf("Error parsing request parameters")
+		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
 		c.Abort()
 		return
@@ -75,6 +78,7 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 	// call model method:
 	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
+		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
 		return
@@ -89,6 +93,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 	if err1 == nil && err2 == nil && err3 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 		if err != nil {
+			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 			c.Abort()
 			return
@@ -96,6 +101,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
 		return
 	}
+	log.Printf("Error: bad request")
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
 }
@@ -106,6 +112,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConcept
 	if err1 == nil && err2 == nil {
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, breakdownConceptId)
 		if err != nil {
+			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 			c.Abort()
 			return
@@ -113,6 +120,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConcept
 		c.JSON(http.StatusOK, gin.H{"concept_breakdown": breakdownStats})
 		return
 	}
+	log.Printf("Error: bad request")
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
 }
@@ -180,6 +188,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	if err1 == nil && err2 == nil {
 		cohortName, err := cohortDefinitionModel.GetCohortName(cohortId)
 		if err != nil {
+			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohort name", "error": err.Error()})
 			c.Abort()
 			return
@@ -187,6 +196,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 
 		headerAndNonFilteredRow, err := u.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
 		if err != nil {
+			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
 			c.Abort()
 			return
@@ -196,6 +206,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		sortedConceptValues := header[2:]
 		filteredRows, err := u.GetFilteredConceptRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
 		if err != nil {
+			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
 			c.Abort()
 			return
@@ -205,7 +216,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		c.String(http.StatusOK, b.String())
 		return
 	}
-
+	log.Printf("Error: bad request")
 	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 	c.Abort()
 }

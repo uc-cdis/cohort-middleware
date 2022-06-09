@@ -3,7 +3,6 @@ package models_tests
 import (
 	"log"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/uc-cdis/cohort-middleware/config"
@@ -103,65 +102,6 @@ func TestRetriveAllBySourceId(t *testing.T) {
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	if len(concepts) != 10 {
 		t.Errorf("Found %d", len(concepts))
-	}
-	if strings.Contains(string(concepts[0].ConceptType), "unexpected missing value") {
-		t.Errorf("Expected ConceptType value, Found 'missing value' instead'")
-	}
-	if strings.Contains(string(concepts[0].ConceptType), "_") || len(concepts[0].ConceptType) == 0 {
-		t.Errorf("Expected ConceptType value to be length > 0 and not contain _, but found %s", concepts[0].ConceptType)
-	}
-}
-
-type TestConceptFields struct {
-	ConceptClassId string
-	ConceptType    models.ConceptType
-}
-
-func TestCustomGormDataTypeConceptType(t *testing.T) {
-	setUp(t)
-	var concepts []*TestConceptFields
-	omopDataSource := tests.GetOmopDataSource()
-	// in this test we want to check if the custom ConceptType field is indeed a subset of concept_class_id,
-	// so we query both concept_class_id and "concept_class_id as concept_type" (this last one should result in transformed
-	// values after Scan() is done):
-	omopDataSource.Db.Model(&models.Concept{}).
-		Select("concept_class_id, concept_class_id as concept_type").
-		Scan(&concepts)
-
-	if len(concepts) != 10 {
-		t.Errorf("Found %d", len(concepts))
-	}
-
-	// in the current version we extract the concept type from concept class id (see models/customgormtypes.go). This test
-	// ensures this is the case:
-	for _, concept := range concepts {
-		if !strings.Contains(concept.ConceptClassId, string(concept.ConceptType)) {
-			t.Errorf("The ConceptType should be a substring of ConceptClassId")
-		}
-	}
-}
-
-func TestCustomGormDataTypeConceptTypeWrongMapping(t *testing.T) {
-	setUp(t)
-	var concepts []*TestConceptFields
-	omopDataSource := tests.GetOmopDataSource()
-	// in this test we want to check if the custom ConceptType field contains an error if the mapping
-	// is made from another field that does not contain the expected format.
-	omopDataSource.Db.Model(&models.Concept{}).
-		Select("concept_class_id, concept_name as concept_type").
-		Scan(&concepts)
-
-	if len(concepts) != 10 {
-		t.Errorf("Found %d", len(concepts))
-	}
-
-	// in the current version we extract the concept type from concept class id (see models/customgormtypes.go). This test
-	// checks if the expected error is shown when the mapping is not set correctly (i.e. when another field with different data
-	// is queried "as concept_type"):
-	for _, concept := range concepts {
-		if !strings.Contains(string(concept.ConceptType), "unexpected missing value") {
-			t.Errorf("The ConceptType should contain 'missing value' error in this case")
-		}
 	}
 }
 

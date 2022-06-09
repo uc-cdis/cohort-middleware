@@ -13,11 +13,11 @@ type ConceptI interface {
 	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
-	ConceptId   int         `json:"concept_id"`
-	ConceptName string      `json:"concept_name"`
-	DomainId    string      `json:"domain_id"`
-	DomainName  string      `json:"domain_name"`
-	ConceptType ConceptType `json:"concept_type"`
+	ConceptId   int    `json:"concept_id"`
+	ConceptName string `json:"concept_name"`
+	DomainId    string `json:"domain_id"`
+	DomainName  string `json:"domain_name"`
+	ConceptType string `json:"concept_type"`
 }
 
 type ConceptAndPersonsWithDataStats struct {
@@ -26,23 +26,23 @@ type ConceptAndPersonsWithDataStats struct {
 }
 
 type ConceptStats struct {
-	ConceptId         int64       `json:"concept_id"`
-	PrefixedConceptId string      `json:"prefixed_concept_id"`
-	ConceptName       string      `json:"concept_name"`
-	DomainId          string      `json:"domain_id"`
-	DomainName        string      `json:"domain_name"`
-	ConceptType       ConceptType `json:"concept_type"`
-	CohortSize        int         `json:"cohort_size"`
-	NmissingRatio     float32     `json:"n_missing_ratio"`
+	ConceptId         int64   `json:"concept_id"`
+	PrefixedConceptId string  `json:"prefixed_concept_id"`
+	ConceptName       string  `json:"concept_name"`
+	DomainId          string  `json:"domain_id"`
+	DomainName        string  `json:"domain_name"`
+	ConceptType       string  `json:"concept_type"`
+	CohortSize        int     `json:"cohort_size"`
+	NmissingRatio     float32 `json:"n_missing_ratio"`
 }
 
 type ConceptSimple struct {
-	ConceptId         int64       `json:"concept_id"`
-	PrefixedConceptId string      `json:"prefixed_concept_id"`
-	ConceptName       string      `json:"concept_name"`
-	DomainId          string      `json:"domain_id"`
-	DomainName        string      `json:"domain_name"`
-	ConceptType       ConceptType `json:"concept_type"`
+	ConceptId         int64  `json:"concept_id"`
+	PrefixedConceptId string `json:"prefixed_concept_id"`
+	ConceptName       string `json:"concept_name"`
+	DomainId          string `json:"domain_id"`
+	DomainName        string `json:"domain_name"`
+	ConceptType       string `json:"concept_type"`
 }
 
 type ConceptBreakdown struct {

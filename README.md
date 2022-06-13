@@ -100,7 +100,6 @@ TABLE results.COHORT
 TABLE omop.person
 TABLE omop.observation
 TABLE omop.concept
-TABLE omop.domain
 ```
 
 
@@ -120,6 +119,8 @@ curl http://localhost:8080/sources | python -m json.tool
 curl http://localhost:8080/cohortdefinition-stats/by-source-id/1 | python -m json.tool
 curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept/by-source-id/1 | python -m json.tool
+curl -d '{"ConceptTypes":["Measurement","Person"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept/by-source-id/1/by-type | python -m json.tool
+
 curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3 | python -m json.tool
 curl http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000007027 | python3 -m json.tool
 curl -d '{"ConceptIds":[2000006885]}'  -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000007027 | python3 -m json.tool

@@ -8,6 +8,7 @@ import (
 type ConceptI interface {
 	RetriveAllBySourceId(sourceId int) ([]*Concept, error)
 	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error)
+	RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error)
 	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*ConceptBreakdown, error)
@@ -96,6 +97,27 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 	}
 	if len(conceptItems) != len(conceptIds) {
 		return nil, fmt.Errorf("unexpected error: did not find all concepts")
+	}
+	return conceptItems, nil
+}
+
+func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error) {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+
+	var conceptItems []*ConceptSimple
+	meta_result := omopDataSource.Db.Model(&Concept{}).
+		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
+		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
+		Where("concept_class_id in (?)", conceptTypes).
+		Order("concept_name").
+		Scan(&conceptItems)
+	if meta_result.Error != nil {
+		return nil, meta_result.Error
+	}
+	for _, conceptItem := range conceptItems {
+		// set prefixed_concept_id:
+		conceptItem.PrefixedConceptId = GetPrefixedConceptId(conceptItem.ConceptId)
 	}
 	return conceptItems, nil
 }

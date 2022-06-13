@@ -123,6 +123,9 @@ func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptIds(sourceId int,
 	}
 	return conceptSimple, nil
 }
+func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*models.ConceptSimple, error) {
+	return nil, nil
+}
 func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.ConceptStats, error) {
 	// dummy data with _some_ of the relevant fields:
 	conceptStats := []*models.ConceptStats{
@@ -376,7 +379,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *t
 	}
 }
 
-func TestRetrieveInfoBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
@@ -384,7 +387,7 @@ func TestRetrieveInfoBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
 	requestContext.Request = new(http.Request)
 	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	conceptController.RetrieveInfoBySourceIdAndCohortIdAndConceptIds(requestContext)
+	conceptController.RetrieveInfoBySourceIdAndConceptIds(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
 	// expect result with dummy data:

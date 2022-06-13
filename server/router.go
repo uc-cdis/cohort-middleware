@@ -38,7 +38,9 @@ func NewRouter() *gin.Engine {
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept))
 		authorized.GET("/concept/by-source-id/:sourceid", concepts.RetriveAllBySourceId)
-		authorized.POST("/concept/by-source-id/:sourceid", concepts.RetrieveInfoBySourceIdAndCohortIdAndConceptIds)
+		authorized.POST("/concept/by-source-id/:sourceid", concepts.RetrieveInfoBySourceIdAndConceptIds)
+		authorized.POST("/concept/by-source-id/:sourceid/by-type", concepts.RetrieveInfoBySourceIdAndConceptTypes)
+
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", concepts.RetrieveStatsBySourceIdAndCohortIdAndConceptIds)
 		authorized.GET("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortId)
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds)

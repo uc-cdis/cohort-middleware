@@ -514,6 +514,103 @@ paths:
                   - message
                   - error
       description: Get concepts by source id and list of concept ids
+  '/concept/by-source-id/{sourceid}/by-type':
+    parameters:
+      - $ref: '#/components/parameters/sourceid'
+    post:
+      summary: 'Post /concept/by-source-id/{sourceid}'
+      tags:
+        - data
+      operationId: post-concept-by-source-id-sourceid-by-type
+      security:
+        - Bearer: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                ConceptTypes:
+                  type: array
+                  items: {
+                    type: string
+                  }
+            examples:
+                example-1:
+                  value:
+                    ConceptTypes: ["Concept TypeA", "Concept TypeB"]
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  concepts:
+                    type: array
+                    uniqueItems: true
+                    minItems: 1
+                    items:
+                      required:
+                        - concept_id
+                        - prefixed_concept_id
+                        - concept_name
+                        - concept_type
+                      properties:
+                        concept_id:
+                          type: number
+                        prefixed_concept_id:
+                          type: string
+                          minLength: 1
+                        concept_name:
+                          type: string
+                          minLength: 1
+                        concept_type:
+                          type: string
+                          minLength: 1
+                required:
+                  - concepts
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request - no request body
+                      - bad request
+                    example: bad request
+                required:
+                  - message
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      description: Get concepts by source id and list of concept types
   '/concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':
     parameters:
       - $ref: '#/components/parameters/sourceid'

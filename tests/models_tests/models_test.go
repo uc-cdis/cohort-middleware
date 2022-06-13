@@ -145,6 +145,35 @@ func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	}
 }
 
+func TestRetrieveInfoBySourceIdAndConceptTypes(t *testing.T) {
+	setUp(t)
+	// get all concepts:
+	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptIds(testSourceId,
+		allConceptIds)
+	// simple test: we know that not all concepts have the same type in our test db, so
+	// if we query on the type of a single concept, the result should
+	// be a list where 1 =< size < len(allConceptIds):
+	conceptTypes := make([]string, 1)
+	conceptTypes[0] = conceptsInfo[0].ConceptType
+	conceptsInfo, _ = conceptModel.RetrieveInfoBySourceIdAndConceptTypes(testSourceId,
+		conceptTypes)
+	if !(1 <= len(conceptsInfo) && len(conceptsInfo) < len(allConceptIds)) {
+		t.Errorf("Found %d", len(conceptsInfo))
+	}
+}
+
+func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
+	setUp(t)
+	// simple test: invalid/non-existing type should return an empty list:
+	conceptTypes := make([]string, 1)
+	conceptTypes[0] = "invalid type"
+	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptTypes(testSourceId,
+		conceptTypes)
+	if len(conceptsInfo) != 0 {
+		t.Errorf("Found %d", len(conceptsInfo))
+	}
+}
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *testing.T) {
 	setUp(t)
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,

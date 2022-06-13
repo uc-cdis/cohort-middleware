@@ -65,7 +65,7 @@ func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gi
 	c.JSON(http.StatusOK, gin.H{"concepts": conceptStats})
 }
 
-func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+func (u ConceptController) RetrieveInfoBySourceIdAndConceptIds(c *gin.Context) {
 
 	sourceId, conceptIds, err := utils.ParseSourceIdAndConceptIds(c)
 	if err != nil {
@@ -77,6 +77,27 @@ func (u ConceptController) RetrieveInfoBySourceIdAndCohortIdAndConceptIds(c *gin
 
 	// call model method:
 	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"concepts": conceptInfo})
+}
+
+func (u ConceptController) RetrieveInfoBySourceIdAndConceptTypes(c *gin.Context) {
+
+	sourceId, conceptTypes, err := utils.ParseSourceIdAndConceptTypes(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
+		c.Abort()
+		return
+	}
+
+	// call model method:
+	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptTypes(sourceId, conceptTypes)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})

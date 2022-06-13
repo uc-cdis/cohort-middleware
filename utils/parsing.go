@@ -68,6 +68,10 @@ type ConceptIds struct {
 	ConceptIds []int64
 }
 
+type ConceptTypes struct {
+	ConceptTypes []string
+}
+
 func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
 	// parse and validate all parameters:
 	sourceId, err1 := ParseNumericArg(c, "sourceid")
@@ -89,6 +93,29 @@ func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
 	}
 
 	return sourceId, conceptIds.ConceptIds, nil
+}
+
+func ParseSourceIdAndConceptTypes(c *gin.Context) (int, []string, error) {
+	// parse and validate all parameters:
+	sourceId, err1 := ParseNumericArg(c, "sourceid")
+	if err1 != nil {
+		return -1, nil, err1
+	}
+	if c.Request == nil || c.Request.Body == nil {
+		return -1, nil, errors.New("bad request - no request body")
+	}
+	decoder := json.NewDecoder(c.Request.Body)
+	var conceptTypes ConceptTypes
+	err := decoder.Decode(&conceptTypes)
+	if err != nil {
+		return -1, nil, errors.New("bad request - no request body")
+	}
+	log.Printf("Querying concept types...")
+	if len(conceptTypes.ConceptTypes) == 0 {
+		return -1, nil, errors.New("bad request - no concept types in body")
+	}
+
+	return sourceId, conceptTypes.ConceptTypes, nil
 }
 
 func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, error) {

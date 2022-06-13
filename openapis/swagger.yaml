@@ -460,8 +460,7 @@ paths:
                         - concept_id
                         - prefixed_concept_id
                         - concept_name
-                        - domain_id
-                        - domain_name
+                        - concept_type
                       properties:
                         concept_id:
                           type: number
@@ -471,10 +470,7 @@ paths:
                         concept_name:
                           type: string
                           minLength: 1
-                        domain_id:
-                          type: string
-                          minLength: 1
-                        domain_name:
+                        concept_type:
                           type: string
                           minLength: 1
                 required:
@@ -560,8 +556,7 @@ paths:
                         - concept_id
                         - prefixed_concept_id
                         - concept_name
-                        - domain_id
-                        - domain_name
+                        - concept_type
                         - cohort_size
                         - n_missing_ratio
                       properties:
@@ -573,10 +568,7 @@ paths:
                         concept_name:
                           type: string
                           minLength: 1
-                        domain_id:
-                          type: string
-                          minLength: 1
-                        domain_name:
+                        concept_type:
                           type: string
                           minLength: 1
                         cohort_size:
@@ -1004,15 +996,12 @@ components:
           type: string
         concept_name:
           type: string
-        domain.domain_id:
-          type: string
-        domain.domain_name:
+        concept_type:
           type: string
       required:
         - concept_id
         - concept_name
-        - domain.domain_id
-        - domain.domain_name
+        - concept_type
   securitySchemes:
     Bearer:
       name: Authorization

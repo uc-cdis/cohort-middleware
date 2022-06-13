@@ -94,8 +94,3 @@ CREATE TABLE omop.concept
     valid_end_date date NOT NULL DEFAULT DATE('2099-01-01'),
     invalid_reason character varying(1) COLLATE pg_catalog."default"
 );
-
-CREATE TABLE omop.domain (
-    domain_id varchar(20) NOT NULL,
-    domain_name varchar(255) NOT NULL,
-    domain_concept_id integer NOT NULL  DEFAULT 0);

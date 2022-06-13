@@ -16,8 +16,6 @@ type ConceptI interface {
 type Concept struct {
 	ConceptId   int    `json:"concept_id"`
 	ConceptName string `json:"concept_name"`
-	DomainId    string `json:"domain_id"`
-	DomainName  string `json:"domain_name"`
 	ConceptType string `json:"concept_type"`
 }
 
@@ -30,8 +28,6 @@ type ConceptStats struct {
 	ConceptId         int64   `json:"concept_id"`
 	PrefixedConceptId string  `json:"prefixed_concept_id"`
 	ConceptName       string  `json:"concept_name"`
-	DomainId          string  `json:"domain_id"`
-	DomainName        string  `json:"domain_name"`
 	ConceptType       string  `json:"concept_type"`
 	CohortSize        int     `json:"cohort_size"`
 	NmissingRatio     float32 `json:"n_missing_ratio"`
@@ -41,8 +37,6 @@ type ConceptSimple struct {
 	ConceptId         int64  `json:"concept_id"`
 	PrefixedConceptId string `json:"prefixed_concept_id"`
 	ConceptName       string `json:"concept_name"`
-	DomainId          string `json:"domain_id"`
-	DomainName        string `json:"domain_name"`
 	ConceptType       string `json:"concept_type"`
 }
 
@@ -60,8 +54,7 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 
 	var concepts []*Concept
 	meta_result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
-		Joins("INNER JOIN " + omopDataSource.Schema + ".domain as domain ON concept.domain_id = domain.domain_id").
+		Select("concept_id, concept_name, concept_class_id as concept_type").
 		Order("concept_name").
 		Scan(&concepts)
 	return concepts, meta_result.Error
@@ -76,15 +69,14 @@ func getNrPersonsWithData(conceptId int64, conceptsAndPersonsWithData []*Concept
 	return 0
 }
 
-// Retrieve just a simple list of concept names and domain info for given list of conceptIds.
+// Retrieve just a simple list of concept names and type info for given list of conceptIds.
 func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var conceptItems []*ConceptSimple
 	meta_result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
-		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
+		Select("concept_id, concept_name, concept_class_id as concept_type").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptItems)
@@ -107,8 +99,7 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 
 	var conceptItems []*ConceptSimple
 	meta_result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, concept_class_id as concept_type").
-		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
+		Select("concept_id, concept_name, concept_class_id as concept_type").
 		Where("concept_class_id in (?)", conceptTypes).
 		Order("concept_name").
 		Scan(&conceptItems)
@@ -122,7 +113,7 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 	return conceptItems, nil
 }
 
-// Retrieve concept name, domain and missing ratio statistics for given list of conceptIds.
+// Retrieve concept name, type and missing ratio statistics for given list of conceptIds.
 // Assumption is that both OMOP and RESULTS schemas are on same DB.
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
@@ -130,8 +121,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 
 	var conceptStats []*ConceptStats
 	meta_result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, domain.domain_id, domain.domain_name, 0 as n_missing_ratio, concept_class_id as concept_type").
-		Joins("INNER JOIN "+omopDataSource.Schema+".domain as domain ON concept.domain_id = domain.domain_id").
+		Select("concept_id, concept_name, 0 as n_missing_ratio, concept_class_id as concept_type").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptStats)

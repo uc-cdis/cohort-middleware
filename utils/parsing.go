@@ -112,7 +112,7 @@ func ParseSourceIdAndConceptTypes(c *gin.Context) (int, []string, error) {
 	}
 	log.Printf("Querying concept types...")
 	if len(conceptTypes.ConceptTypes) == 0 {
-		return -1, nil, errors.New("bad request - no concept ids in body")
+		return -1, nil, errors.New("bad request - no concept types in body")
 	}
 
 	return sourceId, conceptTypes.ConceptTypes, nil

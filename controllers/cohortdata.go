@@ -78,7 +78,7 @@ func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
 // for this person in the subsequent columns. The transformation is necessary
 // since the cohortData list contains one row per person-concept combination.
 // E.g. the following (simplified version of the) data:
-//   {PersonId:1, ConceptId:1, ConceptValue: A},
+//   {PersonId:1, ConceptId:1, ConceptValue: "A value with, comma!"},
 //   {PersonId:1, ConceptId:2, ConceptValue: B},
 //   {PersonId:2, ConceptId:1, ConceptValue: C},
 // will be transformed to a CSV table like:

@@ -205,9 +205,9 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
 		largestCohort.Id,
 		breakdownConceptId)
-	// we expect 5 rows since the largest test cohort has all HARE values represented in its population:
-	if len(stats) != 5 {
-		t.Errorf("Expected at least two results, found %d", len(stats))
+	// we expect 5-1 rows since the largest test cohort has all HARE values represented in its population, but has NULL in the "OTH" entry:
+	if len(stats) != 4 {
+		t.Errorf("Expected 4 results, found %d", len(stats))
 	}
 }
 

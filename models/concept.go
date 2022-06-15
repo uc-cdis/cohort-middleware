@@ -205,7 +205,8 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 		Select(breakdownValueFieldName+" as concept_value, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-		Where("observation.observation_concept_id = ?", breakdownConceptId)
+		Where("observation.observation_concept_id = ?", breakdownConceptId).
+		Where(breakdownValueFieldName + " is not null")
 
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:

@@ -19,6 +19,7 @@ var largestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
+var asnHareConceptId = tests.GetTestAsnHareConceptId()
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -333,13 +334,13 @@ func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId
 }
 
 // for given source and cohort, counts how many persons have the given HARE value
-func getNrPersonsWithHareConceptValue(sourceId int, cohortId int, hareConceptValue string) int64 {
+func getNrPersonsWithHareConceptValue(sourceId int, cohortId int, hareConceptValue int64) int64 {
 	conceptIds := make([]int64, 1)
 	conceptIds[0] = hareConceptId
 	personLevelData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
 	var count int64 = 0
 	for _, personLevelDatum := range personLevelData {
-		if personLevelDatum.ConceptValueAsString == hareConceptValue {
+		if personLevelDatum.ConceptValueAsConceptId == hareConceptValue {
 			count++
 		}
 	}
@@ -352,7 +353,7 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	caseCohortId := largestCohort.Id
 	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
 	filterConceptId := hareConceptId
-	filterConceptValue := "ASN"
+	filterConceptValue := asnHareConceptId
 	otherFilterConceptIds := make([]int64, 0)
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds)
@@ -369,7 +370,7 @@ func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 	caseCohortId := largestCohort.Id
 	controlCohortId := smallestCohort.Id
 	filterConceptId := hareConceptId
-	filterConceptValue := "NON-EXISTING-VALUE" // should result in 0 overlap
+	var filterConceptValue int64 = -1 // should result in 0 overlap
 	otherFilterConceptIds := make([]int64, 0)
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds)
@@ -384,7 +385,7 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 	caseCohortId := largestCohort.Id
 	controlCohortId := largestCohort.Id // to ensure THIS part does not break it, just repeat the same here...
 	filterConceptId := hareConceptId
-	filterConceptValue := "ASN"
+	filterConceptValue := asnHareConceptId
 	// set this list to some dummy non-existing ids:
 	otherFilterConceptIds := make([]int64, 2)
 	otherFilterConceptIds[0] = -1

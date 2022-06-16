@@ -20,7 +20,7 @@ func GenerateDsn(sourceConnectionString string) string {
 	username := sourceConnectionParts[7]
 	password := sourceConnectionParts[9]
 
-	dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s",
+	dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s?queryTimeout=600",
 		username,
 		url.QueryEscape(password),
 		host,

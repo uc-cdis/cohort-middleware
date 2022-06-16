@@ -161,11 +161,11 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	errors := make([]error, 5)
 	var sourceId, caseCohortId, controlCohortId int
 	var filterConceptId int64
-	var filterConceptValue string
+	var filterConceptValue int64
 	var conceptIds []int64
 	sourceId, conceptIds, errors[0] = utils.ParseSourceIdAndConceptIds(c)
 	filterConceptId, errors[1] = utils.ParseBigNumericArg(c, "filterconceptid")
-	filterConceptValue, errors[2] = utils.ParseStringArg(c, "filtervalue")
+	filterConceptValue, errors[2] = utils.ParseBigNumericArg(c, "filtervalue")
 	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")
 	if utils.ContainsNonNil(errors) {

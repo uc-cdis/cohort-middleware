@@ -70,7 +70,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 }
 
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue string, otherFilterConceptIds []int64) (models.CohortOverlapStats, error) {
+	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
 	return zeroOverlap, nil
 }
@@ -202,7 +202,7 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "filterconceptid", Value: "1"})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "filtervalue", Value: "TEST"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "filtervalue", Value: "123"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "casecohortid", Value: "1"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
 	requestContext.Writer = new(tests.CustomResponseWriter)

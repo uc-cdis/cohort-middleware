@@ -26,6 +26,11 @@ func GetTestHareConceptId() int64 {
 	return 2000007027
 }
 
+func GetTestAsnHareConceptId() int64 {
+	// one of the HARE codes, this one being for "ASN-Asian":
+	return 2000007029
+}
+
 func ExecAtlasSQLScript(sqlFilePath string) {
 	ExecSQLScript(sqlFilePath, -1)
 }

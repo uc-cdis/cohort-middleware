@@ -162,6 +162,26 @@ func TestRetrieveInfoBySourceIdAndConceptTypes(t *testing.T) {
 	}
 }
 
+func TestRetrieveInfoBySourceIdAndConceptIdNotFound(t *testing.T) {
+	setUp(t)
+	// get all concepts:
+	conceptInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptId(testSourceId,
+		-1)
+	if conceptInfo != nil {
+		t.Errorf("Did not expected to find data")
+	}
+}
+
+func TestRetrieveInfoBySourceIdAndConceptId(t *testing.T) {
+	setUp(t)
+	// get all concepts:
+	conceptInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptId(testSourceId,
+		genderConceptId)
+	if conceptInfo == nil {
+		t.Errorf("Expected to find data")
+	}
+}
+
 func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 	setUp(t)
 	// simple test: invalid/non-existing type should return an empty list:
@@ -188,14 +208,26 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *te
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *testing.T) {
 	setUp(t)
 	filterIds := make([]int64, 1)
-	filterIds[0] = genderConceptId
-	breakdownConceptId := genderConceptId // not normally the case...but we'll use the same here just for the test...
+	filterIds[0] = hareConceptId
+	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		largestCohort.Id,
 		filterIds, breakdownConceptId)
-	// we expect values since all of the test cohorts have at least one subject with gender info:
-	if len(stats) < 2 {
-		t.Errorf("Expected at least two results, found %d", len(stats))
+	// we expect values since largestCohort has multiple subjects with hare info:
+	if len(stats) < 4 {
+		t.Errorf("Expected at least 4 results, found %d", len(stats))
+	}
+	prevName := ""
+	for _, stat := range stats {
+		// some very basic checks, making sure fields are not empty, repeated in next row, etc:
+		if len(stat.ConceptValue) == len(stat.ValueName) ||
+			len(stat.ConceptValue) == 0 ||
+			len(stat.ValueName) == 0 ||
+			stat.ValueAsConceptId == 0 ||
+			stat.ValueName == prevName {
+			t.Errorf("Invalid results")
+		}
+		prevName = stat.ValueName
 	}
 }
 

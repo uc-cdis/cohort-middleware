@@ -37,11 +37,14 @@ type ConceptSimple struct {
 	ConceptId         int64  `json:"concept_id"`
 	PrefixedConceptId string `json:"prefixed_concept_id"`
 	ConceptName       string `json:"concept_name"`
+	ConceptCode       string `json:"concept_code"`
 	ConceptType       string `json:"concept_type"`
 }
 
 type ConceptBreakdown struct {
 	ConceptValue              string `json:"concept_value"`
+	ValueAsConceptId          int64  `json:"concept_value_as_concept_id"`
+	ValueName                 string `json:"concept_value_name"`
 	NpersonsInCohortWithValue int    `json:"persons_in_cohort_with_value"`
 }
 
@@ -69,6 +72,20 @@ func getNrPersonsWithData(conceptId int64, conceptsAndPersonsWithData []*Concept
 	return 0
 }
 
+// Retrieve just a simple concept info for a given conceptId.
+func (h Concept) RetrieveInfoBySourceIdAndConceptId(sourceId int, conceptId int64) (*ConceptSimple, error) {
+	conceptIds := make([]int64, 1)
+	conceptIds[0] = conceptId
+	result, err := h.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
+	if err != nil {
+		return nil, err
+	} else if len(result) == 0 {
+		// given concept_id not found, just return nil:
+		return nil, nil
+	}
+	return result[0], err
+}
+
 // Retrieve just a simple list of concept names and type info for given list of conceptIds.
 func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error) {
 	var dataSourceModel = new(Source)
@@ -76,7 +93,7 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 
 	var conceptItems []*ConceptSimple
 	meta_result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, concept_class_id as concept_type").
+		Select("concept_id, concept_name, concept_code, concept_class_id as concept_type").
 		Where("concept_id in (?)", conceptIds).
 		Order("concept_name").
 		Scan(&conceptItems)
@@ -202,11 +219,13 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 	var breakdownValueFieldName = "observation.value_as_" + getConceptValueType(breakdownConceptId)
 	var conceptBreakdownList []*ConceptBreakdown
 	query := omopDataSource.Db.Model(&Observation{}).
-		Select(breakdownValueFieldName+" as concept_value, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
+		Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
 		Where("observation.observation_concept_id = ?", breakdownConceptId).
-		Where(breakdownValueFieldName + " is not null")
+		Where(breakdownValueFieldName + " is not null").      // this one seems like a bit of a random constraint...but was a request from the business side: skip records where this field is null
+		Where("observation.value_as_concept_id is not null"). // this is assuming that the breakdownConceptId has its values nicely stored as concepts as well and correctly used in observation table...
+		Where("observation.value_as_concept_id != 0")
 
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
@@ -217,7 +236,17 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
 			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
 	}
-	meta_result := query.Group(breakdownValueFieldName).
+	meta_result := query.Group("observation.value_as_concept_id").
 		Scan(&conceptBreakdownList)
+
+	// Add concept value (coded value) and concept name for each of the value_as_concept_id values:
+	for _, conceptBreakdownItem := range conceptBreakdownList {
+		conceptInfo, error := h.RetrieveInfoBySourceIdAndConceptId(sourceId, conceptBreakdownItem.ValueAsConceptId)
+		if error != nil {
+			return nil, error
+		}
+		conceptBreakdownItem.ConceptValue = conceptInfo.ConceptCode
+		conceptBreakdownItem.ValueName = conceptInfo.ConceptName
+	}
 	return conceptBreakdownList, meta_result.Error
 }

@@ -29,7 +29,7 @@ func GenerateDsn(sourceConnectionString string) string {
 			dbname)
 		return dsn
 	} else {
-		dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s?queryTimeout=600",
+		dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s&connection+timeout=0",
 			username,
 			url.QueryEscape(password),
 			host,

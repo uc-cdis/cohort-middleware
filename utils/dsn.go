@@ -20,11 +20,22 @@ func GenerateDsn(sourceConnectionString string) string {
 	username := sourceConnectionParts[7]
 	password := sourceConnectionParts[9]
 
-	dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s?queryTimeout=600",
-		username,
-		url.QueryEscape(password),
-		host,
-		port,
-		dbname)
-	return dsn
+	if dbVendor == "postgresql" {
+		dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s",
+			username,
+			url.QueryEscape(password),
+			host,
+			port,
+			dbname)
+		return dsn
+	} else {
+		dsn := fmt.Sprintf(dbVendor+"://%s:%s@%s:%s?database=%s?queryTimeout=600",
+			username,
+			url.QueryEscape(password),
+			host,
+			port,
+			dbname)
+		return dsn
+	}
+
 }

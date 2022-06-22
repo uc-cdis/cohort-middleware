@@ -72,6 +72,35 @@ type ConceptTypes struct {
 	ConceptTypes []string
 }
 
+func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int, error) {
+	decoder := json.NewDecoder(c.Request.Body)
+	request := make(map[string][]map[string]interface{})
+	err := decoder.Decode(&request)
+	if err != nil {
+		log.Printf("Error: %s", err)
+		return nil, nil, err
+	}
+
+	variables := request["variables"]
+	prefixedConceptIds := []string{}
+	cohortPairs := [][]int{}
+	for _, variable := range variables {
+		if variable["variable_type"] == "concept" {
+			prefixedConceptIds = append(prefixedConceptIds, variable["prefixed_concept_id"].(string))
+		}
+		if variable["variable_type"] == "custom_dichotomous" {
+			cohortPair := []int{}
+			convertedCohortIds := variable["cohort_ids"].([]interface{})
+			for _, convertedCohortId := range convertedCohortIds {
+				cohortPair = append(cohortPair, int(convertedCohortId.(float64)))
+			}
+
+			cohortPairs = append(cohortPairs, cohortPair)
+		}
+	}
+	return prefixedConceptIds, cohortPairs, nil
+}
+
 func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
 	// parse and validate all parameters:
 	sourceId, err1 := ParseNumericArg(c, "sourceid")

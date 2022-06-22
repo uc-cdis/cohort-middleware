@@ -75,6 +75,19 @@ func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohor
 	return zeroOverlap, nil
 }
 
+func (h dummyCohortDataModel) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*models.PersonIdAndCohort, error) {
+	if cohortDefinitionId == 2 {
+		return []*models.PersonIdAndCohort{
+			{PersonId: 1, CohortId: int64(cohortDefinitionId)},
+		}, nil
+	}
+
+	return []*models.PersonIdAndCohort{
+		{PersonId: 2, CohortId: int64(cohortDefinitionId)},
+		{PersonId: 3, CohortId: int64(cohortDefinitionId)},
+	}, nil
+}
+
 type dummyCohortDefinitionDataModel struct{}
 
 var dummyModelReturnError bool = false
@@ -185,7 +198,8 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"PrefixedConceptIds\":[\"ID_2000000324\",\"ID_2000006885\"]}"))
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"prefixed_concept_id\": \"ID_2000000324\"},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
 	// Params above are correct, so request should NOT abort:
 	if requestContext.IsAborted() {
@@ -243,27 +257,27 @@ func TestGenerateCSV(t *testing.T) {
 	}
 	conceptIds := []int64{10, 22}
 
-	b := controllers.GenerateCSV(
+	csvLines := controllers.GeneratePartialCSV(
 		testSourceId, cohortData, conceptIds)
-	csvLines := strings.Split(strings.TrimRight(b.String(), "\n"), "\n")
+
 	// the above should result in one header line and 2 data lines (2 persons)
 	if len(csvLines) != 3 {
 		t.Errorf("Expected 1 header line + 2 data lines, found %d lines in total",
 			len(csvLines))
 		t.Errorf("Lines: %s", csvLines)
 	}
-	expectedLines := []string{
-		"sample.id,ID_10,ID_22",
-		"1,abc,1.50",
-		"2789580123456,\"A value with, comma!\",NA",
+	expectedLines := [][]string{
+		{"sample.id", "ID_10", "ID_22"},
+		{"1", "abc", "1.50"},
+		{"2789580123456", "A value with, comma!", "NA"},
 	}
-	i := 0
-	for _, expectedLine := range expectedLines {
-		if csvLines[i] != expectedLine {
+
+	for i, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, csvLines[i]) {
 			t.Errorf("CSV line not as expected. \nExpected: \n%s \nFound: \n%s",
 				expectedLine, csvLines[i])
 		}
-		i++
+
 	}
 }
 
@@ -610,5 +624,83 @@ func TestGetFilteredConceptRows(t *testing.T) {
 				expectedLine, result[i])
 		}
 		i++
+	}
+}
+
+func TestGenerateCompleteCSV(t *testing.T) {
+	setUp(t)
+
+	partialCsv := [][]string{
+		{"sample.id", "ID_2000000324", "ID_2000006885", "ID_2000007027"},
+		{"1", "F", "5.40", "HIS"},
+		{"2", "A value with, comma!"},
+	}
+
+	personIdToCSVValues := map[int64]map[string]string{
+		int64(1): {
+			"2_3": "1",
+		},
+		int64(2): {
+			"2_3": "NA",
+		},
+	}
+
+	cohortPairs := [][]int{
+		{2, 3},
+	}
+
+	b := controllers.GenerateCompleteCSV(partialCsv, personIdToCSVValues, cohortPairs)
+	csvLines := strings.Split(strings.TrimRight(b.String(), "\n"), "\n")
+
+	expectedLines := []string{
+		"sample.id,ID_2000000324,ID_2000006885,ID_2000007027,2_3",
+		"1,F,5.40,HIS,1",
+		"2,\"A value with, comma!\",NA",
+	}
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, csvLines[i]) {
+			t.Errorf("header or non filter row line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, csvLines[i])
+		}
+		i++
+	}
+}
+
+func TestRetrievePeopleIdAndCohort(t *testing.T) {
+	cohortId := 1
+	cohortPairs := [][]int{
+		{2, 3},
+	}
+
+	cohortData := []*models.PersonConceptAndValue{
+		{
+			PersonId: 1,
+		},
+		{
+			PersonId: 2,
+		},
+		{
+			PersonId: 3,
+		},
+	}
+
+	expectedResults := map[int64]map[string]string{
+		int64(1): {
+			"2_3": "0",
+		},
+		int64(2): {
+			"2_3": "1",
+		},
+		int64(3): {
+			"2_3": "1",
+		},
+	}
+
+	res, _ := cohortDataController.RetrievePeopleIdAndCohort(testSourceId, cohortId, cohortPairs, cohortData)
+	for expectedPersonId, headerToCSVValue := range expectedResults {
+		if res[expectedPersonId]["2_3"] != headerToCSVValue["2_3"] {
+			t.Errorf("expected %v for csv value but instead got %v", headerToCSVValue["2_3"], res[expectedPersonId]["2_3"])
+		}
 	}
 }

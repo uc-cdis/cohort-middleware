@@ -31,6 +31,7 @@ connected OHDSI/CMD/Atlas databases via SQL queries.
       - [How to make curl with Auth](#how-to-make-curl-with-auth)
       - [How to see the logs](#how-to-see-the-logs)
       - [In case of infra / network issues:](#in-case-of-infra--network-issues)
+      - [Updating dependencies](#updating-dependencies)
 
 ## API Documentation
 
@@ -131,7 +132,7 @@ curl -d '{"ConceptIds":[2000006885]}'  -H "Content-Type: application/json" -X PO
 
 CSV data endpoints:
 ```bash
-curl -d '{"PrefixedConceptIds":["ID_2000000324","ID_2000006885","2000007027"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
+curl -d '{"variables":[{"variable_type": "concept", "prefixed_concept_id": "ID_2000000324"},{"variable_type": "concept", "prefixed_concept_id": "ID_2000006885"},{"variable_type": "concept", "prefixed_concept_id": "ID_2000007027"},{"variable_type": "custom_dichotomous", "cohort_ids": [1, 2]}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/2
 
 curl -d '{"ConceptIds":[2000000324,2000000323]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000007027/csv
 

@@ -8,6 +8,7 @@ import (
 type CohortDataI interface {
 	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64) (CohortOverlapStats, error)
+	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 }
 
 type CohortData struct{}
@@ -22,6 +23,25 @@ type PersonConceptAndValue struct {
 
 type CohortOverlapStats struct {
 	CaseControlOverlapAfterFilter int64 `json:"case_control_overlap_after_filter"`
+}
+
+type PersonIdAndCohort struct {
+	PersonId int64
+	CohortId int64
+}
+
+func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error) {
+	var dataSourceModel = new(Source)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	var personData []*PersonIdAndCohort
+
+	meta_result := resultsDataSource.Db.Model(&Cohort{}).
+		Select("cohort.subject_id as person_id, cohort.cohort_definition_id as cohort_id").
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as original_cohort ON cohort.subject_id = original_cohort.subject_id").
+		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Where("original_cohort.cohort_definition_id = ?", originalCohortDefinitionId).
+		Scan(&personData)
+	return personData, meta_result.Error
 }
 
 // Retrieves observation data.

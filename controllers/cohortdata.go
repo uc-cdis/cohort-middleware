@@ -3,7 +3,7 @@ package controllers
 import (
 	"bytes"
 	"encoding/csv"
-	"encoding/json"
+	"fmt"
 	"log"
 	"net/http"
 	"strconv"
@@ -15,10 +15,6 @@ import (
 
 type CohortDataController struct {
 	cohortDataModel models.CohortDataI
-}
-
-type PrefixedConceptIds struct {
-	PrefixedConceptIds []string
 }
 
 func NewCohortDataController(cohortDataModel models.CohortDataI) CohortDataController {
@@ -38,20 +34,18 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		c.Abort()
 		return
 	}
-	decoder := json.NewDecoder(c.Request.Body)
-	var prefixedConceptIds PrefixedConceptIds
-	err := decoder.Decode(&prefixedConceptIds)
+
+	prefixedConceptIds, cohortPairs, err := utils.ParsePrefixedConceptIdsAndDichotomousIds(c)
 	if err != nil {
-		log.Printf("Error: %s", err)
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request - no valid request body"})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
 		return
 	}
-	log.Printf("Querying concept ids: %v", prefixedConceptIds.PrefixedConceptIds)
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
-	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds.PrefixedConceptIds)
+
+	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds)
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -60,8 +54,19 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		c.Abort()
 		return
 	}
-	b := GenerateCSV(sourceId, cohortData, conceptIds)
+
+	partialCSV := GeneratePartialCSV(sourceId, cohortData, conceptIds)
+
+	personIdToCSVValues, err := u.RetrievePeopleIdAndCohort(sourceId, cohortId, cohortPairs, cohortData)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving people ID to csv value map", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
+	b := GenerateCompleteCSV(partialCSV, personIdToCSVValues, cohortPairs)
 	c.String(http.StatusOK, b.String())
+
 }
 
 func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
@@ -71,6 +76,42 @@ func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
 		result = append(result, idAsNumber)
 	}
 	return result
+}
+
+func generateCohortPairsHeader(cohortPairs [][]int) []string {
+	cohortPairsHeader := []string{}
+
+	for _, cohortPair := range cohortPairs {
+		cohortPairsHeader = append(cohortPairsHeader, fmt.Sprintf("%v_%v", cohortPair[0], cohortPair[1]))
+	}
+
+	return cohortPairsHeader
+}
+
+func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]map[string]string, cohortPairs [][]int) *bytes.Buffer {
+	b := new(bytes.Buffer)
+	w := csv.NewWriter(b)
+	w.Comma = ',' // CSV
+
+	cohortPairHeader := generateCohortPairsHeader(cohortPairs)
+
+	partialCSV[0] = append(partialCSV[0], cohortPairHeader...)
+	for i := 1; i < len(partialCSV); i++ {
+		personId, _ := strconv.ParseInt(partialCSV[i][0], 10, 64)
+		for _, cohortPair := range cohortPairHeader {
+			partialCSV[i] = append(partialCSV[i], personIdToCSVValues[personId][cohortPair])
+		}
+	}
+
+	// TODO - is there a way to write as the rows are produced? Building up all rows in memory
+	// could cause issues if the cohort vs concepts matrix gets very large...or will the number of concepts
+	// queried at the same time never be very large? Should we restrict the number of concepts to
+	// a max here in this method?
+	err := w.WriteAll(partialCSV)
+	if err != nil {
+		log.Fatal(err)
+	}
+	return b
 }
 
 // This function will take the given cohort data and transform it into a matrix
@@ -87,11 +128,7 @@ func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
 //   2,Simple value,NA
 // where "NA" means that the person did not have a data element for that concept
 // or that the data element had a NULL/empty value.
-func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int64) *bytes.Buffer {
-	b := new(bytes.Buffer)
-	w := csv.NewWriter(b)
-	w.Comma = ',' // CSV
-
+func GeneratePartialCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int64) [][]string {
 	var rows [][]string
 	var header []string
 	header = append(header, "sample.id")
@@ -115,16 +152,7 @@ func GenerateCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conce
 	}
 	// append last person row:
 	rows = append(rows, row)
-
-	// TODO - is there a way to write as the rows are produced? Building up all rows in memory
-	// could cause issues if the cohort vs concepts matrix gets very large...or will the number of concepts
-	// queried at the same time never be very large? Should we restrict the number of concepts to
-	// a max here in this method?
-	err := w.WriteAll(rows)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return b
+	return rows
 }
 
 func addConceptsToHeader(sourceId int, header []string, conceptIds []int64) []string {
@@ -181,4 +209,83 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 		return
 	}
 	c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
+}
+
+func convertCohortPeopleDataToMap(cohortPeopleData []*models.PersonIdAndCohort) map[int64]int64 {
+	personIdToCohortDefinitionId := make(map[int64]int64)
+
+	for _, cohortPersonData := range cohortPeopleData {
+		personIdToCohortDefinitionId[cohortPersonData.PersonId] = cohortPersonData.CohortId
+	}
+
+	return personIdToCohortDefinitionId
+}
+
+func generateCohortPairCSVValue(personId int64, firstCohortValue int64, secondCohortValue int64) string {
+	if firstCohortValue == 0 && secondCohortValue == 0 {
+		return "NA" // the person is not in either cohort
+	}
+
+	if firstCohortValue > 0 && secondCohortValue > 0 {
+		log.Printf("person with id %v has an overlap and is in cohort %v and cohort %v", personId, firstCohortValue, secondCohortValue)
+		return "NA" // the person is overlapped
+	}
+
+	if firstCohortValue > 0 {
+		return "0" // the person belongs to the first cohort
+	}
+
+	if secondCohortValue > 0 {
+		return "1" // the person belongs to the second cohort
+	}
+
+	log.Printf("error with personId %v with first cohort value %v and second cohort value %v", personId, firstCohortValue, secondCohortValue)
+	return "NA"
+}
+
+func getAllPeopleIdInCohortData(cohortData []*models.PersonConceptAndValue) []int64 {
+	var personIds []int64
+	for _, data := range cohortData {
+		personIds = append(personIds, data.PersonId)
+	}
+
+	return personIds
+}
+
+func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId int, cohortPairs [][]int, cohortData []*models.PersonConceptAndValue) (map[int64]map[string]string, error) {
+	peopleIds := getAllPeopleIdInCohortData(cohortData)
+
+	/**
+	makes a map of {
+		"{person_id}" : {
+			"{first_cohort}_{second_cohort}": "{csv_value}"
+		}
+	}
+	*/
+	personIdToCSVValues := make(map[int64]map[string]string)
+	for _, cohortPair := range cohortPairs {
+		firstCohortDefinitionId := cohortPair[0]
+		secondCohortDefinitionId := cohortPair[1]
+		cohortPairKey := fmt.Sprintf("%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
+
+		firstCohortPeopleData, err1 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, firstCohortDefinitionId)
+		secondCohortPeopleData, err2 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, secondCohortDefinitionId)
+		if err1 != nil || err2 != nil {
+			return nil, fmt.Errorf("getting cohort people data failed")
+		}
+		firstCohortPeopleMap := convertCohortPeopleDataToMap(firstCohortPeopleData)
+		secondCohortPeopleMap := convertCohortPeopleDataToMap(secondCohortPeopleData)
+
+		for _, personId := range peopleIds {
+			CSVValue := generateCohortPairCSVValue(personId, firstCohortPeopleMap[personId], secondCohortPeopleMap[personId])
+			_, exists := personIdToCSVValues[personId]
+			if exists {
+				personIdToCSVValues[personId][cohortPairKey] = CSVValue
+			} else {
+				personIdToCSVValues[personId] = map[string]string{cohortPairKey: CSVValue}
+			}
+		}
+	}
+
+	return personIdToCSVValues, nil
 }

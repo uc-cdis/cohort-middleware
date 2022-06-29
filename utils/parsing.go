@@ -72,6 +72,15 @@ type ConceptTypes struct {
 	ConceptTypes []string
 }
 
+// This method expects a request body with a payload similar to the following example:
+// {"variables": [
+//   {variable_type: "concept", prefixed_concept_id: "ID_2000000324"},
+//   {variable_type: "concept", prefixed_concept_id: "ID_2000006885"},
+//   {variable_type: "custom_dichotomous", cohort_ids: [cohortX_id, cohortY_id]},
+//   {variable_type: "custom_dichotomous", cohort_ids: [cohortM_id, cohortN_id]},
+//       ...
+// ]}
+// It returns the list of prefixed_concept_id values and the list of cohort_id tuples.
 func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int, error) {
 	decoder := json.NewDecoder(c.Request.Body)
 	request := make(map[string][]map[string]interface{})
@@ -149,15 +158,31 @@ func ParseSourceIdAndConceptTypes(c *gin.Context) (int, []string, error) {
 
 func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, error) {
 	// parse and validate all parameters:
-	sourceId, conceptIds, err := ParseSourceIdAndConceptIds(c)
-	if err != nil {
-		return -1, -1, nil, err
+	sourceId, conceptIds, err1 := ParseSourceIdAndConceptIds(c)
+	if err1 != nil {
+		return -1, -1, nil, err1
 	}
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id...")
-	if _, err := strconv.Atoi(cohortIdStr); err != nil {
-		return -1, -1, nil, errors.New("bad request - cohort_definition_id should be a number")
+	cohortId, err2 := ParseNumericArg(c, "cohortid")
+	if err2 != nil {
+		return -1, -1, nil, err2
 	}
-	cohortId, _ := strconv.Atoi(cohortIdStr)
 	return sourceId, cohortId, conceptIds, nil
+}
+
+// returns sourceid, cohortid, list of prefixed concept ids, list of cohort tuples (aka custom dichotomous variables)
+func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []string, [][]int, error) {
+	// parse and validate all parameters:
+	sourceId, err1 := ParseNumericArg(c, "sourceid")
+	if err1 != nil {
+		return -1, -1, nil, nil, err1
+	}
+	cohortId, err2 := ParseNumericArg(c, "cohortid")
+	if err2 != nil {
+		return -1, -1, nil, nil, err2
+	}
+	prefixed_concept_ids, cohort_tuples, err3 := ParsePrefixedConceptIdsAndDichotomousIds(c)
+	if err3 != nil {
+		return -1, -1, nil, nil, err3
+	}
+	return sourceId, cohortId, prefixed_concept_ids, cohort_tuples, nil
 }

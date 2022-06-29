@@ -74,14 +74,14 @@ type ConceptTypes struct {
 
 // This method expects a request body with a payload similar to the following example:
 // {"variables": [
-//   {variable_type: "concept", prefixed_concept_id: "ID_2000000324"},
-//   {variable_type: "concept", prefixed_concept_id: "ID_2000006885"},
+//   {variable_type: "concept", concept_id: 2000000324},
+//   {variable_type: "concept", concept_id: 2000006885},
 //   {variable_type: "custom_dichotomous", cohort_ids: [cohortX_id, cohortY_id]},
 //   {variable_type: "custom_dichotomous", cohort_ids: [cohortM_id, cohortN_id]},
 //       ...
 // ]}
-// It returns the list of prefixed_concept_id values and the list of cohort_id tuples.
-func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int, error) {
+// It returns the list of concept_id values and the list of cohort_id tuples.
+func ParseConceptIdsAndDichotomousIds(c *gin.Context) ([]int64, [][]int, error) {
 	decoder := json.NewDecoder(c.Request.Body)
 	request := make(map[string][]map[string]interface{})
 	err := decoder.Decode(&request)
@@ -91,11 +91,13 @@ func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int
 	}
 
 	variables := request["variables"]
-	prefixedConceptIds := []string{}
+	conceptIds := []int64{}
 	cohortPairs := [][]int{}
+	// TODO - this parsing will throw a lot of "null pointer" errors since it does not validate if specific entries are found in the json before
+	// accessing them...needs to be fixed to throw better errors:
 	for _, variable := range variables {
 		if variable["variable_type"] == "concept" {
-			prefixedConceptIds = append(prefixedConceptIds, variable["prefixed_concept_id"].(string))
+			conceptIds = append(conceptIds, int64(variable["concept_id"].(float64)))
 		}
 		if variable["variable_type"] == "custom_dichotomous" {
 			cohortPair := []int{}
@@ -107,7 +109,7 @@ func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int
 			cohortPairs = append(cohortPairs, cohortPair)
 		}
 	}
-	return prefixedConceptIds, cohortPairs, nil
+	return conceptIds, cohortPairs, nil
 }
 
 func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
@@ -170,7 +172,7 @@ func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, e
 }
 
 // returns sourceid, cohortid, list of prefixed concept ids, list of cohort tuples (aka custom dichotomous variables)
-func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []string, [][]int, error) {
+func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, [][]int, error) {
 	// parse and validate all parameters:
 	sourceId, err1 := ParseNumericArg(c, "sourceid")
 	if err1 != nil {
@@ -180,9 +182,9 @@ func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []strin
 	if err2 != nil {
 		return -1, -1, nil, nil, err2
 	}
-	prefixed_concept_ids, cohort_tuples, err3 := ParsePrefixedConceptIdsAndDichotomousIds(c)
+	conceptIds, cohortPairs, err3 := ParseConceptIdsAndDichotomousIds(c)
 	if err3 != nil {
 		return -1, -1, nil, nil, err3
 	}
-	return sourceId, cohortId, prefixed_concept_ids, cohort_tuples, nil
+	return sourceId, cohortId, conceptIds, cohortPairs, nil
 }

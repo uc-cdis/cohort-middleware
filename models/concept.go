@@ -11,7 +11,7 @@ type ConceptI interface {
 	RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error)
 	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
-	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*ConceptBreakdown, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
 	ConceptId   int    `json:"concept_id"`
@@ -201,7 +201,8 @@ func getConceptValueType(conceptId int64) string {
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	// this is identical to the result of the function below if called with empty filterConceptIds[]... so call that:
 	filterConceptIds := make([]int64, 0)
-	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortDefinitionId, filterConceptIds, breakdownConceptId)
+	//TODO filterCohortPairs
+	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortDefinitionId, filterConceptIds, nil, breakdownConceptId)
 }
 
 // Basically same goal as described in function above, but only count persons that have a non-null value for each
@@ -210,7 +211,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
 // where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
@@ -236,6 +237,19 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
 			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
 	}
+	// iterate over the list of filterCohortPairs, adding a new INNER JOIN to the UNION of each pair, so that the resulting set is the
+	// set of persons that are part of the main cohort (cohortDefinitionId) and of one of the cohorts in the filterCohortPairs:
+	for i, filterCohortPair := range filterCohortPairs {
+		cohortTableAlias1 := fmt.Sprintf("cohort_filter_1_%d", i)
+		cohortTableAlias2 := fmt.Sprintf("cohort_filter_2_%d", i)
+		unionAlias := "union_" + cohortTableAlias1 + "_" + cohortTableAlias2
+		log.Printf("Adding extra UNION with alias %s", unionAlias)
+		query = query.Joins("INNER JOIN (Select "+cohortTableAlias1+".subject_id,"+cohortTableAlias1+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias1+
+			" UNION ALL Select "+cohortTableAlias2+".subject_id,"+cohortTableAlias2+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias2+
+			") AS "+unionAlias+" ON "+unionAlias+".subject_id = observation.person_id").
+			Where(unionAlias+".cohort_definition_id in (?,?)", filterCohortPair[0], filterCohortPair[1])
+	}
+
 	meta_result := query.Group("observation.value_as_concept_id").
 		Scan(&conceptBreakdownList)
 

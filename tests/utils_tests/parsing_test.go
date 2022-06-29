@@ -47,17 +47,19 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 	requestContext := new(gin.Context)
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"prefixed_concept_id\": \"ID_2000000324\"},{\"variable_type\": \"concept\", \"prefixed_concept_id\": \"ID_2000000123\"},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324}," +
+		"{\"variable_type\": \"concept\", \"concept_id\": 2000000123}," +
+		"{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
-	prefixedConceptIds, cohortPairs, _ := utils.ParsePrefixedConceptIdsAndDichotomousIds(requestContext)
+	conceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousIds(requestContext)
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
 	}
 
-	expectedPrefixedConceptIds := []string{"ID_2000000324", "ID_2000000123"}
-	if !reflect.DeepEqual(prefixedConceptIds, expectedPrefixedConceptIds) {
-		t.Errorf("Expected %s but found %s", expectedPrefixedConceptIds, prefixedConceptIds)
+	expectedPrefixedConceptIds := []int64{2000000324, 2000000123}
+	if !reflect.DeepEqual(conceptIds, expectedPrefixedConceptIds) {
+		t.Errorf("Expected %d but found %d", expectedPrefixedConceptIds, conceptIds)
 	}
 
 	expectedCohortPairs := [][]int{

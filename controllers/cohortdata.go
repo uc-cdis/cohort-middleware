@@ -35,7 +35,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		return
 	}
 
-	prefixedConceptIds, cohortPairs, err := utils.ParsePrefixedConceptIdsAndDichotomousIds(c)
+	conceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousIds(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
@@ -44,8 +44,6 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
-
-	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds)
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -67,15 +65,6 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 	b := GenerateCompleteCSV(partialCSV, personIdToCSVValues, cohortPairs)
 	c.String(http.StatusOK, b.String())
 
-}
-
-func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
-	var result []int64
-	for _, id := range ids {
-		idAsNumber := models.GetConceptId(id)
-		result = append(result, idAsNumber)
-	}
-	return result
 }
 
 func generateCohortPairsHeader(cohortPairs [][]int) []string {

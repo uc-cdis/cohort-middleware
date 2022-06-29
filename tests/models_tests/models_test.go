@@ -197,9 +197,11 @@ func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *testing.T) {
 	setUp(t)
+	// empty:
+	filterCohortPairs := make([][]int, 0)
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		smallestCohort.Id,
-		allConceptIds, allConceptIds[0])
+		allConceptIds, filterCohortPairs, allConceptIds[0])
 	// none of the subjects has a value in all the concepts, so we expect len==0 here:
 	if len(stats) != 0 {
 		t.Errorf("Expected no results, found %d", len(stats))
@@ -210,10 +212,17 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 	setUp(t)
 	filterIds := make([]int64, 1)
 	filterIds[0] = hareConceptId
+	filterCohortPairs := make([][]int, 1)
+	filterCohortPairs[0] = make([]int, 2)
+	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
+	//TODO - add this extra test ^
+	filterCohortPairs[0][0] = largestCohort.Id
+	filterCohortPairs[0][1] = largestCohort.Id
+
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		largestCohort.Id,
-		filterIds, breakdownConceptId)
+		filterIds, filterCohortPairs, breakdownConceptId)
 	// we expect values since largestCohort has multiple subjects with hare info:
 	if len(stats) < 4 {
 		t.Errorf("Expected at least 4 results, found %d", len(stats))

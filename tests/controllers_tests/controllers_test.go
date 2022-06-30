@@ -653,7 +653,7 @@ func TestGenerateCompleteCSV(t *testing.T) {
 	csvLines := strings.Split(strings.TrimRight(b.String(), "\n"), "\n")
 
 	expectedLines := []string{
-		"sample.id,ID_2000000324,ID_2000006885,ID_2000007027,2_3",
+		"sample.id,ID_2000000324,ID_2000006885,ID_2000007027,ID_2_3",
 		"1,F,5.40,HIS,1",
 		"2,\"A value with, comma!\",NA",
 	}

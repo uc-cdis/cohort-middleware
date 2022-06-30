@@ -95,7 +95,10 @@ func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]ma
 
 	cohortPairHeader := generateCohortPairsHeader(cohortPairs)
 
-	partialCSV[0] = append(partialCSV[0], cohortPairHeader...)
+	for _, header := range cohortPairHeader {
+		partialCSV[0] = append(partialCSV[0], fmt.Sprintf("ID_%s", header))
+	}
+
 	for i := 1; i < len(partialCSV); i++ {
 		personId, _ := strconv.ParseInt(partialCSV[i][0], 10, 64)
 		for _, cohortPair := range cohortPairHeader {

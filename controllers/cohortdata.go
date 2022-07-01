@@ -176,23 +176,25 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 }
 
 func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
-	errors := make([]error, 5)
+	errors := make([]error, 6)
 	var sourceId, caseCohortId, controlCohortId int
 	var filterConceptId int64
 	var filterConceptValue int64
 	var conceptIds []int64
-	sourceId, conceptIds, errors[0] = utils.ParseSourceIdAndConceptIds(c)
+	var cohortPairs [][]int
+	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
 	filterConceptId, errors[1] = utils.ParseBigNumericArg(c, "filterconceptid")
 	filterConceptValue, errors[2] = utils.ParseBigNumericArg(c, "filtervalue")
 	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")
+	conceptIds, cohortPairs, errors[5] = utils.ParseConceptIdsAndDichotomousIds(c)
 	if utils.ContainsNonNil(errors) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 		c.Abort()
 		return
 	}
 	breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, conceptIds)
+		filterConceptId, filterConceptValue, conceptIds, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 		c.Abort()

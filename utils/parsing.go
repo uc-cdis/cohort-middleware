@@ -82,6 +82,9 @@ type ConceptTypes struct {
 // ]}
 // It returns the list of concept_id values and the list of cohort_id tuples.
 func ParseConceptIdsAndDichotomousIds(c *gin.Context) ([]int64, [][]int, error) {
+	if c.Request == nil || c.Request.Body == nil {
+		return nil, nil, errors.New("bad request - no request body")
+	}
 	decoder := json.NewDecoder(c.Request.Body)
 	request := make(map[string][]map[string]interface{})
 	err := decoder.Decode(&request)

@@ -238,12 +238,12 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(source
 			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
 	}
 	// iterate over the list of filterCohortPairs, adding a new INNER JOIN to the UNION of each pair, so that the resulting set is the
-	// set of persons that are part of the main cohort (cohortDefinitionId) and of one of the cohorts in the filterCohortPairs:
+	// set of persons that are part of the intersections above and of one of the cohorts in the filterCohortPairs:
 	for i, filterCohortPair := range filterCohortPairs {
 		cohortTableAlias1 := fmt.Sprintf("cohort_filter_1_%d", i)
 		cohortTableAlias2 := fmt.Sprintf("cohort_filter_2_%d", i)
 		unionAlias := "union_" + cohortTableAlias1 + "_" + cohortTableAlias2
-		log.Printf("Adding extra UNION with alias %s", unionAlias)
+		log.Printf("Adding extra INNER JOIN on UNION with alias %s", unionAlias)
 		query = query.Joins("INNER JOIN (Select "+cohortTableAlias1+".subject_id,"+cohortTableAlias1+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias1+
 			" UNION ALL Select "+cohortTableAlias2+".subject_id,"+cohortTableAlias2+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias2+
 			") AS "+unionAlias+" ON "+unionAlias+".subject_id = observation.person_id").

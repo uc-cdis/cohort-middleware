@@ -70,7 +70,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 }
 
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64) (models.CohortOverlapStats, error) {
+	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs [][]int) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
 	return zeroOverlap, nil
 }
@@ -198,7 +198,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"prefixed_concept_id\": \"ID_2000000324\"},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
 	// Params above are correct, so request should NOT abort:
@@ -221,7 +221,8 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[2000000324,2000006885]}"))
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"concept\", \"concept_id\": 2000006885}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
 	cohortDataController.RetrieveCohortOverlapStats(requestContext)
 	// Params above are correct, so request should NOT abort:
@@ -373,7 +374,9 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) 
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
 	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 1234},{\"variable_type\": \"concept\", \"concept_id\": 5678}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)

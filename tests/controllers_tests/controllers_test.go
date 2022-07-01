@@ -168,7 +168,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 	}
 	return conceptBreakdown, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
 		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
@@ -596,7 +596,7 @@ func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	}
 }
 
-func TestGetFilteredConceptRows(t *testing.T) {
+func TestGetConceptVariablesAttritionRows(t *testing.T) {
 	setUp(t)
 	sourceId := 1
 	cohortId := 1
@@ -604,7 +604,7 @@ func TestGetFilteredConceptRows(t *testing.T) {
 	conceptIds := []int64{1234, 5678, 2090006880}
 	sortedConceptValues := []string{"value1", "value2"}
 
-	result, _ := conceptController.GetFilteredConceptRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
+	result, _ := conceptController.GetConceptVariablesAttritionRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
 	if len(result) != 3 {
 		t.Errorf("Expected 3 data lines, found %d lines in total",
 			len(result))

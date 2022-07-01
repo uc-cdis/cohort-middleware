@@ -67,14 +67,14 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 
 }
 
-func generateCohortPairsHeader(cohortPairs [][]int) []string {
-	cohortPairsHeader := []string{}
+func generateCohortPairsHeaders(cohortPairs [][]int) []string {
+	cohortPairsHeaders := []string{}
 
 	for _, cohortPair := range cohortPairs {
-		cohortPairsHeader = append(cohortPairsHeader, fmt.Sprintf("%v_%v", cohortPair[0], cohortPair[1]))
+		cohortPairsHeaders = append(cohortPairsHeaders, models.GetCohortPairKey(cohortPair[0], cohortPair[1]))
 	}
 
-	return cohortPairsHeader
+	return cohortPairsHeaders
 }
 
 func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]map[string]string, cohortPairs [][]int) *bytes.Buffer {
@@ -82,15 +82,13 @@ func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]ma
 	w := csv.NewWriter(b)
 	w.Comma = ',' // CSV
 
-	cohortPairHeader := generateCohortPairsHeader(cohortPairs)
+	cohortPairHeaders := generateCohortPairsHeaders(cohortPairs)
 
-	for _, header := range cohortPairHeader {
-		partialCSV[0] = append(partialCSV[0], fmt.Sprintf("ID_%s", header))
-	}
+	partialCSV[0] = append(partialCSV[0], cohortPairHeaders...)
 
 	for i := 1; i < len(partialCSV); i++ {
 		personId, _ := strconv.ParseInt(partialCSV[i][0], 10, 64)
-		for _, cohortPair := range cohortPairHeader {
+		for _, cohortPair := range cohortPairHeaders {
 			partialCSV[i] = append(partialCSV[i], personIdToCSVValues[personId][cohortPair])
 		}
 	}
@@ -258,7 +256,7 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 	for _, cohortPair := range cohortPairs {
 		firstCohortDefinitionId := cohortPair[0]
 		secondCohortDefinitionId := cohortPair[1]
-		cohortPairKey := fmt.Sprintf("%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
+		cohortPairKey := models.GetCohortPairKey(firstCohortDefinitionId, secondCohortDefinitionId)
 
 		firstCohortPeopleData, err1 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, firstCohortDefinitionId)
 		secondCohortPeopleData, err2 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, secondCohortDefinitionId)

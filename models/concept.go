@@ -199,10 +199,10 @@ func getConceptValueType(conceptId int64) string {
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
-	// this is identical to the result of the function below if called with empty filterConceptIds[]... so call that:
+	// this is identical to the result of the function below if called with empty filterConceptIds[] and empty filterCohortPairs... so call that:
 	filterConceptIds := make([]int64, 0)
-	//TODO filterCohortPairs
-	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortDefinitionId, filterConceptIds, nil, breakdownConceptId)
+	filterCohortPairs := make([][]int, 0)
+	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortDefinitionId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 }
 
 // Basically same goal as described in function above, but only count persons that have a non-null value for each

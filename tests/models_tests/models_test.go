@@ -217,14 +217,12 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 	filterCohortPairs := make([][]int, 1)
 	filterCohortPairs[0] = make([]int, 2)
 	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
-	//TODO - add this extra test ^
 	filterCohortPairs[0][0] = largestCohort.Id
 	filterCohortPairs[0][1] = largestCohort.Id
 
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
-		largestCohort.Id,
-		filterIds, filterCohortPairs, breakdownConceptId)
+		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// we expect values since largestCohort has multiple subjects with hare info:
 	if len(stats) < 4 {
 		t.Errorf("Expected at least 4 results, found %d", len(stats))
@@ -240,6 +238,25 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 			t.Errorf("Invalid results")
 		}
 		prevName = stat.ValueName
+	}
+	// test without the filterCohortPairs, should return the same result:
+	filterCohortPairs = make([][]int, 0)
+	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// very rough check (ideally we would check the individual stats as well...TODO?):
+	if len(stats) != len(stats2) {
+		t.Errorf("Expected same result")
+	}
+	// test filtering with smallest cohort, lenght should be 1, since that's the size of the smallest cohort:
+	// setting the same cohort id here (artificial...normally it should be two different ids):
+	filterCohortPairs = make([][]int, 1)
+	filterCohortPairs[0] = make([]int, 2)
+	filterCohortPairs[0][0] = smallestCohort.Id
+	filterCohortPairs[0][1] = smallestCohort.Id
+	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	if len(stats3) != 1 {
+		t.Errorf("Expected only one item in resultset")
 	}
 }
 

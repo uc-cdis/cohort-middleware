@@ -364,8 +364,9 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	otherFilterConceptIds := make([]int64, 0)
+	filterCohortPairs := make([][]int, 0)
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds)
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	// get the number of persons in this cohort that have this filterConceptValue:
 	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
 	if stats.CaseControlOverlapAfterFilter != nr_expected {
@@ -381,8 +382,9 @@ func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 	filterConceptId := hareConceptId
 	var filterConceptValue int64 = -1 // should result in 0 overlap
 	otherFilterConceptIds := make([]int64, 0)
+	filterCohortPairs := make([][]int, 0)
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds)
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
 		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
 	}
@@ -399,8 +401,9 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 	otherFilterConceptIds := make([]int64, 2)
 	otherFilterConceptIds[0] = -1
 	otherFilterConceptIds[1] = -2
+	filterCohortPairs := make([][]int, 0)
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds)
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
 		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
 	}

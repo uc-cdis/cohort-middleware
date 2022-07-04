@@ -641,10 +641,10 @@ func TestGenerateCompleteCSV(t *testing.T) {
 
 	personIdToCSVValues := map[int64]map[string]string{
 		int64(1): {
-			"2_3": "1",
+			"ID_2_3": "1",
 		},
 		int64(2): {
-			"2_3": "NA",
+			"ID_2_3": "NA",
 		},
 	}
 
@@ -690,13 +690,13 @@ func TestRetrievePeopleIdAndCohort(t *testing.T) {
 
 	expectedResults := map[int64]map[string]string{
 		int64(1): {
-			"2_3": "0",
+			"ID_2_3": "0",
 		},
 		int64(2): {
-			"2_3": "1",
+			"ID_2_3": "1",
 		},
 		int64(3): {
-			"2_3": "1",
+			"ID_2_3": "1",
 		},
 	}
 

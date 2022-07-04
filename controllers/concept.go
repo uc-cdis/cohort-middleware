@@ -217,7 +217,7 @@ func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId i
 
 		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
 		variableName := models.GetCohortPairKey(cohortPair[0], cohortPair[1])
-		log.Printf("Generating row for variable with name %s", variableName)
+		log.Printf("Generating row for variable...")
 		generatedRow := generateRowForVariable(variableName, conceptValuesToPeopleCount, sortedConceptValues)
 		rows = append(rows, generatedRow)
 	}

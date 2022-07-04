@@ -16,6 +16,7 @@ var testSourceId = tests.GetTestSourceId()
 var allCohortDefinitions []*models.CohortDefinitionStats
 var smallestCohort *models.CohortDefinitionStats
 var largestCohort *models.CohortDefinitionStats
+var secondLargestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
@@ -41,6 +42,7 @@ func setupSuite() {
 	// initialize some handy variables to use in tests below:
 	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	largestCohort = allCohortDefinitions[0]
+	secondLargestCohort = allCohortDefinitions[1]
 	smallestCohort = allCohortDefinitions[len(allCohortDefinitions)-1]
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	allConceptIds = tests.MapIntAttr(concepts, "ConceptId")
@@ -369,6 +371,31 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	// get the number of persons in this cohort that have this filterConceptValue:
 	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
+	if nr_expected == 0 {
+		t.Errorf("Expected nr persons with HARE value should be > 0")
+	}
+	if stats.CaseControlOverlapAfterFilter != nr_expected {
+		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
+func TestRetrieveCohortOverlapStatsScenario2(t *testing.T) {
+	// Tests if we get the expected overlap
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	filterConceptId := hareConceptId
+	filterConceptValue := asnHareConceptId
+	otherFilterConceptIds := make([]int64, 1)
+	otherFilterConceptIds[0] = hareConceptId // repeat hare concept id here...Artificial, but will ensure overlap
+	filterCohortPairs := make([][]int, 0)
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
+	// get the number of persons in this cohort that have this filterConceptValue:
+	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
+	if nr_expected == 0 {
+		t.Errorf("Expected nr persons with HARE value should be > 0")
+	}
 	if stats.CaseControlOverlapAfterFilter != nr_expected {
 		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
 	}
@@ -406,6 +433,46 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
 		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
+func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
+	// Tests if we get the expected overlap
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	filterConceptId := hareConceptId
+	filterConceptValue := asnHareConceptId // the cohorts we use below both have persons with "ASN" HARE value
+	otherFilterConceptIds := make([]int64, 1)
+	otherFilterConceptIds[0] = hareConceptId // repeat hare concept id here...Artificial, but will ensure overlap
+	filterCohortPairs := make([][]int, 2)
+	// pair1
+	filterCohortPairs[0] = make([]int, 2)
+	filterCohortPairs[0][0] = smallestCohort.Id
+	filterCohortPairs[0][1] = secondLargestCohort.Id
+	// pair2 (same as above, but switched...artificial, but will ensure some data):
+	filterCohortPairs[1] = make([]int, 2)
+	filterCohortPairs[1][0] = secondLargestCohort.Id
+	filterCohortPairs[1][1] = smallestCohort.Id
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
+	// get the number of persons in the smaller cohorts that have this filterConceptValue (this can be the expected nr because
+	// the largestCohort in this case contains all other cohorts):
+	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, secondLargestCohort.Id, filterConceptValue)
+	nr_expected = nr_expected + getNrPersonsWithHareConceptValue(testSourceId, smallestCohort.Id, filterConceptValue)
+	if nr_expected == 0 {
+		t.Errorf("Expected nr persons with HARE value should be > 0")
+	}
+	if stats.CaseControlOverlapAfterFilter != nr_expected {
+		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
+	}
+	filterCohortPairs = make([][]int, 0)
+	// without the restrictive filter on cohort pairs, the result should be bigger, as the largest cohort has more persons with
+	// the asnHareConceptId than the ones used in the pairs above:
+	stats2, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
+	if stats.CaseControlOverlapAfterFilter >= stats2.CaseControlOverlapAfterFilter {
+		t.Errorf("Expected overlap in first query to be smaller than in second one")
 	}
 }
 

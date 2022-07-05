@@ -86,7 +86,7 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 		Where("observation.observation_concept_id = ?", filterConceptId).
 		Where("observation.value_as_concept_id = ?", filterConceptValue)
 
-	// TODO - the following two sections/loops are pretty much identical to what is done in RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds (concept.go) - make a generic function instead?
+	// TODO - the following two sections/loops are pretty much identical to what is done in RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs (concept.go) - make a generic function instead?
 	// iterate over the otherFilterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
 	for i, filterConceptId := range otherFilterConceptIds {

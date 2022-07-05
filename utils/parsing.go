@@ -34,18 +34,6 @@ func ParseBigNumericArg(c *gin.Context, paramName string) (int64, error) {
 	}
 }
 
-func ParseStringArg(c *gin.Context, paramName string) (string, error) {
-	// parse and validate:
-	stringArgValue := c.Param(paramName)
-	log.Printf("Querying %s: ", paramName)
-	if stringArgValue == "" {
-		log.Printf("bad request - %s should be set", paramName)
-		return "", fmt.Errorf("bad request - %s should set", paramName)
-	} else {
-		return stringArgValue, nil
-	}
-}
-
 func Pos(value int64, list []int64) int {
 	for p, v := range list {
 		if v == value {
@@ -174,7 +162,7 @@ func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, e
 	return sourceId, cohortId, conceptIds, nil
 }
 
-// returns sourceid, cohortid, list of prefixed concept ids, list of cohort tuples (aka custom dichotomous variables)
+// returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
 func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, [][]int, error) {
 	// parse and validate all parameters:
 	sourceId, err1 := ParseNumericArg(c, "sourceid")

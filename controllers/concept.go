@@ -127,11 +127,11 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 	c.Abort()
 }
 
-func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	sourceId, cohortId, conceptIds, cohortPairs, err1 := utils.ParseSourceIdAndCohortIdAndVariablesList(c)
 	breakdownConceptId, err2 := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err1 == nil && err2 == nil {
-		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds, cohortPairs, breakdownConceptId)
+		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, conceptIds, cohortPairs, breakdownConceptId)
 		if err != nil {
 			log.Printf("Error: %s", err.Error())
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
@@ -190,7 +190,7 @@ func (u ConceptController) GetConceptVariablesAttritionRows(sourceId int, cohort
 		filterConceptIds := conceptIds[0 : idx+1]
 		// use empty cohort pairs list:
 		filterCohortPairs := make([][]int, 0)
-		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
+		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
 		}
@@ -210,7 +210,7 @@ func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId i
 	for idx, cohortPair := range filterCohortPairs {
 		// run each query with the full list of filterConceptIds and an increasingly longer list of filterCohortPairs, until the last query is run with them all:
 		filterCohortPairs := filterCohortPairs[0 : idx+1]
-		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
+		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
 		}

@@ -168,7 +168,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 	}
 	return conceptBreakdown, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
 		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
@@ -179,19 +179,19 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 	return conceptBreakdown, nil
 }
 
-func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsWrongParams(t *testing.T) {
+func TestRetrieveDataBySourceIdAndCohortIdAndVariablesWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
 	// Params above are wrong, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
 }
 
-func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.T) {
+func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
@@ -200,7 +200,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.
 	requestContext.Request = new(http.Request)
 	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
-	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
 	// Params above are correct, so request should NOT abort:
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
@@ -367,7 +367,7 @@ func TestRetriveByIdModelError(t *testing.T) {
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
@@ -378,7 +378,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) 
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
 	// expect result with dummy data:
@@ -387,7 +387,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) 
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariablesModelError(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
@@ -398,7 +398,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *t
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	// set flag to let mock model layer return error instead of mock data:
 	dummyModelReturnError = true
-	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}

@@ -197,11 +197,11 @@ func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsNoResults(t *testing.T) {
 	setUp(t)
 	// empty:
 	filterCohortPairs := make([][]int, 0)
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		smallestCohort.Id,
 		allConceptIds, filterCohortPairs, allConceptIds[0])
 	// none of the subjects has a value in all the concepts, so we expect len==0 here:
@@ -210,7 +210,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *te
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsWithResults(t *testing.T) {
 	setUp(t)
 	filterIds := make([]int64, 1)
 	filterIds[0] = hareConceptId
@@ -221,7 +221,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 	filterCohortPairs[0][1] = largestCohort.Id
 
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// we expect values since largestCohort has multiple subjects with hare info:
 	if len(stats) < 4 {
@@ -241,7 +241,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 	}
 	// test without the filterCohortPairs, should return the same result:
 	filterCohortPairs = make([][]int, 0)
-	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// very rough check (ideally we would check the individual stats as well...TODO?):
 	if len(stats) != len(stats2) {
@@ -253,7 +253,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 	filterCohortPairs[0] = make([]int, 2)
 	filterCohortPairs[0][0] = smallestCohort.Id
 	filterCohortPairs[0][1] = smallestCohort.Id
-	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	if len(stats3) != 1 {
 		t.Errorf("Expected only one item in resultset")

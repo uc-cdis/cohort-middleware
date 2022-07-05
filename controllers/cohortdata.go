@@ -21,7 +21,7 @@ func NewCohortDataController(cohortDataModel models.CohortDataI) CohortDataContr
 	return CohortDataController{cohortDataModel: cohortDataModel}
 }
 
-func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
 
 	// parse and validate all parameters:

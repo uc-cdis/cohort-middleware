@@ -11,7 +11,7 @@ type ConceptI interface {
 	RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error)
 	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
-	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
 	ConceptId   int    `json:"concept_id"`
@@ -202,7 +202,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 	// this is identical to the result of the function below if called with empty filterConceptIds[] and empty filterCohortPairs... so call that:
 	filterConceptIds := make([]int64, 0)
 	filterCohortPairs := make([][]int, 0)
-	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortDefinitionId, filterConceptIds, filterCohortPairs, breakdownConceptId)
+	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortDefinitionId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 }
 
 // Basically same goal as described in function above, but only count persons that have a non-null value for each
@@ -211,7 +211,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 //  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
 // where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)

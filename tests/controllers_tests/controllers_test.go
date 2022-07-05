@@ -630,6 +630,37 @@ func TestGetConceptVariablesAttritionRows(t *testing.T) {
 	}
 }
 
+func TestGetCustomDichotomousVariablesAttritionRows(t *testing.T) {
+	setUp(t)
+	sourceId := 1
+	cohortId := 1
+	var breakdownConceptId int64 = 1
+	conceptIds := []int64{1234, 5678, 2090006880}
+	cohortPairs := [][]int{{1, 2}, {3, 4}}
+	sortedConceptValues := []string{"value1", "value2", "value3"}
+
+	result, _ := conceptController.GetCustomDichotomousVariablesAttritionRows(sourceId, cohortId, conceptIds, cohortPairs, breakdownConceptId, sortedConceptValues)
+	if len(result) != 2 {
+		t.Errorf("Expected 3 data lines, found %d lines in total",
+			len(result))
+		t.Errorf("Lines: %s", result)
+	}
+
+	expectedLines := [][]string{
+		{"ID_1_2", "13", "5", "8", "0"},
+		{"ID_3_4", "13", "5", "8", "0"},
+	}
+
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, result[i]) {
+			t.Errorf("header or non filter row line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, result[i])
+		}
+		i++
+	}
+}
+
 func TestGenerateCompleteCSV(t *testing.T) {
 	setUp(t)
 

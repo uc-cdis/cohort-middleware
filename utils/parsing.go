@@ -162,20 +162,29 @@ func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, e
 	return sourceId, cohortId, conceptIds, nil
 }
 
+func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
+	// parse and validate all parameters:
+	sourceId, err := ParseNumericArg(c, "sourceid")
+	if err != nil {
+		return -1, -1, err
+	}
+	cohortId, err := ParseNumericArg(c, "cohortid")
+	if err != nil {
+		return -1, -1, err
+	}
+	return sourceId, cohortId, nil
+}
+
 // returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
 func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, [][]int, error) {
 	// parse and validate all parameters:
-	sourceId, err1 := ParseNumericArg(c, "sourceid")
-	if err1 != nil {
-		return -1, -1, nil, nil, err1
+	sourceId, cohortId, err := ParseSourceAndCohortId(c)
+	if err != nil {
+		return -1, -1, nil, nil, err
 	}
-	cohortId, err2 := ParseNumericArg(c, "cohortid")
-	if err2 != nil {
-		return -1, -1, nil, nil, err2
-	}
-	conceptIds, cohortPairs, err3 := ParseConceptIdsAndDichotomousIds(c)
-	if err3 != nil {
-		return -1, -1, nil, nil, err3
+	conceptIds, cohortPairs, err := ParseConceptIdsAndDichotomousIds(c)
+	if err != nil {
+		return -1, -1, nil, nil, err
 	}
 	return sourceId, cohortId, conceptIds, cohortPairs, nil
 }

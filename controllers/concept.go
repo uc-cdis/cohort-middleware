@@ -189,7 +189,7 @@ func (u ConceptController) GetConceptVariablesAttritionRows(sourceId int, cohort
 		// run each query with a longer list of filterConceptIds, until the last query is run with them all:
 		filterConceptIds := conceptIds[0 : idx+1]
 		// use empty cohort pairs list:
-		filterCohortPairs := make([][]int, 0)
+		filterCohortPairs := [][]int{}
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
@@ -266,8 +266,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		}
 
 		// concat all rows:
-		var allVariablesAttritionRows = conceptVariablesAttritionRows
-		allVariablesAttritionRows = append(allVariablesAttritionRows, customDichotomousVariablesAttritionRows...)
+		var allVariablesAttritionRows = append(conceptVariablesAttritionRows, customDichotomousVariablesAttritionRows...)
 		b := GenerateAttritionCSV(headerAndNonFilteredRow, allVariablesAttritionRows)
 		c.String(http.StatusOK, b.String())
 		return

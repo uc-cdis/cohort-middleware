@@ -74,8 +74,7 @@ func getNrPersonsWithData(conceptId int64, conceptsAndPersonsWithData []*Concept
 
 // Retrieve just a simple concept info for a given conceptId.
 func (h Concept) RetrieveInfoBySourceIdAndConceptId(sourceId int, conceptId int64) (*ConceptSimple, error) {
-	conceptIds := make([]int64, 1)
-	conceptIds[0] = conceptId
+	conceptIds := []int64{conceptId}
 	result, err := h.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
 	if err != nil {
 		return nil, err
@@ -200,8 +199,8 @@ func getConceptValueType(conceptId int64) string {
 //  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	// this is identical to the result of the function below if called with empty filterConceptIds[] and empty filterCohortPairs... so call that:
-	filterConceptIds := make([]int64, 0)
-	filterCohortPairs := make([][]int, 0)
+	filterConceptIds := []int64{}
+	filterCohortPairs := [][]int{}
 	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortDefinitionId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 }
 

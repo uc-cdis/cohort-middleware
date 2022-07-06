@@ -160,8 +160,8 @@ func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(s
 }
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
-		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
-		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 5, ValueName: "value1_name"},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 8, ValueName: "value2_name"},
 	}
 	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
@@ -572,12 +572,16 @@ func TestGenerateAttritionCSV(t *testing.T) {
 
 func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	setUp(t)
-	sourceId := 1
-	cohortId := 1
-	var breakdownConceptId int64 = 1
 	cohortName := "hello"
 
-	result, _ := conceptController.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
+	conceptBreakdown := []*models.ConceptBreakdown{
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 5, ValueName: "value1_name"},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 8, ValueName: "value2_name"},
+	}
+
+	sortedConceptValues := []string{"value1", "value2"}
+
+	result, _ := conceptController.GenerateHeaderAndNonFilteredRow(conceptBreakdown, sortedConceptValues, cohortName)
 	if len(result) != 2 {
 		t.Errorf("Expected 1 header line + 1 data lines, found %d lines in total",
 			len(result))
@@ -585,7 +589,7 @@ func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	}
 
 	expectedLines := [][]string{
-		{"Cohort", "Size", "value1", "value2"},
+		{"Cohort", "Size", "value1_name", "value2_name"},
 		{"hello", "13", "5", "8"},
 	}
 

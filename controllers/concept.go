@@ -158,16 +158,16 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariabl
 }
 
 func getConceptValueToPeopleCount(breakdownStats []*models.ConceptBreakdown) map[string]int {
-	concept_values_to_people_count := make(map[string]int)
+	conceptValuesToPeopleCount := make(map[string]int)
 	for _, breakdownStat := range breakdownStats {
 		concept_value := breakdownStat.ConceptValue
 		if concept_value == "" {
 			concept_value = "empty string"
 		}
-		concept_values_to_people_count[concept_value] = breakdownStat.NpersonsInCohortWithValue
+		conceptValuesToPeopleCount[concept_value] = breakdownStat.NpersonsInCohortWithValue
 	}
 
-	return concept_values_to_people_count
+	return conceptValuesToPeopleCount
 }
 
 func generateRowForVariable(variableName string, breakdownConceptValuesToPeopleCount map[string]int, sortedBreakdownConceptValues []string) []string {
@@ -260,7 +260,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		return
 	}
 
-	headerAndNonFilteredRow, err := u.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
+	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
@@ -268,8 +268,16 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		return
 	}
 
-	header := headerAndNonFilteredRow[0]
-	sortedConceptValues := header[2:]
+	sortedConceptValues := getSortedConceptValues(breakdownStats)
+
+	headerAndNonFilteredRow, err := u.GenerateHeaderAndNonFilteredRow(breakdownStats, sortedConceptValues, cohortName)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
 	// append concepts to attrition table:
 	conceptVariablesAttritionRows, err := u.GetConceptVariablesAttritionRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
 	if err != nil {
@@ -293,31 +301,54 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	c.String(http.StatusOK, b.String())
 }
 
-func getSortedConceptValues(conceptValuesToPeopleCount map[string]int) []string {
+func getSortedConceptValues(breakdownStats []*models.ConceptBreakdown) []string {
 	concepts := []string{}
-	for concept := range conceptValuesToPeopleCount {
-		concepts = append(concepts, concept)
+	for _, breakdownStat := range breakdownStats {
+		concepts = append(concepts, breakdownStat.ConceptValue)
 	}
 	sort.Strings(concepts)
 	return concepts
 }
 
-func (u ConceptController) GenerateHeaderAndNonFilteredRow(cohortName string, sourceId int, cohortId int, breakdownConceptId int64) ([][]string, error) {
-	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
-	if err != nil {
-		return nil, fmt.Errorf("error retrieving stats due to error: %s", err.Error())
+func getConceptValueToConceptName(breakdownStats []*models.ConceptBreakdown) map[string]string {
+	conceptValuesToConceptName := make(map[string]string)
+	for _, breakdownStat := range breakdownStats {
+		conceptValue := breakdownStat.ConceptValue
+		conceptName := breakdownStat.ValueName
+		if conceptValue == "" {
+			conceptValue = "empty string"
+			conceptName = "empty string"
+		}
+
+		conceptValuesToConceptName[conceptValue] = conceptName
 	}
+
+	return conceptValuesToConceptName
+}
+
+func getConceptNamesFromConceptValues(conceptValues []string, conceptValuesToConceptName map[string]string) []string {
+	conceptNames := []string{}
+
+	for _, conceptValue := range conceptValues {
+		conceptNames = append(conceptNames, conceptValuesToConceptName[conceptValue])
+	}
+
+	return conceptNames
+}
+
+func (u ConceptController) GenerateHeaderAndNonFilteredRow(breakdownStats []*models.ConceptBreakdown, sortedConceptValues []string, cohortName string) ([][]string, error) {
 	conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
+	conceptValuesToConceptName := getConceptValueToConceptName(breakdownStats)
 
 	cohortSize := 0
 	for _, peopleCount := range conceptValuesToPeopleCount {
 		cohortSize += peopleCount
 	}
 
-	conceptValues := getSortedConceptValues(conceptValuesToPeopleCount)
-	header := append([]string{"Cohort", "Size"}, conceptValues...)
+	conceptNames := getConceptNamesFromConceptValues(sortedConceptValues, conceptValuesToConceptName)
+	header := append([]string{"Cohort", "Size"}, conceptNames...)
 	row := []string{cohortName, strconv.Itoa(cohortSize)}
-	for _, concept := range conceptValues {
+	for _, concept := range sortedConceptValues {
 		row = append(row, strconv.Itoa(conceptValuesToPeopleCount[concept]))
 	}
 

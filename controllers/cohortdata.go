@@ -21,7 +21,7 @@ func NewCohortDataController(cohortDataModel models.CohortDataI) CohortDataContr
 	return CohortDataController{cohortDataModel: cohortDataModel}
 }
 
-func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
+func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
 
 	// parse and validate all parameters:
@@ -35,7 +35,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 		return
 	}
 
-	prefixedConceptIds, cohortPairs, err := utils.ParsePrefixedConceptIdsAndDichotomousIds(c)
+	conceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousIds(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
@@ -44,8 +44,6 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
-
-	conceptIds := getConceptIdsFromPrefixedConceptIds(prefixedConceptIds)
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -69,23 +67,14 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndConceptIds(c *
 
 }
 
-func getConceptIdsFromPrefixedConceptIds(ids []string) []int64 {
-	var result []int64
-	for _, id := range ids {
-		idAsNumber := models.GetConceptId(id)
-		result = append(result, idAsNumber)
-	}
-	return result
-}
-
-func generateCohortPairsHeader(cohortPairs [][]int) []string {
-	cohortPairsHeader := []string{}
+func generateCohortPairsHeaders(cohortPairs [][]int) []string {
+	cohortPairsHeaders := []string{}
 
 	for _, cohortPair := range cohortPairs {
-		cohortPairsHeader = append(cohortPairsHeader, fmt.Sprintf("%v_%v", cohortPair[0], cohortPair[1]))
+		cohortPairsHeaders = append(cohortPairsHeaders, models.GetCohortPairKey(cohortPair[0], cohortPair[1]))
 	}
 
-	return cohortPairsHeader
+	return cohortPairsHeaders
 }
 
 func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]map[string]string, cohortPairs [][]int) *bytes.Buffer {
@@ -93,15 +82,13 @@ func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]ma
 	w := csv.NewWriter(b)
 	w.Comma = ',' // CSV
 
-	cohortPairHeader := generateCohortPairsHeader(cohortPairs)
+	cohortPairHeaders := generateCohortPairsHeaders(cohortPairs)
 
-	for _, header := range cohortPairHeader {
-		partialCSV[0] = append(partialCSV[0], fmt.Sprintf("ID_%s", header))
-	}
+	partialCSV[0] = append(partialCSV[0], cohortPairHeaders...)
 
 	for i := 1; i < len(partialCSV); i++ {
 		personId, _ := strconv.ParseInt(partialCSV[i][0], 10, 64)
-		for _, cohortPair := range cohortPairHeader {
+		for _, cohortPair := range cohortPairHeaders {
 			partialCSV[i] = append(partialCSV[i], personIdToCSVValues[personId][cohortPair])
 		}
 	}
@@ -189,23 +176,25 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 }
 
 func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
-	errors := make([]error, 5)
+	errors := make([]error, 6)
 	var sourceId, caseCohortId, controlCohortId int
 	var filterConceptId int64
 	var filterConceptValue int64
 	var conceptIds []int64
-	sourceId, conceptIds, errors[0] = utils.ParseSourceIdAndConceptIds(c)
+	var cohortPairs [][]int
+	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
 	filterConceptId, errors[1] = utils.ParseBigNumericArg(c, "filterconceptid")
 	filterConceptValue, errors[2] = utils.ParseBigNumericArg(c, "filtervalue")
 	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")
+	conceptIds, cohortPairs, errors[5] = utils.ParseConceptIdsAndDichotomousIds(c)
 	if utils.ContainsNonNil(errors) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 		c.Abort()
 		return
 	}
 	breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, conceptIds)
+		filterConceptId, filterConceptValue, conceptIds, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 		c.Abort()
@@ -269,7 +258,7 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 	for _, cohortPair := range cohortPairs {
 		firstCohortDefinitionId := cohortPair[0]
 		secondCohortDefinitionId := cohortPair[1]
-		cohortPairKey := fmt.Sprintf("%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
+		cohortPairKey := models.GetCohortPairKey(firstCohortDefinitionId, secondCohortDefinitionId)
 
 		firstCohortPeopleData, err1 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, firstCohortDefinitionId)
 		secondCohortPeopleData, err2 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, secondCohortDefinitionId)

@@ -34,18 +34,6 @@ func ParseBigNumericArg(c *gin.Context, paramName string) (int64, error) {
 	}
 }
 
-func ParseStringArg(c *gin.Context, paramName string) (string, error) {
-	// parse and validate:
-	stringArgValue := c.Param(paramName)
-	log.Printf("Querying %s: ", paramName)
-	if stringArgValue == "" {
-		log.Printf("bad request - %s should be set", paramName)
-		return "", fmt.Errorf("bad request - %s should set", paramName)
-	} else {
-		return stringArgValue, nil
-	}
-}
-
 func Pos(value int64, list []int64) int {
 	for p, v := range list {
 		if v == value {
@@ -72,7 +60,19 @@ type ConceptTypes struct {
 	ConceptTypes []string
 }
 
-func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int, error) {
+// This method expects a request body with a payload similar to the following example:
+// {"variables": [
+//   {variable_type: "concept", concept_id: 2000000324},
+//   {variable_type: "concept", concept_id: 2000006885},
+//   {variable_type: "custom_dichotomous", cohort_ids: [cohortX_id, cohortY_id]},
+//   {variable_type: "custom_dichotomous", cohort_ids: [cohortM_id, cohortN_id]},
+//       ...
+// ]}
+// It returns the list of concept_id values and the list of cohort_id tuples.
+func ParseConceptIdsAndDichotomousIds(c *gin.Context) ([]int64, [][]int, error) {
+	if c.Request == nil || c.Request.Body == nil {
+		return nil, nil, errors.New("bad request - no request body")
+	}
 	decoder := json.NewDecoder(c.Request.Body)
 	request := make(map[string][]map[string]interface{})
 	err := decoder.Decode(&request)
@@ -82,11 +82,13 @@ func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int
 	}
 
 	variables := request["variables"]
-	prefixedConceptIds := []string{}
+	conceptIds := []int64{}
 	cohortPairs := [][]int{}
+	// TODO - this parsing will throw a lot of "null pointer" errors since it does not validate if specific entries are found in the json before
+	// accessing them...needs to be fixed to throw better errors:
 	for _, variable := range variables {
 		if variable["variable_type"] == "concept" {
-			prefixedConceptIds = append(prefixedConceptIds, variable["prefixed_concept_id"].(string))
+			conceptIds = append(conceptIds, int64(variable["concept_id"].(float64)))
 		}
 		if variable["variable_type"] == "custom_dichotomous" {
 			cohortPair := []int{}
@@ -98,7 +100,7 @@ func ParsePrefixedConceptIdsAndDichotomousIds(c *gin.Context) ([]string, [][]int
 			cohortPairs = append(cohortPairs, cohortPair)
 		}
 	}
-	return prefixedConceptIds, cohortPairs, nil
+	return conceptIds, cohortPairs, nil
 }
 
 func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
@@ -149,15 +151,40 @@ func ParseSourceIdAndConceptTypes(c *gin.Context) (int, []string, error) {
 
 func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, error) {
 	// parse and validate all parameters:
-	sourceId, conceptIds, err := ParseSourceIdAndConceptIds(c)
-	if err != nil {
-		return -1, -1, nil, err
+	sourceId, conceptIds, err1 := ParseSourceIdAndConceptIds(c)
+	if err1 != nil {
+		return -1, -1, nil, err1
 	}
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id...")
-	if _, err := strconv.Atoi(cohortIdStr); err != nil {
-		return -1, -1, nil, errors.New("bad request - cohort_definition_id should be a number")
+	cohortId, err2 := ParseNumericArg(c, "cohortid")
+	if err2 != nil {
+		return -1, -1, nil, err2
 	}
-	cohortId, _ := strconv.Atoi(cohortIdStr)
 	return sourceId, cohortId, conceptIds, nil
+}
+
+func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
+	// parse and validate all parameters:
+	sourceId, err := ParseNumericArg(c, "sourceid")
+	if err != nil {
+		return -1, -1, err
+	}
+	cohortId, err := ParseNumericArg(c, "cohortid")
+	if err != nil {
+		return -1, -1, err
+	}
+	return sourceId, cohortId, nil
+}
+
+// returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
+func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, [][]int, error) {
+	// parse and validate all parameters:
+	sourceId, cohortId, err := ParseSourceAndCohortId(c)
+	if err != nil {
+		return -1, -1, nil, nil, err
+	}
+	conceptIds, cohortPairs, err := ParseConceptIdsAndDichotomousIds(c)
+	if err != nil {
+		return -1, -1, nil, nil, err
+	}
+	return sourceId, cohortId, conceptIds, cohortPairs, nil
 }

@@ -43,7 +43,7 @@ func NewRouter() *gin.Engine {
 
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", concepts.RetrieveStatsBySourceIdAndCohortIdAndConceptIds)
 		authorized.GET("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortId)
-		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds)
+		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid", concepts.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables)
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid/csv", concepts.RetrieveAttritionTable)
 
 		// cohort stats and checks:
@@ -51,7 +51,7 @@ func NewRouter() *gin.Engine {
 		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-case-control-cohort-definition-ids/:casecohortid/:controlcohortid/filter-by-concept-id-and-value/:filterconceptid/:filtervalue", cohortData.RetrieveCohortOverlapStats)
 
 		// full data endpoints:
-		authorized.POST("/cohort-data/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrieveDataBySourceIdAndCohortIdAndConceptIds)
+		authorized.POST("/cohort-data/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrieveDataBySourceIdAndCohortIdAndVariables)
 	}
 
 	return r

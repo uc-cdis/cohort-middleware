@@ -70,7 +70,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 }
 
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64) (models.CohortOverlapStats, error) {
+	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs [][]int) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
 	return zeroOverlap, nil
 }
@@ -168,7 +168,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 	}
 	return conceptBreakdown, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, filterConceptIds []int64, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
 		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
@@ -179,28 +179,28 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 	return conceptBreakdown, nil
 }
 
-func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsWrongParams(t *testing.T) {
+func TestRetrieveDataBySourceIdAndCohortIdAndVariablesWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
 	// Params above are wrong, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
 }
 
-func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsCorrectParams(t *testing.T) {
+func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"prefixed_concept_id\": \"ID_2000000324\"},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
-	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndConceptIds(requestContext)
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
 	// Params above are correct, so request should NOT abort:
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
@@ -221,7 +221,8 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[2000000324,2000006885]}"))
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"concept\", \"concept_id\": 2000006885}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
 	cohortDataController.RetrieveCohortOverlapStats(requestContext)
 	// Params above are correct, so request should NOT abort:
@@ -366,16 +367,18 @@ func TestRetriveByIdModelError(t *testing.T) {
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
 	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 1234},{\"variable_type\": \"concept\", \"concept_id\": 5678}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
 	// expect result with dummy data:
@@ -384,7 +387,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) 
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariablesModelError(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
@@ -395,7 +398,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *t
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	// set flag to let mock model layer return error instead of mock data:
 	dummyModelReturnError = true
-	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
@@ -596,7 +599,7 @@ func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	}
 }
 
-func TestGetFilteredConceptRows(t *testing.T) {
+func TestGetConceptVariablesAttritionRows(t *testing.T) {
 	setUp(t)
 	sourceId := 1
 	cohortId := 1
@@ -604,7 +607,7 @@ func TestGetFilteredConceptRows(t *testing.T) {
 	conceptIds := []int64{1234, 5678, 2090006880}
 	sortedConceptValues := []string{"value1", "value2"}
 
-	result, _ := conceptController.GetFilteredConceptRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
+	result, _ := conceptController.GetConceptVariablesAttritionRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
 	if len(result) != 3 {
 		t.Errorf("Expected 3 data lines, found %d lines in total",
 			len(result))
@@ -615,6 +618,37 @@ func TestGetFilteredConceptRows(t *testing.T) {
 		{"Concept A", "13", "5", "8"},
 		{"Concept B", "13", "5", "8"},
 		{"Concept C", "13", "5", "8"},
+	}
+
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, result[i]) {
+			t.Errorf("header or non filter row line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, result[i])
+		}
+		i++
+	}
+}
+
+func TestGetCustomDichotomousVariablesAttritionRows(t *testing.T) {
+	setUp(t)
+	sourceId := 1
+	cohortId := 1
+	var breakdownConceptId int64 = 1
+	conceptIds := []int64{1234, 5678, 2090006880}
+	cohortPairs := [][]int{{1, 2}, {3, 4}}
+	sortedConceptValues := []string{"value1", "value2", "value3"}
+
+	result, _ := conceptController.GetCustomDichotomousVariablesAttritionRows(sourceId, cohortId, conceptIds, cohortPairs, breakdownConceptId, sortedConceptValues)
+	if len(result) != 2 {
+		t.Errorf("Expected 3 data lines, found %d lines in total",
+			len(result))
+		t.Errorf("Lines: %s", result)
+	}
+
+	expectedLines := [][]string{
+		{"ID_1_2", "13", "5", "8", "0"},
+		{"ID_3_4", "13", "5", "8", "0"},
 	}
 
 	i := 0
@@ -638,10 +672,10 @@ func TestGenerateCompleteCSV(t *testing.T) {
 
 	personIdToCSVValues := map[int64]map[string]string{
 		int64(1): {
-			"2_3": "1",
+			"ID_2_3": "1",
 		},
 		int64(2): {
-			"2_3": "NA",
+			"ID_2_3": "NA",
 		},
 	}
 
@@ -687,13 +721,13 @@ func TestRetrievePeopleIdAndCohort(t *testing.T) {
 
 	expectedResults := map[int64]map[string]string{
 		int64(1): {
-			"2_3": "0",
+			"ID_2_3": "0",
 		},
 		int64(2): {
-			"2_3": "1",
+			"ID_2_3": "1",
 		},
 		int64(3): {
-			"2_3": "1",
+			"ID_2_3": "1",
 		},
 	}
 

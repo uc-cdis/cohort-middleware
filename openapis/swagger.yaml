@@ -731,15 +731,15 @@ paths:
             schema:
               type: object
               properties:
-                ConceptIds:
+                variables:
                   type: array
                   items: {
-                    type: integer
+                    type: object
                   }
             examples:
                 example-1:
                   value:
-                    ConceptIds: [2000000324,2000006885]
+                    variables: [{variable_type: "concept", concept_id: 2000000324},{variable_type: "concept", concept_id: 2000006885},{variable_type: "custom_dichotomous", cohort_ids: [1, 2]}]
       responses:
         '200':
           description: OK
@@ -900,15 +900,15 @@ paths:
             schema:
               type: object
               properties:
-                ConceptIds:
+                variables:
                   type: array
                   items: {
-                    type: integer
+                    type: object
                   }
             examples:
                 example-1:
                   value:
-                    ConceptIds: [2000000324,2000006885]
+                    variables: [{variable_type: "concept", concept_id: 2000000324},{variable_type: "concept", concept_id: 2000006885},{variable_type: "custom_dichotomous", cohort_ids: [1, 2]}]
       responses:
         '200':
           description: OK
@@ -979,15 +979,15 @@ paths:
             schema:
               type: object
               properties:
-                PrefixedConceptIds:
+                variables:
                   type: array
                   items: {
-                    type: string
+                    type: object
                   }
             examples:
                 example-1:
                   value:
-                    PrefixedConceptIds: ["ID_2000000324","ID_2000006885","..."]
+                    variables: [{variable_type: "concept", concept_id: 2000000324},{variable_type: "concept", concept_id: 2000006885},{variable_type: "custom_dichotomous", cohort_ids: [1, 2]}]
       responses:
         '200':
           description: OK

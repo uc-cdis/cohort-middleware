@@ -16,6 +16,7 @@ var testSourceId = tests.GetTestSourceId()
 var allCohortDefinitions []*models.CohortDefinitionStats
 var smallestCohort *models.CohortDefinitionStats
 var largestCohort *models.CohortDefinitionStats
+var secondLargestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
@@ -41,6 +42,7 @@ func setupSuite() {
 	// initialize some handy variables to use in tests below:
 	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	largestCohort = allCohortDefinitions[0]
+	secondLargestCohort = allCohortDefinitions[1]
 	smallestCohort = allCohortDefinitions[len(allCohortDefinitions)-1]
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	allConceptIds = tests.MapIntAttr(concepts, "ConceptId")
@@ -120,8 +122,7 @@ func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
 
 func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsCheckRatio(t *testing.T) {
 	setUp(t)
-	filterIds := make([]int64, 1)
-	filterIds[0] = genderConceptId
+	filterIds := []int64{genderConceptId}
 	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
 		largestCohort.Id,
 		filterIds)
@@ -154,8 +155,7 @@ func TestRetrieveInfoBySourceIdAndConceptTypes(t *testing.T) {
 	// simple test: we know that not all concepts have the same type in our test db, so
 	// if we query on the type of a single concept, the result should
 	// be a list where 1 =< size < len(allConceptIds):
-	conceptTypes := make([]string, 1)
-	conceptTypes[0] = conceptsInfo[0].ConceptType
+	conceptTypes := []string{conceptsInfo[0].ConceptType}
 	conceptsInfo, _ = conceptModel.RetrieveInfoBySourceIdAndConceptTypes(testSourceId,
 		conceptTypes)
 	if !(1 <= len(conceptsInfo) && len(conceptsInfo) < len(allConceptIds)) {
@@ -186,8 +186,7 @@ func TestRetrieveInfoBySourceIdAndConceptId(t *testing.T) {
 func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 	setUp(t)
 	// simple test: invalid/non-existing type should return an empty list:
-	conceptTypes := make([]string, 1)
-	conceptTypes[0] = "invalid type"
+	conceptTypes := []string{"invalid type"}
 	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptTypes(testSourceId,
 		conceptTypes)
 	if len(conceptsInfo) != 0 {
@@ -195,25 +194,27 @@ func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsNoResults(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsNoResults(t *testing.T) {
 	setUp(t)
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
+	// empty:
+	filterCohortPairs := [][]int{}
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		smallestCohort.Id,
-		allConceptIds, allConceptIds[0])
+		allConceptIds, filterCohortPairs, allConceptIds[0])
 	// none of the subjects has a value in all the concepts, so we expect len==0 here:
 	if len(stats) != 0 {
 		t.Errorf("Expected no results, found %d", len(stats))
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsWithResults(t *testing.T) {
 	setUp(t)
-	filterIds := make([]int64, 1)
-	filterIds[0] = hareConceptId
+	filterIds := []int64{hareConceptId}
+	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
+	filterCohortPairs := [][]int{{largestCohort.Id, largestCohort.Id}}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
-		largestCohort.Id,
-		filterIds, breakdownConceptId)
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// we expect values since largestCohort has multiple subjects with hare info:
 	if len(stats) < 4 {
 		t.Errorf("Expected at least 4 results, found %d", len(stats))
@@ -229,6 +230,22 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsWithResults(t *
 			t.Errorf("Invalid results")
 		}
 		prevName = stat.ValueName
+	}
+	// test without the filterCohortPairs, should return the same result:
+	filterCohortPairs = [][]int{}
+	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// very rough check (ideally we would check the individual stats as well...TODO?):
+	if len(stats) != len(stats2) {
+		t.Errorf("Expected same result")
+	}
+	// test filtering with smallest cohort, lenght should be 1, since that's the size of the smallest cohort:
+	// setting the same cohort id here (artificial...normally it should be two different ids):
+	filterCohortPairs = [][]int{{smallestCohort.Id, smallestCohort.Id}}
+	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	if len(stats3) != 1 {
+		t.Errorf("Expected only one item in resultset")
 	}
 }
 
@@ -335,8 +352,7 @@ func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId
 
 // for given source and cohort, counts how many persons have the given HARE value
 func getNrPersonsWithHareConceptValue(sourceId int, cohortId int, hareConceptValue int64) int64 {
-	conceptIds := make([]int64, 1)
-	conceptIds[0] = hareConceptId
+	conceptIds := []int64{hareConceptId}
 	personLevelData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
 	var count int64 = 0
 	for _, personLevelDatum := range personLevelData {
@@ -354,11 +370,36 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
-	otherFilterConceptIds := make([]int64, 0)
+	otherFilterConceptIds := []int64{}
+	filterCohortPairs := [][]int{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds)
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	// get the number of persons in this cohort that have this filterConceptValue:
 	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
+	if nr_expected == 0 {
+		t.Errorf("Expected nr persons with HARE value should be > 0")
+	}
+	if stats.CaseControlOverlapAfterFilter != nr_expected {
+		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
+func TestRetrieveCohortOverlapStatsScenario2(t *testing.T) {
+	// Tests if we get the expected overlap
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	filterConceptId := hareConceptId
+	filterConceptValue := asnHareConceptId
+	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
+	filterCohortPairs := [][]int{}
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
+	// get the number of persons in this cohort that have this filterConceptValue:
+	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
+	if nr_expected == 0 {
+		t.Errorf("Expected nr persons with HARE value should be > 0")
+	}
 	if stats.CaseControlOverlapAfterFilter != nr_expected {
 		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
 	}
@@ -371,9 +412,10 @@ func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 	controlCohortId := smallestCohort.Id
 	filterConceptId := hareConceptId
 	var filterConceptValue int64 = -1 // should result in 0 overlap
-	otherFilterConceptIds := make([]int64, 0)
+	otherFilterConceptIds := []int64{}
+	filterCohortPairs := [][]int{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds)
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
 		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
 	}
@@ -387,13 +429,46 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	// set this list to some dummy non-existing ids:
-	otherFilterConceptIds := make([]int64, 2)
-	otherFilterConceptIds[0] = -1
-	otherFilterConceptIds[1] = -2
+	otherFilterConceptIds := []int64{-1, -2}
+	filterCohortPairs := [][]int{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds)
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
 		t.Errorf("Expected overlap of %d, but found %d", 0, stats.CaseControlOverlapAfterFilter)
+	}
+}
+
+func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
+	// Tests if we get the expected overlap
+	setUp(t)
+	caseCohortId := largestCohort.Id
+	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	filterConceptId := hareConceptId
+	filterConceptValue := asnHareConceptId          // the cohorts we use below both have persons with "ASN" HARE value
+	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
+	filterCohortPairs := [][]int{
+		{smallestCohort.Id, secondLargestCohort.Id}, // pair1
+		{secondLargestCohort.Id, smallestCohort.Id}, // pair2 (same as above, but switched...artificial, but will ensure some data):
+	}
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
+	// get the number of persons in the smaller cohorts that have this filterConceptValue (this can be the expected nr because
+	// the largestCohort in this case contains all other cohorts):
+	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, secondLargestCohort.Id, filterConceptValue)
+	nr_expected = nr_expected + getNrPersonsWithHareConceptValue(testSourceId, smallestCohort.Id, filterConceptValue)
+	if nr_expected == 0 {
+		t.Errorf("Expected nr persons with HARE value should be > 0")
+	}
+	if stats.CaseControlOverlapAfterFilter != nr_expected {
+		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
+	}
+	filterCohortPairs = [][]int{}
+	// without the restrictive filter on cohort pairs, the result should be bigger, as the largest cohort has more persons with
+	// the asnHareConceptId than the ones used in the pairs above:
+	stats2, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
+	if stats.CaseControlOverlapAfterFilter >= stats2.CaseControlOverlapAfterFilter {
+		t.Errorf("Expected overlap in first query to be smaller than in second one")
 	}
 }
 

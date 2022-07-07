@@ -11,6 +11,7 @@ type CohortDefinitionI interface {
 	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error)
+	GetCohortName(cohortId int) (string, error)
 }
 
 type CohortDefinition struct {
@@ -80,7 +81,7 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {
 	cohortDefinition, err := h.GetCohortDefinitionById(cohortId)
 	if err != nil {
-		return "", fmt.Errorf("Could not retrieve cohort name due to error: %s", err.Error())
+		return "", fmt.Errorf("could not retrieve cohort name due to error: %s", err.Error())
 	}
 
 	return cohortDefinition.Name, nil

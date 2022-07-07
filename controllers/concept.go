@@ -14,14 +14,13 @@ import (
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
-var cohortDefinitionModel = new(models.CohortDefinition)
-
 type ConceptController struct {
-	conceptModel models.ConceptI
+	conceptModel          models.ConceptI
+	cohortDefinitionModel models.CohortDefinitionI
 }
 
-func NewConceptController(conceptModel models.ConceptI) ConceptController {
-	return ConceptController{conceptModel: conceptModel}
+func NewConceptController(conceptModel models.ConceptI, cohortDefinitionModel models.CohortDefinitionI) ConceptController {
+	return ConceptController{conceptModel: conceptModel, cohortDefinitionModel: cohortDefinitionModel}
 }
 
 func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
@@ -252,7 +251,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	cohortName, err := cohortDefinitionModel.GetCohortName(cohortId)
+	cohortName, err := u.cohortDefinitionModel.GetCohortName(cohortId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohort name", "error": err.Error()})

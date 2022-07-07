@@ -56,7 +56,7 @@ var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionControlle
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel))
 
-var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel))
+var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel))
 
 type dummyCohortDataModel struct{}
 
@@ -91,6 +91,10 @@ func (h dummyCohortDataModel) RetrieveDataByOriginalCohortAndNewCohort(sourceId 
 type dummyCohortDefinitionDataModel struct{}
 
 var dummyModelReturnError bool = false
+
+func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, error) {
+	return "dummy cohort name", nil
+}
 
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
@@ -160,8 +164,8 @@ func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(s
 }
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
-		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
-		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 5, ValueName: "value1_name"},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 8, ValueName: "value2_name"},
 	}
 	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
@@ -170,8 +174,8 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 }
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
-		{ConceptValue: "value1", NpersonsInCohortWithValue: 5},
-		{ConceptValue: "value2", NpersonsInCohortWithValue: 8},
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 4},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 7},
 	}
 	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
@@ -572,12 +576,16 @@ func TestGenerateAttritionCSV(t *testing.T) {
 
 func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	setUp(t)
-	sourceId := 1
-	cohortId := 1
-	var breakdownConceptId int64 = 1
 	cohortName := "hello"
 
-	result, _ := conceptController.GenerateHeaderAndNonFilteredRow(cohortName, sourceId, cohortId, breakdownConceptId)
+	conceptBreakdown := []*models.ConceptBreakdown{
+		{ConceptValue: "value1", NpersonsInCohortWithValue: 5, ValueName: "value1_name"},
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 8, ValueName: "value2_name"},
+	}
+
+	sortedConceptValues := []string{"value1", "value2"}
+
+	result, _ := conceptController.GenerateHeaderAndNonFilteredRow(conceptBreakdown, sortedConceptValues, cohortName)
 	if len(result) != 2 {
 		t.Errorf("Expected 1 header line + 1 data lines, found %d lines in total",
 			len(result))
@@ -585,7 +593,7 @@ func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	}
 
 	expectedLines := [][]string{
-		{"Cohort", "Size", "value1", "value2"},
+		{"Cohort", "Size", "value1_name", "value2_name"},
 		{"hello", "13", "5", "8"},
 	}
 
@@ -615,9 +623,9 @@ func TestGetConceptVariablesAttritionRows(t *testing.T) {
 	}
 
 	expectedLines := [][]string{
-		{"Concept A", "13", "5", "8"},
-		{"Concept B", "13", "5", "8"},
-		{"Concept C", "13", "5", "8"},
+		{"Concept A", "11", "4", "7"},
+		{"Concept B", "11", "4", "7"},
+		{"Concept C", "11", "4", "7"},
 	}
 
 	i := 0
@@ -647,8 +655,8 @@ func TestGetCustomDichotomousVariablesAttritionRows(t *testing.T) {
 	}
 
 	expectedLines := [][]string{
-		{"ID_1_2", "13", "5", "8", "0"},
-		{"ID_3_4", "13", "5", "8", "0"},
+		{"ID_1_2", "11", "4", "7", "0"},
+		{"ID_3_4", "11", "4", "7", "0"},
 	}
 
 	i := 0
@@ -736,5 +744,37 @@ func TestRetrievePeopleIdAndCohort(t *testing.T) {
 		if res[expectedPersonId]["2_3"] != headerToCSVValue["2_3"] {
 			t.Errorf("expected %v for csv value but instead got %v", headerToCSVValue["2_3"], res[expectedPersonId]["2_3"])
 		}
+	}
+}
+
+func TestRetrieveAttritionTable(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "2"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2090006880},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	conceptController.RetrieveAttritionTable(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result.CustomResponseWriterOut)
+	// check result vs expect result:
+	csvLines := strings.Split(strings.TrimRight(result.CustomResponseWriterOut, "\n"), "\n")
+	expectedLines := []string{
+		"Cohort,Size,value1_name,value2_name",
+		"dummy cohort name,13,5,8",
+		"Concept C,11,4,7",
+		"ID_1_3,11,4,7",
+	}
+	i := 0
+	for _, expectedLine := range expectedLines {
+		if !reflect.DeepEqual(expectedLine, csvLines[i]) {
+			t.Errorf("header or data row line not as expected. \nExpected: \n%s \nFound: \n%s",
+				expectedLine, csvLines[i])
+		}
+		i++
 	}
 }

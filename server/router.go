@@ -36,7 +36,7 @@ func NewRouter() *gin.Engine {
 		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid", cohortdefinitions.RetriveStatsBySourceId)
 
 		// concept endpoints:
-		concepts := controllers.NewConceptController(*new(models.Concept))
+		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition))
 		authorized.GET("/concept/by-source-id/:sourceid", concepts.RetriveAllBySourceId)
 		authorized.POST("/concept/by-source-id/:sourceid", concepts.RetrieveInfoBySourceIdAndConceptIds)
 		authorized.POST("/concept/by-source-id/:sourceid/by-type", concepts.RetrieveInfoBySourceIdAndConceptTypes)

@@ -505,3 +505,24 @@ func TestGetCohortDefinitionById(t *testing.T) {
 		t.Errorf("Expected data not found")
 	}
 }
+
+func TestRetrieveDataByOriginalCohortAndNewCohort(t *testing.T) {
+	setUp(t)
+	originalCohortSize := secondLargestCohort.CohortSize
+	originalCohortId := secondLargestCohort.Id
+	cohortDefinitionId := largestCohort.Id
+
+	personIdAndCohortList, _ := cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(testSourceId, originalCohortId, cohortDefinitionId)
+	if len(personIdAndCohortList) != originalCohortSize {
+		t.Errorf("length of return data does not match number of people in cohort")
+	}
+
+	for _, personIdAndCohort := range personIdAndCohortList {
+		if personIdAndCohort.CohortId != int64(cohortDefinitionId) {
+			t.Errorf("cohort_id we retireved is not correct")
+		}
+		if personIdAndCohort.PersonId == int64(0) {
+			t.Error("person id should be valid and not 0")
+		}
+	}
+}

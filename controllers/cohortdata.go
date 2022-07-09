@@ -71,7 +71,7 @@ func generateCohortPairsHeaders(cohortPairs []utils.CustomDichotomousVariableDef
 	cohortPairsHeaders := []string{}
 
 	for _, cohortPair := range cohortPairs {
-		cohortPairsHeaders = append(cohortPairsHeaders, models.GetCohortPairKey(cohortPair.CohortId1, cohortPair.CohortId2))
+		cohortPairsHeaders = append(cohortPairsHeaders, utils.GetCohortPairKey(cohortPair.CohortId1, cohortPair.CohortId2))
 	}
 
 	return cohortPairsHeaders
@@ -258,7 +258,7 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 	for _, cohortPair := range cohortPairs {
 		firstCohortDefinitionId := cohortPair.CohortId1
 		secondCohortDefinitionId := cohortPair.CohortId2
-		cohortPairKey := models.GetCohortPairKey(firstCohortDefinitionId, secondCohortDefinitionId)
+		cohortPairKey := utils.GetCohortPairKey(firstCohortDefinitionId, secondCohortDefinitionId)
 
 		firstCohortPeopleData, err1 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, firstCohortDefinitionId)
 		secondCohortPeopleData, err2 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, secondCohortDefinitionId)

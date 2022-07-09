@@ -67,6 +67,10 @@ type CustomDichotomousVariableDef struct {
 	ProvidedName string
 }
 
+func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int) string {
+	return fmt.Sprintf("ID_%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
+}
+
 // This method expects a request body with a payload similar to the following example:
 // {"variables": [
 //   {variable_type: "concept", concept_id: 2000000324},
@@ -103,10 +107,14 @@ func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]int64, []CustomDichoto
 			for _, convertedCohortId := range convertedCohortIds {
 				cohortPair = append(cohortPair, int(convertedCohortId.(float64)))
 			}
+			providedName := GetCohortPairKey(cohortPair[0], cohortPair[1])
+			if variable["provided_name"] != nil {
+				providedName = variable["provided_name"].(string)
+			}
 			customDichotomousVariableDef := CustomDichotomousVariableDef{
 				CohortId1:    cohortPair[0],
 				CohortId2:    cohortPair[1],
-				ProvidedName: variable["provided_name"].(string),
+				ProvidedName: providedName,
 			}
 			variableDefinitions = append(variableDefinitions, customDichotomousVariableDef)
 		}

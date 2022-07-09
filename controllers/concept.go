@@ -170,6 +170,10 @@ func getConceptValueToPeopleCount(breakdownStats []*models.ConceptBreakdown) map
 }
 
 func generateRowForVariable(variableName string, breakdownConceptValuesToPeopleCount map[string]int, sortedBreakdownConceptValues []string) []string {
+	// validate:
+	if variableName == "" {
+		panic("unexpected error: variableName should be set!")
+	}
 	cohortSize := 0
 	for _, peopleCount := range breakdownConceptValuesToPeopleCount {
 		cohortSize += peopleCount
@@ -227,7 +231,7 @@ func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId i
 		}
 
 		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
-		variableName := models.GetCohortPairKey(cohortPair.CohortId1, cohortPair.CohortId2)
+		variableName := cohortPair.ProvidedName
 		log.Printf("Generating row for variable...")
 		generatedRow := generateRowForVariable(variableName, conceptValuesToPeopleCount, sortedConceptValues)
 		rows = append(rows, generatedRow)

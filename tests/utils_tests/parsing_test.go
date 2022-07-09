@@ -52,7 +52,7 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 		"{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
-	conceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousIds(requestContext)
+	conceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(requestContext)
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
 	}

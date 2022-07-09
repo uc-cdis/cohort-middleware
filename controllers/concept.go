@@ -199,7 +199,7 @@ func (u ConceptController) GetConceptVariablesAttritionRows(sourceId int, cohort
 		// run each query with a longer list of filterConceptIds, until the last query is run with them all:
 		filterConceptIds := conceptIds[0 : idx+1]
 		// use empty cohort pairs list:
-		filterCohortPairs := [][]int{}
+		filterCohortPairs := []utils.CustomDichotomousVariableDef{}
 		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
@@ -215,7 +215,7 @@ func (u ConceptController) GetConceptVariablesAttritionRows(sourceId int, cohort
 	return rows, nil
 }
 
-func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId int, cohortId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64, sortedConceptValues []string) ([][]string, error) {
+func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId int, cohortId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64, sortedConceptValues []string) ([][]string, error) {
 	// TODO - this function is very similar to GetConceptVariablesAttritionRows above and they can probably be merged.
 	var rows [][]string
 	for idx, cohortPair := range filterCohortPairs {
@@ -227,7 +227,7 @@ func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId i
 		}
 
 		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
-		variableName := models.GetCohortPairKey(cohortPair[0], cohortPair[1])
+		variableName := models.GetCohortPairKey(cohortPair.CohortId1, cohortPair.CohortId2)
 		log.Printf("Generating row for variable...")
 		generatedRow := generateRowForVariable(variableName, conceptValuesToPeopleCount, sortedConceptValues)
 		rows = append(rows, generatedRow)

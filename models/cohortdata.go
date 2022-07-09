@@ -3,11 +3,13 @@ package models
 import (
 	"fmt"
 	"log"
+
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDataI interface {
 	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
-	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs [][]int) (CohortOverlapStats, error)
+	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 }
 
@@ -30,6 +32,8 @@ type PersonIdAndCohort struct {
 	CohortId int64
 }
 
+// This function returns the subjects that belong to both cohorts (the intersection of both cohorts)
+// TODO - name this function as such
 func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error) {
 	var dataSourceModel = new(Source)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
@@ -69,7 +73,7 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 // Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only
 // the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criteria.
 func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs [][]int) (CohortOverlapStats, error) {
+	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
 
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
@@ -106,7 +110,7 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 		query = query.Joins("INNER JOIN (Select "+cohortTableAlias1+".subject_id,"+cohortTableAlias1+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias1+
 			" UNION ALL Select "+cohortTableAlias2+".subject_id,"+cohortTableAlias2+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias2+
 			") AS "+unionAlias+" ON "+unionAlias+".subject_id = observation.person_id").
-			Where(unionAlias+".cohort_definition_id in (?,?)", filterCohortPair[0], filterCohortPair[1])
+			Where(unionAlias+".cohort_definition_id in (?,?)", filterCohortPair.CohortId1, filterCohortPair.CohortId2)
 	}
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error

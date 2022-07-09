@@ -15,6 +15,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 var testSourceId = tests.GetTestSourceId()
@@ -70,7 +71,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 }
 
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs [][]int) (models.CohortOverlapStats, error) {
+	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
 	return zeroOverlap, nil
 }
@@ -172,7 +173,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 	}
 	return conceptBreakdown, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs [][]int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 4},
 		{ConceptValue: "value2", NpersonsInCohortWithValue: 7},
@@ -644,7 +645,17 @@ func TestGetCustomDichotomousVariablesAttritionRows(t *testing.T) {
 	cohortId := 1
 	var breakdownConceptId int64 = 1
 	conceptIds := []int64{1234, 5678, 2090006880}
-	cohortPairs := [][]int{{1, 2}, {3, 4}}
+	cohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    1,
+			CohortId2:    2,
+			ProvidedName: "test"},
+		{
+			CohortId1:    3,
+			CohortId2:    4,
+			ProvidedName: "test"},
+	}
+
 	sortedConceptValues := []string{"value1", "value2", "value3"}
 
 	result, _ := conceptController.GetCustomDichotomousVariablesAttritionRows(sourceId, cohortId, conceptIds, cohortPairs, breakdownConceptId, sortedConceptValues)
@@ -687,8 +698,11 @@ func TestGenerateCompleteCSV(t *testing.T) {
 		},
 	}
 
-	cohortPairs := [][]int{
-		{2, 3},
+	cohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    2,
+			CohortId2:    3,
+			ProvidedName: "test"},
 	}
 
 	b := controllers.GenerateCompleteCSV(partialCsv, personIdToCSVValues, cohortPairs)
@@ -711,8 +725,11 @@ func TestGenerateCompleteCSV(t *testing.T) {
 
 func TestRetrievePeopleIdAndCohort(t *testing.T) {
 	cohortId := 1
-	cohortPairs := [][]int{
-		{2, 3},
+	cohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    2,
+			CohortId2:    3,
+			ProvidedName: "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{

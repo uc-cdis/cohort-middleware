@@ -747,6 +747,82 @@ func TestRetrievePeopleIdAndCohort(t *testing.T) {
 	}
 }
 
+func TestRetrievePeopleIdAndCohortNonExistingCohortPair(t *testing.T) {
+	cohortId := 1
+	cohortPairs := [][]int{
+		{4, 5},
+	}
+
+	cohortData := []*models.PersonConceptAndValue{
+		{
+			PersonId: 1,
+		},
+		{
+			PersonId: 2,
+		},
+		{
+			PersonId: 3,
+		},
+	}
+
+	expectedResults := map[int64]map[string]string{
+		int64(1): {
+			"ID_4_5": "NA",
+		},
+		int64(2): {
+			"ID_4_5": "NA",
+		},
+		int64(3): {
+			"ID_4_5": "NA",
+		},
+	}
+
+	res, _ := cohortDataController.RetrievePeopleIdAndCohort(testSourceId, cohortId, cohortPairs, cohortData)
+	for expectedPersonId, headerToCSVValue := range expectedResults {
+		if res[expectedPersonId]["4_5"] != headerToCSVValue["4_5"] {
+			t.Errorf("expected %v for csv value but instead got %v", headerToCSVValue["4_5"], res[expectedPersonId]["4_5"])
+		}
+	}
+}
+
+func TestRetrievePeopleIdAndCohortOverlappingCohortPair(t *testing.T) {
+	cohortId := 1
+	cohortPairs := [][]int{
+		{1, 1},
+	}
+
+	cohortData := []*models.PersonConceptAndValue{
+		{
+			PersonId: 1,
+		},
+		{
+			PersonId: 2,
+		},
+		{
+			PersonId: 3,
+		},
+	}
+
+	expectedResults := map[int64]map[string]string{
+		int64(1): {
+			"ID_1_1": "NA",
+		},
+		int64(2): {
+			"ID_1_1": "NA",
+		},
+		int64(3): {
+			"ID_1_1": "NA",
+		},
+	}
+
+	res, _ := cohortDataController.RetrievePeopleIdAndCohort(testSourceId, cohortId, cohortPairs, cohortData)
+	for expectedPersonId, headerToCSVValue := range expectedResults {
+		if res[expectedPersonId]["1_1"] != headerToCSVValue["1_1"] {
+			t.Errorf("expected %v for csv value but instead got %v", headerToCSVValue["1_1"], res[expectedPersonId]["1_1"])
+		}
+	}
+}
+
 func TestRetrieveAttritionTable(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)

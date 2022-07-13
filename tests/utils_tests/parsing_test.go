@@ -49,10 +49,10 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 	requestContext.Request = new(http.Request)
 	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324}," +
 		"{\"variable_type\": \"concept\", \"concept_id\": 2000000123}," +
-		"{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+		"{\"variable_type\": \"custom_dichotomous\", \"provided_name\": \"test\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
-	conceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousIds(requestContext)
+	conceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(requestContext)
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
 	}
@@ -62,8 +62,11 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 		t.Errorf("Expected %d but found %d", expectedPrefixedConceptIds, conceptIds)
 	}
 
-	expectedCohortPairs := [][]int{
-		{1, 3},
+	expectedCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    1,
+			CohortId2:    3,
+			ProvidedName: "test"},
 	}
 
 	for i, cohortPair := range cohortPairs {

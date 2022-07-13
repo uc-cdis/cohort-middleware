@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"log"
 	"strconv"
 	"strings"
@@ -25,8 +24,4 @@ func GetConceptId(prefixedConceptId string) int64 {
 	var conceptId = strings.Split(prefixedConceptId, "ID_")[1]
 	var result, _ = strconv.ParseInt(conceptId, 10, 64)
 	return result
-}
-
-func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int) string {
-	return fmt.Sprintf("ID_%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
 }

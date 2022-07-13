@@ -35,7 +35,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 		return
 	}
 
-	conceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousIds(c)
+	conceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
@@ -67,17 +67,17 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 
 }
 
-func generateCohortPairsHeaders(cohortPairs [][]int) []string {
+func generateCohortPairsHeaders(cohortPairs []utils.CustomDichotomousVariableDef) []string {
 	cohortPairsHeaders := []string{}
 
 	for _, cohortPair := range cohortPairs {
-		cohortPairsHeaders = append(cohortPairsHeaders, models.GetCohortPairKey(cohortPair[0], cohortPair[1]))
+		cohortPairsHeaders = append(cohortPairsHeaders, utils.GetCohortPairKey(cohortPair.CohortId1, cohortPair.CohortId2))
 	}
 
 	return cohortPairsHeaders
 }
 
-func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]map[string]string, cohortPairs [][]int) *bytes.Buffer {
+func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]map[string]string, cohortPairs []utils.CustomDichotomousVariableDef) *bytes.Buffer {
 	b := new(bytes.Buffer)
 	w := csv.NewWriter(b)
 	w.Comma = ',' // CSV
@@ -181,13 +181,13 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	var filterConceptId int64
 	var filterConceptValue int64
 	var conceptIds []int64
-	var cohortPairs [][]int
+	var cohortPairs []utils.CustomDichotomousVariableDef
 	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
 	filterConceptId, errors[1] = utils.ParseBigNumericArg(c, "filterconceptid")
 	filterConceptValue, errors[2] = utils.ParseBigNumericArg(c, "filtervalue")
 	caseCohortId, errors[3] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[4] = utils.ParseNumericArg(c, "controlcohortid")
-	conceptIds, cohortPairs, errors[5] = utils.ParseConceptIdsAndDichotomousIds(c)
+	conceptIds, cohortPairs, errors[5] = utils.ParseConceptIdsAndDichotomousDefs(c)
 	if utils.ContainsNonNil(errors) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 		c.Abort()
@@ -244,7 +244,7 @@ func getAllPeopleIdInCohortData(cohortData []*models.PersonConceptAndValue) []in
 	return personIds
 }
 
-func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId int, cohortPairs [][]int, cohortData []*models.PersonConceptAndValue) (map[int64]map[string]string, error) {
+func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId int, cohortPairs []utils.CustomDichotomousVariableDef, cohortData []*models.PersonConceptAndValue) (map[int64]map[string]string, error) {
 	peopleIds := getAllPeopleIdInCohortData(cohortData)
 
 	/**
@@ -256,9 +256,9 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 	*/
 	personIdToCSVValues := make(map[int64]map[string]string)
 	for _, cohortPair := range cohortPairs {
-		firstCohortDefinitionId := cohortPair[0]
-		secondCohortDefinitionId := cohortPair[1]
-		cohortPairKey := models.GetCohortPairKey(firstCohortDefinitionId, secondCohortDefinitionId)
+		firstCohortDefinitionId := cohortPair.CohortId1
+		secondCohortDefinitionId := cohortPair.CohortId2
+		cohortPairKey := utils.GetCohortPairKey(firstCohortDefinitionId, secondCohortDefinitionId)
 
 		firstCohortPeopleData, err1 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, firstCohortDefinitionId)
 		secondCohortPeopleData, err2 := u.cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(sourceId, cohortId, secondCohortDefinitionId)

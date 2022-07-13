@@ -9,6 +9,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
+	"github.com/uc-cdis/cohort-middleware/utils"
 	"github.com/uc-cdis/cohort-middleware/version"
 )
 
@@ -197,7 +198,7 @@ func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsNoResults(t *testing.T) {
 	setUp(t)
 	// empty:
-	filterCohortPairs := [][]int{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		smallestCohort.Id,
 		allConceptIds, filterCohortPairs, allConceptIds[0])
@@ -211,7 +212,12 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	setUp(t)
 	filterIds := []int64{hareConceptId}
 	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
-	filterCohortPairs := [][]int{{largestCohort.Id, largestCohort.Id}}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    largestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
@@ -232,7 +238,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 		prevName = stat.ValueName
 	}
 	// test without the filterCohortPairs, should return the same result:
-	filterCohortPairs = [][]int{}
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// very rough check (ideally we would check the individual stats as well...TODO?):
@@ -241,7 +247,12 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	}
 	// test filtering with smallest cohort, lenght should be 1, since that's the size of the smallest cohort:
 	// setting the same cohort id here (artificial...normally it should be two different ids):
-	filterCohortPairs = [][]int{{smallestCohort.Id, smallestCohort.Id}}
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    smallestCohort.Id,
+			ProvidedName: "test"},
+	}
 	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	if len(stats3) != 1 {
@@ -371,7 +382,7 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	otherFilterConceptIds := []int64{}
-	filterCohortPairs := [][]int{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	// get the number of persons in this cohort that have this filterConceptValue:
@@ -392,7 +403,7 @@ func TestRetrieveCohortOverlapStatsScenario2(t *testing.T) {
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
-	filterCohortPairs := [][]int{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	// get the number of persons in this cohort that have this filterConceptValue:
@@ -413,7 +424,7 @@ func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 	filterConceptId := hareConceptId
 	var filterConceptValue int64 = -1 // should result in 0 overlap
 	otherFilterConceptIds := []int64{}
-	filterCohortPairs := [][]int{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
@@ -430,7 +441,7 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 	filterConceptValue := asnHareConceptId
 	// set this list to some dummy non-existing ids:
 	otherFilterConceptIds := []int64{-1, -2}
-	filterCohortPairs := [][]int{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	if stats.CaseControlOverlapAfterFilter != 0 {
@@ -446,9 +457,15 @@ func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId          // the cohorts we use below both have persons with "ASN" HARE value
 	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
-	filterCohortPairs := [][]int{
-		{smallestCohort.Id, secondLargestCohort.Id}, // pair1
-		{secondLargestCohort.Id, smallestCohort.Id}, // pair2 (same as above, but switched...artificial, but will ensure some data):
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    secondLargestCohort.Id,
+			ProvidedName: "test"}, // pair1
+		{
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    smallestCohort.Id,
+			ProvidedName: "test"}, // pair2 (same as above, but switched...artificial, but will ensure some data):
 	}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
@@ -462,7 +479,7 @@ func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
 	if stats.CaseControlOverlapAfterFilter != nr_expected {
 		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlapAfterFilter)
 	}
-	filterCohortPairs = [][]int{}
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 	// without the restrictive filter on cohort pairs, the result should be bigger, as the largest cohort has more persons with
 	// the asnHareConceptId than the ones used in the pairs above:
 	stats2, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,

@@ -133,7 +133,7 @@ CSV data endpoints:
 ```bash
 curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"variable_type": "concept", "concept_id": 2000006885},{"variable_type": "concept", "concept_id": 2000007027},{"variable_type": "custom_dichotomous", "cohort_ids": [1, 2]}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3
 
-curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"variable_type": "concept", "concept_id": 2000006885},{"variable_type": "concept", "concept_id": 2000007027},{"variable_type": "custom_dichotomous", "cohort_ids": [1, 2]}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000007027/csv
+curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"variable_type": "concept", "concept_id": 2000006885},{"variable_type": "concept", "concept_id": 2000007027},{"variable_type": "custom_dichotomous", "provided_name": "test123", "cohort_ids": [1, 99]}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000007027/csv
 
 ```
 

@@ -60,16 +60,27 @@ type ConceptTypes struct {
 	ConceptTypes []string
 }
 
+// fields that define a custom dichotomous variable:
+type CustomDichotomousVariableDef struct {
+	CohortId1    int
+	CohortId2    int
+	ProvidedName string
+}
+
+func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int) string {
+	return fmt.Sprintf("ID_%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
+}
+
 // This method expects a request body with a payload similar to the following example:
 // {"variables": [
 //   {variable_type: "concept", concept_id: 2000000324},
 //   {variable_type: "concept", concept_id: 2000006885},
-//   {variable_type: "custom_dichotomous", cohort_ids: [cohortX_id, cohortY_id]},
-//   {variable_type: "custom_dichotomous", cohort_ids: [cohortM_id, cohortN_id]},
+//   {variable_type: "custom_dichotomous", provided_name: "name1", cohort_ids: [cohortX_id, cohortY_id]},
+//   {variable_type: "custom_dichotomous", provided_name: "name2", cohort_ids: [cohortM_id, cohortN_id]},
 //       ...
 // ]}
-// It returns the list of concept_id values and the list of cohort_id tuples.
-func ParseConceptIdsAndDichotomousIds(c *gin.Context) ([]int64, [][]int, error) {
+// It returns the list of concept_id values and the list of custom dichotomous variable definitions.
+func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]int64, []CustomDichotomousVariableDef, error) {
 	if c.Request == nil || c.Request.Body == nil {
 		return nil, nil, errors.New("bad request - no request body")
 	}
@@ -83,7 +94,7 @@ func ParseConceptIdsAndDichotomousIds(c *gin.Context) ([]int64, [][]int, error) 
 
 	variables := request["variables"]
 	conceptIds := []int64{}
-	cohortPairs := [][]int{}
+	variableDefinitions := []CustomDichotomousVariableDef{}
 	// TODO - this parsing will throw a lot of "null pointer" errors since it does not validate if specific entries are found in the json before
 	// accessing them...needs to be fixed to throw better errors:
 	for _, variable := range variables {
@@ -96,11 +107,19 @@ func ParseConceptIdsAndDichotomousIds(c *gin.Context) ([]int64, [][]int, error) 
 			for _, convertedCohortId := range convertedCohortIds {
 				cohortPair = append(cohortPair, int(convertedCohortId.(float64)))
 			}
-
-			cohortPairs = append(cohortPairs, cohortPair)
+			providedName := GetCohortPairKey(cohortPair[0], cohortPair[1])
+			if variable["provided_name"] != nil {
+				providedName = variable["provided_name"].(string)
+			}
+			customDichotomousVariableDef := CustomDichotomousVariableDef{
+				CohortId1:    cohortPair[0],
+				CohortId2:    cohortPair[1],
+				ProvidedName: providedName,
+			}
+			variableDefinitions = append(variableDefinitions, customDichotomousVariableDef)
 		}
 	}
-	return conceptIds, cohortPairs, nil
+	return conceptIds, variableDefinitions, nil
 }
 
 func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
@@ -176,13 +195,13 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 }
 
 // returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
-func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, [][]int, error) {
+func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, []CustomDichotomousVariableDef, error) {
 	// parse and validate all parameters:
 	sourceId, cohortId, err := ParseSourceAndCohortId(c)
 	if err != nil {
 		return -1, -1, nil, nil, err
 	}
-	conceptIds, cohortPairs, err := ParseConceptIdsAndDichotomousIds(c)
+	conceptIds, cohortPairs, err := ParseConceptIdsAndDichotomousDefs(c)
 	if err != nil {
 		return -1, -1, nil, nil, err
 	}

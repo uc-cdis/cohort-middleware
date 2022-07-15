@@ -272,6 +272,38 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
 	}
 }
 
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoHare(t *testing.T) {
+	setUp(t)
+	breakdownConceptId := hareConceptId
+	statsSecondLargestCohort, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
+		secondLargestCohort.Id,
+		breakdownConceptId)
+
+	totalPersonInSecondLargestCohortWithValue := 0
+
+	for _, statSecondLargest := range statsSecondLargestCohort {
+		totalPersonInSecondLargestCohortWithValue += statSecondLargest.NpersonsInCohortWithValue
+	}
+
+	if totalPersonInSecondLargestCohortWithValue != secondLargestCohort.CohortSize+1 {
+		t.Errorf("Expected total peope in return data to be 1 larger than cohort size, but total people was %d and cohort size is %d", totalPersonInSecondLargestCohortWithValue, secondLargestCohort.CohortSize)
+	}
+
+	statsLargestCohort, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
+		largestCohort.Id,
+		breakdownConceptId)
+
+	totalPersonInLargestCohortWithValue := 0
+
+	for _, statLargeCohort := range statsLargestCohort {
+		totalPersonInLargestCohortWithValue += statLargeCohort.NpersonsInCohortWithValue
+	}
+
+	if totalPersonInLargestCohortWithValue != largestCohort.CohortSize+1 {
+		t.Errorf("Expected total peope in return data to be 1 larger than cohort size, but total people was %d and cohort size is %d", totalPersonInLargestCohortWithValue, largestCohort.CohortSize)
+	}
+}
+
 func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	setUp(t)
 	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)

@@ -155,7 +155,6 @@ curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"
   ```
 - PRs to `master` get the docker image built on quay (via github action). See https://quay.io/repository/cdis/cohort-middleware?tab=tags
   - The following config file determines which branch or tag is used on QA: https://github.com/uc-cdis/gitops-qa/blob/master/qa-mickey.planx-pla.net/manifest.json
-- Once the image is built, it can be pulled. E.g. for branch `branch1`: `docker pull quay.io/cdis/cohort-middleware:branch1`
 - If testing on QA:
    - ssh to QA machine
    - run the steps below:
@@ -170,13 +169,9 @@ curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"
 
 ## Test the endpoints on QA
 
-Examples:
+Example:
 ```
 curl -H "Content-Type: application/json" -H "$(cat auth.txt)" https://<qa-url-here>/sources | python -m json.tool
-
-curl -H "Content-Type: application/json" -H "$(cat auth.txt)" https://<qa-url-here>/cohortdefinition-stats/by-source-id/2 | python -m json.tool
-
-curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -H "$(cat auth.txt)" -X POST https://<qa-url-here>/cohort-data/by-source-id/2/by-cohort-definition-id/3
 ```
 
 **Note that** the `<qa-url-here>` in these examples above needs to be replaced, and the ids used (`by-source-id/2`, `by-cohort-definition-id/3`) need

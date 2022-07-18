@@ -272,6 +272,14 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
 	}
 }
 
+// Tests what happens when persons have more than 1 HARE. This is a "data error" and should not
+// happen in practice. The ideal solution would be for cohort-middleware to throw an error
+// when it detects such a situation in the RetrieveBreakdownStats methods. This test shows that
+// the code does not "hide" the error but instead returns the extra hare as an
+// extra count, making the cohort numbers inconsistent and hopefully making the "data error" easy
+// to spot.
+// TODO - adjust the code to detect the issue and return an error, ideally with minimized or no repetition
+// of the heavy queries in the RetrieveBreakdownStats methods...
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoHare(t *testing.T) {
 	setUp(t)
 	breakdownConceptId := hareConceptId

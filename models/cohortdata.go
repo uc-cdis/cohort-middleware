@@ -10,6 +10,7 @@ import (
 type CohortDataI interface {
 	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
+	RetrieveCohortOverlapStatsWithoutFiltering(sourceId int, caseCohortId int, controlCohortId int) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
 }
@@ -31,7 +32,8 @@ type PersonConceptAndCount struct {
 }
 
 type CohortOverlapStats struct {
-	CaseControlOverlapAfterFilter int64 `json:"case_control_overlap_after_filter"`
+	CaseControlOverlapAfterFilter  int64 `json:"case_control_overlap_after_filter"`
+	CaseControlOverlapBeforeFilter int64 `json:"case_control_overlap_before_filter"`
 }
 
 type PersonIdAndCohort struct {
@@ -167,4 +169,22 @@ func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64
 		}
 	}
 	return countIssues, nil
+}
+
+func (h CohortData) RetrieveCohortOverlapStatsWithoutFiltering(sourceId int, caseCohortId int, controlCohortId int) (CohortOverlapStats, error) {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
+	var cohortOverlapStats CohortOverlapStats
+	query := omopDataSource.Db.Model(&Observation{}).
+		Select("count(distinct(observation.person_id)) as case_control_overlap_before_filter").
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as case_cohort ON case_cohort.subject_id = observation.person_id").
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
+		Where("case_cohort.cohort_definition_id = ?", caseCohortId).
+		Where("control_cohort.cohort_definition_id = ?", controlCohortId)
+
+	meta_result := query.Scan(&cohortOverlapStats)
+	return cohortOverlapStats, meta_result.Error
 }

@@ -17,6 +17,7 @@ require (
 	github.com/google/uuid v1.3.0 // indirect
 	github.com/kr/pretty v0.3.0 // indirect
 	github.com/kr/text v0.2.0 // indirect
+	github.com/montanaflynn/stats v0.6.6 // indirect
 	github.com/philhofer/fwd v1.1.1 // indirect
 	github.com/rogpeppe/go-internal v1.8.0 // indirect
 	github.com/tinylib/msgp v1.1.6 // indirect

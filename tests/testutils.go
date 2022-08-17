@@ -22,6 +22,10 @@ func GetTestGenderConceptId() int64 {
 	return 2000000324
 }
 
+func GetTestHistogramConceptId() int64 {
+	return 2000006885
+}
+
 func GetTestHareConceptId() int64 {
 	return 2000007027
 }

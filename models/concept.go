@@ -229,27 +229,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCoho
 		Where("observation.value_as_concept_id is not null"). // this is assuming that the breakdownConceptId has its values nicely stored as concepts as well and correctly used in observation table...
 		Where("observation.value_as_concept_id != 0")
 
-	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
-	// set of persons that have a non-null value for each and every one of the concepts:
-	for i, filterConceptId := range filterConceptIds {
-		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
-		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id").
-			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
-			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
-	}
-	// iterate over the list of filterCohortPairs, adding a new INNER JOIN to the UNION of each pair, so that the resulting set is the
-	// set of persons that are part of the intersections above and of one of the cohorts in the filterCohortPairs:
-	for i, filterCohortPair := range filterCohortPairs {
-		cohortTableAlias1 := fmt.Sprintf("cohort_filter_1_%d", i)
-		cohortTableAlias2 := fmt.Sprintf("cohort_filter_2_%d", i)
-		unionAlias := "union_" + cohortTableAlias1 + "_" + cohortTableAlias2
-		log.Printf("Adding extra INNER JOIN on UNION with alias %s", unionAlias)
-		query = query.Joins("INNER JOIN (Select "+cohortTableAlias1+".subject_id,"+cohortTableAlias1+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias1+
-			" UNION ALL Select "+cohortTableAlias2+".subject_id,"+cohortTableAlias2+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias2+
-			") AS "+unionAlias+" ON "+unionAlias+".subject_id = observation.person_id").
-			Where(unionAlias+".cohort_definition_id in (?,?)", filterCohortPair.CohortId1, filterCohortPair.CohortId2)
-	}
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, resultsDataSource.Schema)
 
 	meta_result := query.Group("observation.value_as_concept_id").
 		Scan(&conceptBreakdownList)

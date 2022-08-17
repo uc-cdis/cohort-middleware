@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"log"
 
 	"github.com/uc-cdis/cohort-middleware/utils"
@@ -11,6 +10,7 @@ type CohortDataI interface {
 	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
+	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
 }
 
 type CohortData struct{}
@@ -70,6 +70,28 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 	return cohortData, meta_result.Error
 }
 
+func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
+	log.Printf(">> Using inner join impl. for large cohorts")
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	// get the observations for the subjects and the concepts, to build up the data rows to return:
+	var cohortData []*PersonConceptAndValue
+	query := omopDataSource.Db.Model(&Observation{}).
+		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
+		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Where("observation.observation_concept_id = ?", histogramConceptId).
+		Where("observation.value_as_number is not null")
+
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, resultsDataSource.Schema)
+
+	meta_result := query.Scan(&cohortData)
+	return cohortData, meta_result.Error
+}
+
 // Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only
 // the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criteria.
 func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
@@ -90,28 +112,8 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 		Where("observation.observation_concept_id = ?", filterConceptId).
 		Where("observation.value_as_concept_id = ?", filterConceptValue)
 
-	// TODO - the following two sections/loops are pretty much identical to what is done in RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs (concept.go) - make a generic function instead?
-	// iterate over the otherFilterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
-	// set of persons that have a non-null value for each and every one of the concepts:
-	for i, filterConceptId := range otherFilterConceptIds {
-		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
-		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id").
-			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
-			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
-	}
-	// iterate over the list of filterCohortPairs, adding a new INNER JOIN to the UNION of each pair, so that the resulting set is the
-	// set of persons that are part of the intersections above and of one of the cohorts in the filterCohortPairs:
-	for i, filterCohortPair := range filterCohortPairs {
-		cohortTableAlias1 := fmt.Sprintf("cohort_filter_1_%d", i)
-		cohortTableAlias2 := fmt.Sprintf("cohort_filter_2_%d", i)
-		unionAlias := "union_" + cohortTableAlias1 + "_" + cohortTableAlias2
-		log.Printf("Adding extra INNER JOIN on UNION with alias %s", unionAlias)
-		query = query.Joins("INNER JOIN (Select "+cohortTableAlias1+".subject_id,"+cohortTableAlias1+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias1+
-			" UNION ALL Select "+cohortTableAlias2+".subject_id,"+cohortTableAlias2+".cohort_definition_id FROM "+resultsDataSource.Schema+".cohort as "+cohortTableAlias2+
-			") AS "+unionAlias+" ON "+unionAlias+".subject_id = observation.person_id").
-			Where(unionAlias+".cohort_definition_id in (?,?)", filterCohortPair.CohortId1, filterCohortPair.CohortId2)
-	}
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, otherFilterConceptIds, filterCohortPairs, omopDataSource.Schema, resultsDataSource.Schema)
+
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error
 }

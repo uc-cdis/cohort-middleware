@@ -16,12 +16,13 @@ import (
 var testSourceId = tests.GetTestSourceId()
 var allCohortDefinitions []*models.CohortDefinitionStats
 var smallestCohort *models.CohortDefinitionStats
-var largestCohort *models.CohortDefinitionStats
 var secondLargestCohort *models.CohortDefinitionStats
+var thirdsecondLargestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var asnHareConceptId = tests.GetTestAsnHareConceptId()
+var histogramConceptId = tests.GetTestHistogramConceptId()
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -42,8 +43,8 @@ func setupSuite() {
 
 	// initialize some handy variables to use in tests below:
 	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
-	largestCohort = allCohortDefinitions[0]
 	secondLargestCohort = allCohortDefinitions[1]
+	thirdsecondLargestCohort = allCohortDefinitions[2]
 	smallestCohort = allCohortDefinitions[len(allCohortDefinitions)-1]
 	concepts, _ := conceptModel.RetriveAllBySourceId(testSourceId)
 	allConceptIds = tests.MapIntAttr(concepts, "ConceptId")
@@ -125,7 +126,7 @@ func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsCheckRatio(t *testing.T)
 	setUp(t)
 	filterIds := []int64{genderConceptId}
 	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
-		largestCohort.Id,
+		secondLargestCohort.Id,
 		filterIds)
 	// simple test: in the test data we keep the gender concept *missing* at a ratio of 1/3 for the largest cohort. Here
 	// we check if the missing ratio calculation is working correctly:
@@ -214,14 +215,14 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    largestCohort.Id,
-			CohortId2:    largestCohort.Id,
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    secondLargestCohort.Id,
 			ProvidedName: "test"},
 	}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
-	// we expect values since largestCohort has multiple subjects with hare info:
+		secondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// we expect values since secondLargestCohort has multiple subjects with hare info:
 	if len(stats) < 4 {
 		t.Errorf("Expected at least 4 results, found %d", len(stats))
 	}
@@ -240,7 +241,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	// test without the filterCohortPairs, should return the same result:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+		secondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// very rough check (ideally we would check the individual stats as well...TODO?):
 	if len(stats) != len(stats2) {
 		t.Errorf("Expected same result")
@@ -254,7 +255,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 			ProvidedName: "test"},
 	}
 	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		largestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+		secondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	if len(stats3) != 1 {
 		t.Errorf("Expected only one item in resultset")
 	}
@@ -264,7 +265,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
 	setUp(t)
 	breakdownConceptId := hareConceptId
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
-		largestCohort.Id,
+		secondLargestCohort.Id,
 		breakdownConceptId)
 	// we expect 5-1 rows since the largest test cohort has all HARE values represented in its population, but has NULL in the "OTH" entry:
 	if len(stats) != 4 {
@@ -283,32 +284,32 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoHare(t *testing.T) {
 	setUp(t)
 	breakdownConceptId := hareConceptId
-	statsSecondLargestCohort, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
+	statsthirdsecondLargestCohort, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
+		thirdsecondLargestCohort.Id,
+		breakdownConceptId)
+
+	totalPersonInthirdsecondLargestCohortWithValue := 0
+
+	for _, statSecondLargest := range statsthirdsecondLargestCohort {
+		totalPersonInthirdsecondLargestCohortWithValue += statSecondLargest.NpersonsInCohortWithValue
+	}
+
+	if totalPersonInthirdsecondLargestCohortWithValue != thirdsecondLargestCohort.CohortSize+1 {
+		t.Errorf("Expected total peope in return data to be 1 larger than cohort size, but total people was %d and cohort size is %d", totalPersonInthirdsecondLargestCohortWithValue, thirdsecondLargestCohort.CohortSize)
+	}
+
+	statssecondLargestCohort, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
 		secondLargestCohort.Id,
 		breakdownConceptId)
 
-	totalPersonInSecondLargestCohortWithValue := 0
+	totalPersonInsecondLargestCohortWithValue := 0
 
-	for _, statSecondLargest := range statsSecondLargestCohort {
-		totalPersonInSecondLargestCohortWithValue += statSecondLargest.NpersonsInCohortWithValue
+	for _, statLargeCohort := range statssecondLargestCohort {
+		totalPersonInsecondLargestCohortWithValue += statLargeCohort.NpersonsInCohortWithValue
 	}
 
-	if totalPersonInSecondLargestCohortWithValue != secondLargestCohort.CohortSize+1 {
-		t.Errorf("Expected total peope in return data to be 1 larger than cohort size, but total people was %d and cohort size is %d", totalPersonInSecondLargestCohortWithValue, secondLargestCohort.CohortSize)
-	}
-
-	statsLargestCohort, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(testSourceId,
-		largestCohort.Id,
-		breakdownConceptId)
-
-	totalPersonInLargestCohortWithValue := 0
-
-	for _, statLargeCohort := range statsLargestCohort {
-		totalPersonInLargestCohortWithValue += statLargeCohort.NpersonsInCohortWithValue
-	}
-
-	if totalPersonInLargestCohortWithValue != largestCohort.CohortSize+1 {
-		t.Errorf("Expected total peope in return data to be 1 larger than cohort size, but total people was %d and cohort size is %d", totalPersonInLargestCohortWithValue, largestCohort.CohortSize)
+	if totalPersonInsecondLargestCohortWithValue != secondLargestCohort.CohortSize+1 {
+		t.Errorf("Expected total peope in return data to be 1 larger than cohort size, but total people was %d and cohort size is %d", totalPersonInsecondLargestCohortWithValue, secondLargestCohort.CohortSize)
 	}
 }
 
@@ -346,6 +347,17 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(smallestCohort.Name)
 	if cohortDefinition == nil || cohortDefinition.Name != smallestCohort.Name {
 		t.Errorf("Expected %s", smallestCohort.Name)
+	}
+}
+
+func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t *testing.T) {
+	setUp(t)
+	largestCohort := allCohortDefinitions[0]
+	filterConceptIds := []int64{}
+	filterCohortIds := []utils.CustomDichotomousVariableDef{}
+	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortIds)
+	if len(data) == 0 {
+		t.Errorf("expected 1 or more histogram data but got 0")
 	}
 }
 
@@ -417,8 +429,8 @@ func getNrPersonsWithHareConceptValue(sourceId int, cohortId int, hareConceptVal
 func TestRetrieveCohortOverlapStats(t *testing.T) {
 	// Tests if we get the expected overlap
 	setUp(t)
-	caseCohortId := largestCohort.Id
-	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	caseCohortId := secondLargestCohort.Id
+	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	otherFilterConceptIds := []int64{}
@@ -438,8 +450,8 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 func TestRetrieveCohortOverlapStatsScenario2(t *testing.T) {
 	// Tests if we get the expected overlap
 	setUp(t)
-	caseCohortId := largestCohort.Id
-	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	caseCohortId := secondLargestCohort.Id
+	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
@@ -459,7 +471,7 @@ func TestRetrieveCohortOverlapStatsScenario2(t *testing.T) {
 func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 	// Tests if a scenario where NO overlap is expected indeed results in 0
 	setUp(t)
-	caseCohortId := largestCohort.Id
+	caseCohortId := secondLargestCohort.Id
 	controlCohortId := smallestCohort.Id
 	filterConceptId := hareConceptId
 	var filterConceptValue int64 = -1 // should result in 0 overlap
@@ -475,8 +487,8 @@ func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 	// Tests if a scenario where NO overlap is expected indeed results in 0
 	setUp(t)
-	caseCohortId := largestCohort.Id
-	controlCohortId := largestCohort.Id // to ensure THIS part does not break it, just repeat the same here...
+	caseCohortId := secondLargestCohort.Id
+	controlCohortId := secondLargestCohort.Id // to ensure THIS part does not break it, just repeat the same here...
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId
 	// set this list to some dummy non-existing ids:
@@ -492,26 +504,26 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
 	// Tests if we get the expected overlap
 	setUp(t)
-	caseCohortId := largestCohort.Id
-	controlCohortId := largestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	caseCohortId := secondLargestCohort.Id
+	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
 	filterConceptId := hareConceptId
 	filterConceptValue := asnHareConceptId          // the cohorts we use below both have persons with "ASN" HARE value
 	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
 			CohortId1:    smallestCohort.Id,
-			CohortId2:    secondLargestCohort.Id,
+			CohortId2:    thirdsecondLargestCohort.Id,
 			ProvidedName: "test"}, // pair1
 		{
-			CohortId1:    secondLargestCohort.Id,
+			CohortId1:    thirdsecondLargestCohort.Id,
 			CohortId2:    smallestCohort.Id,
 			ProvidedName: "test"}, // pair2 (same as above, but switched...artificial, but will ensure some data):
 	}
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
 	// get the number of persons in the smaller cohorts that have this filterConceptValue (this can be the expected nr because
-	// the largestCohort in this case contains all other cohorts):
-	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, secondLargestCohort.Id, filterConceptValue)
+	// the secondLargestCohort in this case contains all other cohorts):
+	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, thirdsecondLargestCohort.Id, filterConceptValue)
 	nr_expected = nr_expected + getNrPersonsWithHareConceptValue(testSourceId, smallestCohort.Id, filterConceptValue)
 	if nr_expected == 0 {
 		t.Errorf("Expected nr persons with HARE value should be > 0")
@@ -565,9 +577,9 @@ func TestGetCohortDefinitionById(t *testing.T) {
 
 func TestRetrieveDataByOriginalCohortAndNewCohort(t *testing.T) {
 	setUp(t)
-	originalCohortSize := secondLargestCohort.CohortSize
-	originalCohortId := secondLargestCohort.Id
-	cohortDefinitionId := largestCohort.Id
+	originalCohortSize := thirdsecondLargestCohort.CohortSize
+	originalCohortId := thirdsecondLargestCohort.Id
+	cohortDefinitionId := secondLargestCohort.Id
 
 	personIdAndCohortList, _ := cohortDataModel.RetrieveDataByOriginalCohortAndNewCohort(testSourceId, originalCohortId, cohortDefinitionId)
 	if len(personIdAndCohortList) != originalCohortSize {

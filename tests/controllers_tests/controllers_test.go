@@ -70,6 +70,23 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 	return cohortData, nil
 }
 
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
+
+	cohortData := []*models.PersonConceptAndValue{
+		{PersonId: 10, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
+		{PersonId: 11, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 6.0},
+		{PersonId: 12, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 56.7},
+		{PersonId: 13, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 47.0},
+		{PersonId: 14, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 25.1},
+		{PersonId: 15, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 8.0},
+		{PersonId: 16, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 30.5},
+		{PersonId: 17, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 93.0},
+		{PersonId: 18, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 30.5},
+		{PersonId: 19, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 35.0},
+	}
+	return cohortData, nil
+}
+
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
 	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
@@ -182,6 +199,44 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 		return nil, fmt.Errorf("error!")
 	}
 	return conceptBreakdown, nil
+}
+
+func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	//requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDataController.RetrieveHistogramForCohortIdAndConceptId(requestContext)
+	// Params above are wrong, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("should have aborted")
+	}
+}
+
+func TestRetrieveHistogramForCohortIdAndConceptIdWithCorrectParams(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "histogramid", Value: "2000006885"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataController.RetrieveHistogramForCohortIdAndConceptId(requestContext)
+	// Params above are correct, so request should NOT abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !strings.Contains(result.CustomResponseWriterOut, "bins") {
+		t.Errorf("Expected output starting with 'bins,...'")
+	}
 }
 
 func TestRetrieveDataBySourceIdAndCohortIdAndVariablesWrongParams(t *testing.T) {

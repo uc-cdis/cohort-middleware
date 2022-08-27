@@ -22,5 +22,6 @@ insert into atlas.cohort_definition
 values
     (1,'Test cohort1','Small cohort'),
     (2,'Test cohort2','Medium cohort'),
-    (3,'Test cohort3','Larger cohort')
+    (3,'Test cohort3','Larger cohort'),
+    (4,'Test cohort4','Extra Larger cohort')
 ;

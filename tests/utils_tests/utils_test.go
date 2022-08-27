@@ -1,8 +1,9 @@
-package parsing_test
+package utils_tests
 
 import (
 	"io"
 	"log"
+	"math"
 	"net/http"
 	"os"
 	"reflect"
@@ -77,4 +78,46 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 
 	}
 
+}
+
+var testData = []float64{
+	6.0,
+	47.0,
+	49.0,
+	15.0,
+	42.0,
+	41.0,
+	7.0,
+	39.0,
+	43.0,
+	40.0,
+	36.0,
+}
+
+func TestIQR(t *testing.T) {
+	setUp(t)
+	expectedResult := float64(28.0)
+	result := utils.IQR(testData)
+	if result != expectedResult {
+		t.Errorf("IQR is incorrect, expected %v but got %v", expectedResult, result)
+	}
+}
+
+func TestFreedmanDiaconis(t *testing.T) {
+	setUp(t)
+	expectedResult := float64(25.18)
+	result := utils.FreedmanDiaconis(testData)
+	result = math.Floor(result*100) / 100
+	if result != expectedResult {
+		t.Errorf("Freedman Diaconis value is incorrect, expected %v but got %v", expectedResult, result)
+	}
+}
+
+func TestGenerateHistogramData(t *testing.T) {
+	setUp(t)
+	expectedresult := `[{"start":6,"end":31.18008152926611,"nr_persons":3},{"start":31.18008152926611,"end":56.36016305853222,"nr_persons":8}]`
+	result := utils.GenerateHistogramData(testData)
+	if result != expectedresult {
+		t.Errorf("expected %v for histogram but got %v", expectedresult, result)
+	}
 }

@@ -21,6 +21,46 @@ func NewCohortDataController(cohortDataModel models.CohortDataI) CohortDataContr
 	return CohortDataController{cohortDataModel: cohortDataModel}
 }
 
+func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Context) {
+	sourceIdStr := c.Param("sourceid")
+	log.Printf("Querying source: %s", sourceIdStr)
+	cohortIdStr := c.Param("cohortid")
+	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
+	histogramIdStr := c.Param("histogramid")
+	if sourceIdStr == "" || cohortIdStr == "" || histogramIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
+
+	filterConceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
+	sourceId, _ := strconv.Atoi(sourceIdStr)
+	cohortId, _ := strconv.Atoi(cohortIdStr)
+	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
+
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, histogramConceptId, filterConceptIds, cohortPairs)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
+	conceptValues := []float64{}
+	for _, personData := range cohortData {
+		conceptValues = append(conceptValues, float64(personData.ConceptValueAsNumber))
+	}
+
+	histogramData := utils.GenerateHistogramData(conceptValues)
+
+	c.JSON(http.StatusOK, gin.H{"bins": histogramData})
+}
+
 func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
 

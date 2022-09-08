@@ -116,8 +116,10 @@ values
     (nextval('observation_id_seq'),          5,           2000007027,           2000007032,             NULL,            NULL,                    38000276),
     (nextval('observation_id_seq'),          6,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276),
     (nextval('observation_id_seq'),          2,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276),
-    (nextval('observation_id_seq'),          6,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
-
+    (nextval('observation_id_seq'),          7,           2000007027,           2000007028,            'HIS',           'HIS',                    38000276),
+    (nextval('observation_id_seq'),          8,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276),
+    (nextval('observation_id_seq'),          9,           2000007027,           2000007031,            'EUR',           'EUR',                    38000276),
+    (nextval('observation_id_seq'),         10,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
 ;
 
 -- ========================================================
@@ -139,6 +141,17 @@ values
     (3,4),
     (3,5),
     (3,6),
+-- copy of large cohort above plus some extra persons:
+    (32,1),
+    (32,2),
+    (32,3),
+    (32,4),
+    (32,5),
+    (32,6),
+    (32,7),
+    (32,8),
+    (32,9),
+    (32,10),
 -- extra large cohort for testing histogram:
     (4,6),
     (4,7),

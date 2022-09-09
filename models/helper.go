@@ -23,12 +23,18 @@ func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, filterConceptId
 	for i, filterCohortPair := range filterCohortPairs {
 		cohortTableAlias1 := fmt.Sprintf("cohort_filter_1_%d", i)
 		cohortTableAlias2 := fmt.Sprintf("cohort_filter_2_%d", i)
-		unionAlias := "union_" + cohortTableAlias1 + "_" + cohortTableAlias2
-		log.Printf("Adding extra INNER JOIN on UNION with alias %s", unionAlias)
-		query = query.Joins("INNER JOIN (Select "+cohortTableAlias1+".subject_id,"+cohortTableAlias1+".cohort_definition_id FROM "+resultSchemaName+".cohort as "+cohortTableAlias1+
-			" UNION ALL Select "+cohortTableAlias2+".subject_id,"+cohortTableAlias2+".cohort_definition_id FROM "+resultSchemaName+".cohort as "+cohortTableAlias2+
-			") AS "+unionAlias+" ON "+unionAlias+".subject_id = observation.person_id").
-			Where(unionAlias+".cohort_definition_id in (?,?)", filterCohortPair.CohortId1, filterCohortPair.CohortId2)
+		cohortTableAlias3 := fmt.Sprintf("cohort_filter_3_%d", i)
+		unionExceptAlias := fmt.Sprintf("union_%d", i)
+		log.Printf("Adding extra INNER JOIN on UNION and EXCEPT with alias %s", unionExceptAlias)
+		query = query.Joins(
+			"INNER JOIN "+
+				" (Select "+cohortTableAlias1+".subject_id FROM "+resultSchemaName+".cohort as "+cohortTableAlias1+
+				"  where "+cohortTableAlias1+".cohort_definition_id in (?,?) "+ //the UNION of both cohorts
+				"  EXCEPT "+ //now use EXCEPT to exclude the part where both cohorts INTERSECT
+				"  Select "+cohortTableAlias2+".subject_id FROM "+resultSchemaName+".cohort as "+cohortTableAlias2+
+				"  INNER JOIN "+resultSchemaName+".cohort as "+cohortTableAlias3+" ON "+cohortTableAlias3+".subject_id = "+cohortTableAlias2+".subject_id "+
+				"  where "+cohortTableAlias2+".cohort_definition_id = ? AND "+cohortTableAlias3+".cohort_definition_id =? ) AS "+unionExceptAlias+" ON "+unionExceptAlias+".subject_id = observation.person_id",
+			filterCohortPair.CohortId1, filterCohortPair.CohortId2, filterCohortPair.CohortId1, filterCohortPair.CohortId2)
 	}
 
 	return query

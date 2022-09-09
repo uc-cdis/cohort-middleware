@@ -116,8 +116,10 @@ values
     (nextval('observation_id_seq'),          5,           2000007027,           2000007032,             NULL,            NULL,                    38000276),
     (nextval('observation_id_seq'),          6,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276),
     (nextval('observation_id_seq'),          2,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276),
-    (nextval('observation_id_seq'),          6,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
-
+    (nextval('observation_id_seq'),          7,           2000007027,           2000007028,            'HIS',           'HIS',                    38000276),
+    (nextval('observation_id_seq'),          8,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276),
+    (nextval('observation_id_seq'),          9,           2000007027,           2000007031,            'EUR',           'EUR',                    38000276),
+    (nextval('observation_id_seq'),         10,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
 ;
 
 -- ========================================================
@@ -127,19 +129,30 @@ values
 insert into results.COHORT
 (cohort_definition_id,subject_id)
 values
--- small cohort: 1 person:
+-- small cohort: 1 person: (aka "smallestCohort" in models_test.go script)
     (1,1),
--- medium cohort: 2 persons:
+-- medium cohort: 2 persons: (aka "thirdLargestCohort" in models_test.go script)
     (2,2),
     (2,3),
--- large cohort: 6 persons:
+-- large cohort: 6 persons: (aka "secondLargestCohort" in models_test.go script)
     (3,1),
     (3,2),
     (3,3),
     (3,4),
     (3,5),
     (3,6),
--- extra large cohort for testing histogram:
+-- copy of large cohort above plus some extra persons: (aka "extendedCopyOfSecondLargestCohort" in models_test.go script)
+    (32,1),
+    (32,2),
+    (32,3),
+    (32,4),
+    (32,5),
+    (32,6),
+    (32,7),
+    (32,8),
+    (32,9),
+    (32,10),
+-- extra large cohort for testing histogram: (aka "largestCohort" in models_test.go script)
     (4,6),
     (4,7),
     (4,8),

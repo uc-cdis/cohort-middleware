@@ -52,6 +52,21 @@ func ContainsNonNil(errors []error) bool {
 	return false
 }
 
+// Takes in a list of strings and attempts to transform them to int64,
+// returning the resulting list of int64 values. Will fail if
+// any of the strings cannot be parsed as a number.
+func SliceAtoi(stringValues []string) ([]int64, error) {
+	intValues := make([]int64, 0, len(stringValues))
+	for _, a := range stringValues {
+		i, err := strconv.ParseInt(a, 10, 64)
+		if err != nil {
+			return intValues, err
+		}
+		intValues = append(intValues, i)
+	}
+	return intValues, nil
+}
+
 type ConceptIds struct {
 	ConceptIds []int64
 }

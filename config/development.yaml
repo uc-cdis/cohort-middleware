@@ -7,3 +7,8 @@ atlas_db:
   password: mysecretpassword # pragma: allowlist secret
   db: postgres
   schema: atlas
+# optional validation config:
+validate:
+  single_observation_for_concept_ids:
+    # HARE concept id:
+    - '2000007027'

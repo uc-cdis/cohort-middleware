@@ -11,6 +11,8 @@ values
     (2000000280,'BMI at enrollment','Measurement','Measurement','Measurement','S','2','1970-01-01','2099-12-31',NULL)
 ;
 
+-- TODO - add concept_type_class "concept_class_id" "MVP Continuous" to better reflect real queries?
+
 -- These are the concepts we are looking for in the demo:
 -- 2000006885 - Average height (VALUE_AS_NUMBER)
 -- 2000000323 - MVP Age Group (VALUE_AS_STRING)

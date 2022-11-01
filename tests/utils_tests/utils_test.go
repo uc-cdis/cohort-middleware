@@ -121,3 +121,21 @@ func TestGenerateHistogramData(t *testing.T) {
 		t.Errorf("expected %v for histogram but got %v", expectedresult, result)
 	}
 }
+
+func TestSliceAtoi(t *testing.T) {
+	setUp(t)
+	var expectedResult = []int64{
+		1234,
+		5678,
+		2999999997,
+	}
+	result, _ := utils.SliceAtoi([]string{"1234", "5678", "2999999997"})
+	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
+
+	_, error := utils.SliceAtoi([]string{"1234", "5678abc", "2999999997"})
+	if error == nil {
+		t.Errorf("Expected an error")
+	}
+}

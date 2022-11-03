@@ -2,6 +2,7 @@ package models
 
 import (
 	"log"
+	"strconv"
 
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -21,6 +22,12 @@ type PersonConceptAndValue struct {
 	ConceptValueAsString    string
 	ConceptValueAsNumber    float32
 	ConceptValueAsConceptId int64
+}
+
+type PersonConceptAndCount struct {
+	PersonId  int64
+	ConceptId int64
+	Count     int64
 }
 
 type CohortOverlapStats struct {
@@ -116,4 +123,48 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error
+}
+
+func (p *PersonConceptAndCount) String() string {
+	return "concept_id=" + strconv.FormatInt(p.ConceptId, 10)
+}
+
+// Some observations are only expected once for each person. This code implements a validation that
+// checks if any person has a duplicated entry for any of these observations and prints out WARNINGS
+// to the log if this is the case.
+func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64) (int, error) {
+	if len(observationConceptIdsToCheck) == 0 {
+		log.Print("WARNING: no concepts configured for validation. Skipping data integrity check...")
+		return -1, nil
+	}
+	var sourceModel = new(Source)
+	sources, _ := sourceModel.GetAllSources()
+	// run this validation on all available data sources:
+	countIssues := 0
+	for _, source := range sources {
+		var dataSourceModel = new(Source)
+		omopDataSource := dataSourceModel.GetDataSource(source.SourceId, Omop)
+
+		log.Printf("INFO: checking if no duplicate data is found for concept ids %v in `observation` table of data source %d...",
+			observationConceptIdsToCheck, source.SourceId)
+		var personConceptAndCount []*PersonConceptAndCount
+		query := omopDataSource.Db.Model(&Observation{}).
+			Select("observation.person_id, observation.observation_concept_id as concept_id, count(*)").
+			Where("observation.observation_concept_id in (?)", observationConceptIdsToCheck).
+			Group("observation.person_id, observation.observation_concept_id").
+			Having("count(*) > 1")
+
+		meta_result := query.Scan(&personConceptAndCount)
+		if meta_result.Error != nil {
+			return -1, meta_result.Error
+		} else if len(personConceptAndCount) == 0 {
+			log.Printf("INFO: no issues found in observation table of data source %d.", source.SourceId)
+		} else {
+			log.Printf("WARNING: !!! found a total of %d `person` records with duplicated `observation` entries for one or more concepts "+
+				"where this is not expected (in data source=%d). These are the concepts: %v !!!",
+				len(personConceptAndCount), source.SourceId, personConceptAndCount)
+			countIssues += len(personConceptAndCount)
+		}
+	}
+	return countIssues, nil
 }

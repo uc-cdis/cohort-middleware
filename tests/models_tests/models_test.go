@@ -591,6 +591,36 @@ func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
 	}
 }
 
+func TestValidateObservationData(t *testing.T) {
+	// Tests if we get the expected validation results
+	setUp(t)
+	var cohortDataModel = new(models.CohortData)
+	nrIssues, error := cohortDataModel.ValidateObservationData([]int64{hareConceptId})
+	// we know that the test dataset has at least one patient with more than one HARE:
+	if error != nil {
+		t.Errorf("Did not expect an error, but got %v", error)
+	}
+	if nrIssues == 0 {
+		t.Errorf("Expected validation issues")
+	}
+	nrIssues2, error := cohortDataModel.ValidateObservationData([]int64{456789999}) // some random concept id not in db
+	// we expect no results for a concept that does not exist:
+	if error != nil {
+		t.Errorf("Did not expect an error, but got %v", error)
+	}
+	if nrIssues2 != 0 {
+		t.Errorf("Expected NO validation issues")
+	}
+	nrIssues3, error := cohortDataModel.ValidateObservationData([]int64{})
+	// we expect no results for an empty concept list:
+	if error != nil {
+		t.Errorf("Did not expect an error, but got %v", error)
+	}
+	if nrIssues3 != -1 {
+		t.Errorf("Expected result to be -1")
+	}
+}
+
 func TestGetVersion(t *testing.T) {
 	// mock values (in reality these are set at build time - see Dockerfile "go build" "-ldflags" argument):
 	version.GitCommit = "abc"

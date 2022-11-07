@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"log"
 
 	"github.com/uc-cdis/cohort-middleware/utils"
@@ -149,7 +150,8 @@ func (h CohortData) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sou
 }
 
 func (p *PersonConceptAndCount) String() string {
-	return "concept_id=" + strconv.FormatInt(p.ConceptId, 10)
+	return fmt.Sprintf("(person_id=%d, concept_id=%d, count=%d)",
+		p.PersonId, p.ConceptId, p.Count)
 }
 
 // Some observations are only expected once for each person. This code implements a validation that
@@ -184,7 +186,7 @@ func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64
 			log.Printf("INFO: no issues found in observation table of data source %d.", source.SourceId)
 		} else {
 			log.Printf("WARNING: !!! found a total of %d `person` records with duplicated `observation` entries for one or more concepts "+
-				"where this is not expected (in data source=%d). These are the concepts: %v !!!",
+				"where this is not expected (in data source=%d). These are the entries found: %v !!!",
 				len(personConceptAndCount), source.SourceId, personConceptAndCount)
 			countIssues += len(personConceptAndCount)
 		}

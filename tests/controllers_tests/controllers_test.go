@@ -322,6 +322,9 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "casecohortid", Value: "1"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"concept\", \"concept_id\": 2000006885}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
 	cohortDataController.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
 	// Params above are correct, so request should NOT abort:

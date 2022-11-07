@@ -49,7 +49,7 @@ func NewRouter() *gin.Engine {
 		// cohort stats and checks:
 		cohortData := controllers.NewCohortDataController(*new(models.CohortData))
 		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-case-control-cohort-definition-ids/:casecohortid/:controlcohortid/filter-by-concept-id-and-value/:filterconceptid/:filtervalue", cohortData.RetrieveCohortOverlapStats)
-		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-case-control-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue)
+		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue)
 
 		// full data endpoints:
 		authorized.POST("/cohort-data/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrieveDataBySourceIdAndCohortIdAndVariables)

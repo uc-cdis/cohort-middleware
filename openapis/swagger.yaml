@@ -990,7 +990,7 @@ paths:
       description: Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criterion.
       tags:
         - data
-  '/cohort-stats/check-overlap/by-source-id/{sourceid}/by-case-control-cohort-definition-ids/{casecohortid}/{controlcohortid}':
+  '/cohort-stats/check-overlap/by-source-id/{sourceid}/by-cohort-definition-ids/{casecohortid}/{controlcohortid}':
     parameters:
       - name: sourceid
         in: path
@@ -1008,8 +1008,8 @@ paths:
         schema:
           type: number
     post:
-      summary: 'Post /cohort-stats/check-overlap/by-source-id/{sourceid}/by-case-control-cohort-definition-ids/{casecohortid}/{controlcohortid}'
-      operationId: post-cohort-stats-check-overlap-by-source-id-by-case-control-cohort-definition-ids-filter-by-concept-id-and-value
+      summary: 'Post /cohort-stats/check-overlap/by-source-id/{sourceid}/by-cohort-definition-ids/{casecohortid}/{controlcohortid}'
+      operationId: post-cohort-stats-check-overlap-by-source-id-by-cohort-definition-ids
       security:
         - Bearer: []
       requestBody:
@@ -1088,7 +1088,7 @@ paths:
                 required:
                   - message
                   - error
-      description: Assesses the overlap between case and control cohorts. Doesn't do any filtering on the cohorts.
+      description: Assesses the overlap between any two given cohorts. It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and custom dichotomous variable groups.
       tags:
         - data
   '/cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':

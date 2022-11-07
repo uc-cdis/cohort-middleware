@@ -987,7 +987,7 @@ paths:
                 required:
                   - message
                   - error
-      description: Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criterion.
+      description: Assesses the overlap between any two cohorts (here just labelled as "case" and "control" - but could have been "A" and "B"). It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criterion.
       tags:
         - data
   '/cohort-stats/check-overlap/by-source-id/{sourceid}/by-cohort-definition-ids/{casecohortid}/{controlcohortid}':
@@ -1088,7 +1088,7 @@ paths:
                 required:
                   - message
                   - error
-      description: Assesses the overlap between any two given cohorts. It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and custom dichotomous variable groups.
+      description: Assesses the overlap between any two given cohorts (here just labelled as "case" and "control" - but could have been "A" and "B"). It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and custom dichotomous variable groups.
       tags:
         - data
   '/cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':

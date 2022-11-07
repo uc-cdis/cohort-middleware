@@ -591,6 +591,21 @@ func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
 	}
 }
 
+func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) {
+	// Tests if we get the expected overlap
+	setUp(t)
+	caseCohortId := secondLargestCohort.Id
+	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
+	otherFilterConceptIds := []int64{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
+	stats, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	// basic test:
+	if stats.CaseControlOverlap == 0 {
+		t.Errorf("Expected nr persons to be > 0")
+	}
+}
+
 func TestValidateObservationData(t *testing.T) {
 	// Tests if we get the expected validation results
 	setUp(t)

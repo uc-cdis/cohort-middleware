@@ -945,7 +945,7 @@ paths:
                   cohort_overlap:
                     type: object
                     properties:
-                      case_control_overlap_after_filter:
+                      case_control_overlap:
                         type: number
                 required:
                   - cohort_overlap
@@ -1046,7 +1046,7 @@ paths:
                   cohort_overlap:
                     type: object
                     properties:
-                      case_control_overlap_after_filter:
+                      case_control_overlap:
                         type: number
                 required:
                   - cohort_overlap

@@ -233,35 +233,39 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
+	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, conceptIds, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 		c.Abort()
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
+	c.JSON(http.StatusOK, gin.H{"cohort_overlap": overlapStats})
 }
 
-func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFiltering(c *gin.Context) {
-	errors := make([]error, 6)
+func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(c *gin.Context) {
+	errors := make([]error, 4)
 	var sourceId, caseCohortId, controlCohortId int
+	var conceptIds []int64
+	var cohortPairs []utils.CustomDichotomousVariableDef
 	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
 	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
+	conceptIds, cohortPairs, errors[3] = utils.ParseConceptIdsAndDichotomousDefs(c)
+
 	if utils.ContainsNonNil(errors) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
 		c.Abort()
 		return
 	}
-	breakdownStats, err := u.cohortDataModel.RetrieveCohortOverlapStatsWithoutFiltering(sourceId, caseCohortId,
-		controlCohortId)
+	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId, caseCohortId,
+		controlCohortId, conceptIds, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 		c.Abort()
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"cohort_overlap": breakdownStats})
+	c.JSON(http.StatusOK, gin.H{"cohort_overlap": overlapStats})
 }
 
 func convertCohortPeopleDataToMap(cohortPeopleData []*models.PersonIdAndCohort) map[int64]int64 {

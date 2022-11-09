@@ -93,6 +93,12 @@ func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohor
 	return zeroOverlap, nil
 }
 
+func (h dummyCohortDataModel) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId int, caseCohortId int, controlCohortId int,
+	otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (models.CohortOverlapStats, error) {
+	var zeroOverlap models.CohortOverlapStats
+	return zeroOverlap, nil
+}
+
 func (h dummyCohortDataModel) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*models.PersonIdAndCohort, error) {
 	if cohortDefinitionId == 2 {
 		return []*models.PersonIdAndCohort{
@@ -290,8 +296,8 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 		t.Errorf("Did not expect this request to abort")
 	}
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap_after_filter") {
-		t.Errorf("Expected output containing 'case_control_overlap_after_filter...'")
+	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap") {
+		t.Errorf("Expected output containing 'case_control_overlap...'")
 	}
 }
 
@@ -303,6 +309,41 @@ func TestRetrieveCohortOverlapStatsBadRequest(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 
 	cohortDataController.RetrieveCohortOverlapStats(requestContext)
+	// Params above are incorrect, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected this request to abort")
+	}
+}
+
+func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "casecohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"concept\", \"concept_id\": 2000006885}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+
+	cohortDataController.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
+	// Params above are correct, so request should NOT abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap") {
+		t.Errorf("Expected output containing 'case_control_overlap...'")
+	}
+}
+
+func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValueBadRequest(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+
+	cohortDataController.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
 	// Params above are incorrect, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected this request to abort")

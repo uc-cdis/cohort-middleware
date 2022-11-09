@@ -1,7 +1,7 @@
 openapi: 3.0.0
 info:
   title: cohort-middleware
-  version: '0.1.4'
+  version: 0.1.4
   description: cohort-middleware to manage OMOP data
   contact:
     name: CTDS
@@ -299,6 +299,13 @@ paths:
                     type: array
                     items:
                       $ref: '#/components/schemas/CohortDefinition'
+              examples:
+                example-1:
+                  value:
+                    cohort_definitions:
+                      - cohort_definition_id: 9
+                        cohort_name: Diabetes
+                        cohort_description: Cohort with diagnosed diabetes disease
         '401':
           description: Unauthorized
         '500':
@@ -435,13 +442,14 @@ paths:
               properties:
                 ConceptIds:
                   type: array
-                  items: {
+                  items:
                     type: integer
-                  }
             examples:
-                example-1:
-                  value:
-                    ConceptIds: [2000000324,2000006885]
+              example-1:
+                value:
+                  ConceptIds:
+                    - 2000000324
+                    - 2000006885
       responses:
         '200':
           description: OK
@@ -532,13 +540,14 @@ paths:
               properties:
                 ConceptTypes:
                   type: array
-                  items: {
+                  items:
                     type: string
-                  }
             examples:
-                example-1:
-                  value:
-                    ConceptTypes: ["Concept TypeA", "Concept TypeB"]
+              example-1:
+                value:
+                  ConceptTypes:
+                    - Concept TypeA
+                    - Concept TypeB
       responses:
         '200':
           description: OK
@@ -628,13 +637,14 @@ paths:
               properties:
                 ConceptIds:
                   type: array
-                  items: {
+                  items:
                     type: integer
-                  }
             examples:
-                example-1:
-                  value:
-                    ConceptIds: [2000000324,2000006885]
+              example-1:
+                value:
+                  ConceptIds:
+                    - 2000000324
+                    - 2000006885
       responses:
         '200':
           description: OK
@@ -733,13 +743,20 @@ paths:
               properties:
                 variables:
                   type: array
-                  items: {
+                  items:
                     type: object
-                  }
             examples:
-                example-1:
-                  value:
-                    variables: [{variable_type: "concept", concept_id: 2000000324},{variable_type: "concept", concept_id: 2000006885},{variable_type: "custom_dichotomous", cohort_ids: [1, 2]}]
+              example-1:
+                value:
+                  variables:
+                    - variable_type: concept
+                      concept_id: 2000000324
+                    - variable_type: concept
+                      concept_id: 2000006885
+                    - variable_type: custom_dichotomous
+                      cohort_ids:
+                        - 1
+                        - 2
       responses:
         '200':
           description: OK
@@ -803,7 +820,7 @@ paths:
                 required:
                   - message
                   - error
-      description: Get statistics for given cohort id, filtered to count only persons that have values in one or more concepts (defined in POST request body), and broken down by concept values of the given breakdown concept id
+      description: 'Get statistics for given cohort id, filtered to count only persons that have values in one or more concepts (defined in POST request body), and broken down by concept values of the given breakdown concept id'
       tags:
         - data
   '/concept-stats/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}/breakdown-by-concept-id/{breakdownconceptid} ':
@@ -879,7 +896,7 @@ paths:
                 required:
                   - message
                   - error
-      description: Get statistics for size of given cohort id, broken down by concept values of the given breakdown concept id
+      description: 'Get statistics for size of given cohort id, broken down by concept values of the given breakdown concept id'
       tags:
         - data
   '/cohort-stats/check-overlap/by-source-id/{sourceid}/by-case-control-cohort-definition-ids/{casecohortid}/{controlcohortid}/filter-by-concept-id-and-value/{filterconceptid}/{filtervalue}':
@@ -902,13 +919,20 @@ paths:
               properties:
                 variables:
                   type: array
-                  items: {
+                  items:
                     type: object
-                  }
             examples:
-                example-1:
-                  value:
-                    variables: [{variable_type: "concept", concept_id: 2000000324},{variable_type: "concept", concept_id: 2000006885},{variable_type: "custom_dichotomous", cohort_ids: [1, 2]}]
+              example-1:
+                value:
+                  variables:
+                    - variable_type: concept
+                      concept_id: 2000000324
+                    - variable_type: concept
+                      concept_id: 2000006885
+                    - variable_type: custom_dichotomous
+                      cohort_ids:
+                        - 1
+                        - 2
       responses:
         '200':
           description: OK
@@ -921,7 +945,7 @@ paths:
                   cohort_overlap:
                     type: object
                     properties:
-                      case_control_overlap_after_filter:
+                      case_control_overlap:
                         type: number
                 required:
                   - cohort_overlap
@@ -963,7 +987,108 @@ paths:
                 required:
                   - message
                   - error
-      description: Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criterion.
+      description: Assesses the overlap between any two cohorts (here just labelled as "case" and "control" - but could have been "A" and "B"). It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criterion.
+      tags:
+        - data
+  '/cohort-stats/check-overlap/by-source-id/{sourceid}/by-cohort-definition-ids/{casecohortid}/{controlcohortid}':
+    parameters:
+      - name: sourceid
+        in: path
+        required: true
+        schema:
+          type: number
+      - name: casecohortid
+        in: path
+        required: true
+        schema:
+          type: number
+      - name: controlcohortid
+        in: path
+        required: true
+        schema:
+          type: number
+    post:
+      summary: 'Post /cohort-stats/check-overlap/by-source-id/{sourceid}/by-cohort-definition-ids/{casecohortid}/{controlcohortid}'
+      operationId: post-cohort-stats-check-overlap-by-source-id-by-cohort-definition-ids
+      security:
+        - Bearer: []
+      requestBody:
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                variables:
+                  type: array
+                  items:
+                    type: object
+            examples:
+              example-1:
+                value:
+                  variables:
+                    - variable_type: concept
+                      concept_id: 2000000324
+                    - variable_type: concept
+                      concept_id: 2000006885
+                    - variable_type: custom_dichotomous
+                      cohort_ids:
+                        - 1
+                        - 2
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  cohort_overlap:
+                    type: object
+                    properties:
+                      case_control_overlap:
+                        type: number
+                required:
+                  - cohort_overlap
+        '400':
+          description: Bad Request
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - bad request - no request body
+                      - bad request
+                    example: bad request
+                required:
+                  - message
+        '401':
+          description: Unauthorized
+        '500':
+          description: Internal Server Error
+          content:
+            application/json:
+              schema:
+                description: ''
+                type: object
+                properties:
+                  message:
+                    type: string
+                    minLength: 1
+                    enum:
+                      - Error retrieving concept details
+                  error:
+                    type: string
+                    minLength: 1
+                required:
+                  - message
+                  - error
+      description: Assesses the overlap between any two given cohorts (here just labelled as "case" and "control" - but could have been "A" and "B"). It does this after filtering the cohorts and keeping only the persons that have data for each of the selected conceptIds and custom dichotomous variable groups.
       tags:
         - data
   '/cohort-data/by-source-id/{sourceid}/by-cohort-definition-id/{cohortid}':
@@ -981,13 +1106,20 @@ paths:
               properties:
                 variables:
                   type: array
-                  items: {
+                  items:
                     type: object
-                  }
             examples:
-                example-1:
-                  value:
-                    variables: [{variable_type: "concept", concept_id: 2000000324},{variable_type: "concept", concept_id: 2000006885},{variable_type: "custom_dichotomous", cohort_ids: [1, 2]}]
+              example-1:
+                value:
+                  variables:
+                    - variable_type: concept
+                      concept_id: 2000000324
+                    - variable_type: concept
+                      concept_id: 2000006885
+                    - variable_type: custom_dichotomous
+                      cohort_ids:
+                        - 1
+                        - 2
       responses:
         '200':
           description: OK

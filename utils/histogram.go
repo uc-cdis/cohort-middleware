@@ -1,7 +1,6 @@
 package utils
 
 import (
-	"encoding/json"
 	"log"
 	"math"
 	"sort"
@@ -15,10 +14,10 @@ type HistogramColumn struct {
 	NumberOfPeople int     `json:"nr_persons"`
 }
 
-func GenerateHistogramData(conceptValues []float64) string {
+func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 
 	if len(conceptValues) == 0 {
-		return ""
+		return nil
 	}
 
 	sort.Float64s(conceptValues)
@@ -56,8 +55,7 @@ func GenerateHistogramData(conceptValues []float64) string {
 		histogram = append(histogram, binIndexToHistogramColumn[binIndex])
 	}
 
-	histogramJson, _ := json.Marshal(histogram)
-	return string(histogramJson)
+	return histogram
 }
 
 // This function returns the bin width upon the Freedman Diaconis formula: https://en.wikipedia.org/wiki/Freedman%E2%80%93Diaconis_rule

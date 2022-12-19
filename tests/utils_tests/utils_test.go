@@ -1,6 +1,7 @@
 package utils_tests
 
 import (
+	"encoding/json"
 	"io"
 	"log"
 	"math"
@@ -116,9 +117,12 @@ func TestFreedmanDiaconis(t *testing.T) {
 func TestGenerateHistogramData(t *testing.T) {
 	setUp(t)
 	expectedresult := `[{"start":6,"end":31.18008152926611,"nr_persons":3},{"start":31.18008152926611,"end":56.36016305853222,"nr_persons":8}]`
-	result := utils.GenerateHistogramData(testData)
-	if result != expectedresult {
-		t.Errorf("expected %v for histogram but got %v", expectedresult, result)
+	resultArray := utils.GenerateHistogramData(testData)
+	resultJson, _ := json.Marshal(resultArray)
+	resultString := string(resultJson)
+
+	if resultString != expectedresult {
+		t.Errorf("expected %v for histogram but got %v", expectedresult, resultString)
 	}
 }
 

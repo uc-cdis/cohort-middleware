@@ -95,6 +95,24 @@ var testData = []float64{
 	36.0,
 }
 
+var testData2 = []float64{
+	1,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+	10,
+}
+
 func TestIQR(t *testing.T) {
 	setUp(t)
 	expectedResult := float64(28.0)
@@ -118,6 +136,19 @@ func TestGenerateHistogramData(t *testing.T) {
 	setUp(t)
 	expectedresult := `[{"start":6,"end":31.18008152926611,"nr_persons":3},{"start":31.18008152926611,"end":56.36016305853222,"nr_persons":8}]`
 	resultArray := utils.GenerateHistogramData(testData)
+	resultJson, _ := json.Marshal(resultArray)
+	resultString := string(resultJson)
+
+	if resultString != expectedresult {
+		t.Errorf("expected %v for histogram but got %v", expectedresult, resultString)
+	}
+}
+
+func TestGenerateHistogramDataSingleBin(t *testing.T) {
+	// Tests whether we get a single bin that includes all persons if data has no variation in Q1 Q3
+	setUp(t)
+	expectedresult := `[{"start":1,"end":11,"nr_persons":15}]`
+	resultArray := utils.GenerateHistogramData(testData2)
 	resultJson, _ := json.Marshal(resultArray)
 	resultString := string(resultJson)
 

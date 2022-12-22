@@ -29,7 +29,14 @@ func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 
 	binIndexToHistogramColumn := make(map[int]HistogramColumn)
 
-	numBins := int((endValue-startValue)/width) + 1
+	numBins := 0
+	if width > 0 {
+		numBins = int((endValue-startValue)/width) + 1
+	} else {
+		numBins = 1
+		width = endValue + 1 - startValue
+	}
+
 	log.Printf("here is num bins %v", numBins)
 	for binIndex := 0; binIndex < numBins; binIndex++ {
 		binStart := (float64(binIndex) * width) + startValue
@@ -59,11 +66,12 @@ func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 }
 
 // This function returns the bin width upon the Freedman Diaconis formula: https://en.wikipedia.org/wiki/Freedman%E2%80%93Diaconis_rule
+// Can return 0 if IQR(values) is 0.
 func FreedmanDiaconis(values []float64) float64 {
 
 	sort.Float64s(values)
 
-	valuesInterQuartileRange, _ := stats.InterQuartileRange(values)
+	valuesInterQuartileRange := IQR(values)
 	n := len(values)
 	width := (2 * valuesInterQuartileRange) / math.Cbrt(float64(n))
 

@@ -82,8 +82,8 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 }
 
 var testData = []float64{
-	6.0,
 	47.0,
+	6.0,
 	49.0,
 	15.0,
 	42.0,

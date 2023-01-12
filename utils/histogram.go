@@ -43,7 +43,6 @@ func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 
 	histogram := []HistogramColumn{}
 	for binIndex := 0; binIndex < numBins; binIndex++ {
-		log.Printf("here is the amount of people %v in bin %v", binIndexToHistogramColumn[binIndex].NumberOfPeople, binIndex)
 		histogram = append(histogram, binIndexToHistogramColumn[binIndex])
 	}
 

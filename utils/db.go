@@ -27,7 +27,7 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 	dsn := GenerateDsn(sourceConnectionString)
 	dataSourceDb := new(DbAndSchema)
 	if strings.Contains(sourceConnectionString, "postgresql") {
-		log.Printf("trying to connect to 'postgresql' db...")
+		log.Printf("connecting to cohorts 'postgresql' db...")
 		// workaround for schema names in postgres (can't be uppercase):
 		dbSchema = strings.ToLower(dbSchema)
 		omopDataSource, _ := gorm.Open(postgres.Open(dsn),
@@ -38,6 +38,7 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 				}})
 		dataSourceDb.Db = omopDataSource
 	} else {
+		log.Printf("connecting to cohorts 'sqlserver' db...")
 		omopDataSource, _ := gorm.Open(sqlserver.Open(dsn),
 			&gorm.Config{
 				NamingStrategy: schema.NamingStrategy{

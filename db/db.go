@@ -2,6 +2,7 @@ package db
 
 import (
 	"fmt"
+	"log"
 
 	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/utils"
@@ -28,6 +29,7 @@ func Init() {
 		port)
 
 	dbSchema := c.GetString("atlas_db.schema")
+	log.Printf("connecting to main 'postgresql' db...")
 	db, _ := gorm.Open(postgres.New(
 		postgres.Config{
 			DSN:                  dsn,

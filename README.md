@@ -101,6 +101,7 @@ TABLE results.COHORT
 TABLE omop.person
 TABLE omop.observation
 TABLE omop.concept
+VIEW omop.observation_continuous
 ```
 
 

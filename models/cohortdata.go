@@ -68,7 +68,7 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	meta_result := omopDataSource.Db.Model(&Observation{}).
+	meta_result := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
 		Select("observation.person_id, observation.observation_concept_id as concept_id, observation.value_as_string as concept_value_as_string, observation.value_as_number as concept_value_as_number, observation.value_as_concept_id as concept_value_as_concept_id").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
@@ -87,7 +87,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	query := omopDataSource.Db.Model(&Observation{}).
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
 		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
@@ -111,7 +111,7 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 
 	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
 	var cohortOverlapStats CohortOverlapStats
-	query := omopDataSource.Db.Model(&Observation{}).
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
 		Select("count(distinct(observation.person_id)) as case_control_overlap").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as case_cohort ON case_cohort.subject_id = observation.person_id").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
@@ -136,7 +136,7 @@ func (h CohortData) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sou
 
 	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
 	var cohortOverlapStats CohortOverlapStats
-	query := omopDataSource.Db.Model(&Observation{}).
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
 		Select("count(distinct(observation.person_id)) as case_control_overlap").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as case_cohort ON case_cohort.subject_id = observation.person_id").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
@@ -173,7 +173,7 @@ func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64
 		log.Printf("INFO: checking if no duplicate data is found for concept ids %v in `observation` table of data source %d...",
 			observationConceptIdsToCheck, source.SourceId)
 		var personConceptAndCount []*PersonConceptAndCount
-		query := omopDataSource.Db.Model(&Observation{}).
+		query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
 			Select("observation.person_id, observation.observation_concept_id as concept_id, count(*)").
 			Where("observation.observation_concept_id in (?)", observationConceptIdsToCheck).
 			Group("observation.person_id, observation.observation_concept_id").

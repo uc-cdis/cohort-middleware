@@ -404,18 +404,19 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	// Tests if the method returns an error when query fails.
 
-	// break something in the omop schema to cause a query failure in the next method:
-	tests.BreakSomething(models.Omop, "observation", "person_id")
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+
+	// break something in the Results schema to cause a query failure in the next method:
+	tests.BreakSomething(models.Results, "cohort", "cohort_definition_id")
 	// set last action to restore back:
 	// run test:
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	_, error := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
 		testSourceId, cohortDefinitions[0].Id, allConceptIds)
 	if error == nil {
 		t.Errorf("Expected error")
 	}
 	// revert the broken part:
-	tests.FixSomething(models.Omop, "observation", "person_id")
+	tests.FixSomething(models.Results, "cohort", "cohort_definition_id")
 }
 
 // for given source and cohort, counts how many persons have the given HARE value

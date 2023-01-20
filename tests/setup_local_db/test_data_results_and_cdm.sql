@@ -5,10 +5,10 @@
 insert into omop.concept
 (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
 values
-    (2000006885,'Average height ','Measurement','Measurement','Measurement','S','F','1970-01-01','2099-12-31',NULL),
-    (2000000323,'MVP Age Group','Person','Person','Person','S','F','1970-01-01','2099-12-31',NULL),
-    (2000000324,'Sex, indicated by the subject','Person','Person','Observation Type',NULL,'OMOP4822310','1970-01-01','2099-12-31',NULL),
-    (2000000280,'BMI at enrollment','Measurement','Measurement','Measurement','S','2','1970-01-01','2099-12-31',NULL)
+    (2000006885,'Average height ','Measurement','Measurement','MVP Continuous','S','F','1970-01-01','2099-12-31',NULL),
+    (2000000323,'MVP Age Group','Person','Person','MVP Continuous','S','F','1970-01-01','2099-12-31',NULL),
+    (2000000324,'Some continuous value, indicated by the subject','Person','Person','MVP Continuous',NULL,'OMOP4822310','1970-01-01','2099-12-31',NULL),
+    (2000000280,'BMI at enrollment','Measurement','Measurement','MVP Continuous','S','2','1970-01-01','2099-12-31',NULL)
 ;
 
 -- TODO - add concept_type_class "concept_class_id" "MVP Continuous" to better reflect real queries?
@@ -99,12 +99,12 @@ For HARE info, see https://pubmed.ncbi.nlm.nih.gov/31564439/.
 insert into omop.concept
 (concept_id,concept_code,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,valid_start_date,valid_end_date,invalid_reason)
 values
-    (2000007027,'HARE_CODE','HARE',        'Person','Person','Observation Type','S','1970-01-01','2099-12-31',NULL),
-    (2000007028,'HIS', 'Hispanic',         'Person','Person','Observation Type','S','1970-01-01','2099-12-31',NULL),
-    (2000007029,'ASN','non-Hispanic Asian','Person','Person','Observation Type','S','1970-01-01','2099-12-31',NULL),
-    (2000007030,'AFR','non-Hispanic Black','Person','Person','Observation Type','S','1970-01-01','2099-12-31',NULL),
-    (2000007031,'EUR','non-Hispanic White','Person','Person','Observation Type','S','1970-01-01','2099-12-31',NULL),
-    (2000007032,'OTH','Other',             'Person','Person','Observation Type','S','1970-01-01','2099-12-31',NULL)
+    (2000007027,'HARE_CODE','HARE',        'Person','Person','MVP Ordinal','S','1970-01-01','2099-12-31',NULL),
+    (2000007028,'HIS', 'Hispanic',         'Person','Person','MVP Ordinal','S','1970-01-01','2099-12-31',NULL),
+    (2000007029,'ASN','non-Hispanic Asian','Person','Person','MVP Ordinal','S','1970-01-01','2099-12-31',NULL),
+    (2000007030,'AFR','non-Hispanic Black','Person','Person','MVP Ordinal','S','1970-01-01','2099-12-31',NULL),
+    (2000007031,'EUR','non-Hispanic White','Person','Person','MVP Ordinal','S','1970-01-01','2099-12-31',NULL),
+    (2000007032,'OTH','Other',             'Person','Person','MVP Ordinal','S','1970-01-01','2099-12-31',NULL)
 ;
 
 -- insert `observation` records:

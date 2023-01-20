@@ -94,3 +94,9 @@ CREATE TABLE omop.concept
     valid_end_date date NOT NULL DEFAULT DATE('2099-01-01'),
     invalid_reason character varying(1) COLLATE pg_catalog."default"
 );
+
+CREATE VIEW omop.OBSERVATION_CONTINUOUS AS
+SELECT ob.person_id, ob.observation_concept_id, ob.value_as_string, ob.value_as_number, ob.value_as_concept_id
+FROM omop.observation ob
+INNER JOIN omop.concept concept ON concept.CONCEPT_ID=ob.OBSERVATION_CONCEPT_ID
+WHERE concept.CONCEPT_CLASS_ID='MVP Continuous' or concept.CONCEPT_ID=2000007027

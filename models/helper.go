@@ -14,7 +14,7 @@ func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, filterConceptId
 	for i, filterConceptId := range filterConceptIds {
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-		query = query.Joins("INNER JOIN "+omopSchemaName+".observation as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id").
+		query = query.Joins("INNER JOIN "+omopSchemaName+".observation_continuous as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id").
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
 			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
 	}

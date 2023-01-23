@@ -3,6 +3,7 @@ package models_tests
 import (
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/uc-cdis/cohort-middleware/config"
@@ -366,6 +367,46 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 	}
 }
 
+func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
+	// This test checks whether the query succeeds when there is a table or
+	// view aliased as "observation" and whether it fails otherwise.
+
+	setUp(t)
+	omopDataSource := tests.GetOmopDataSource()
+	filterConceptIds := []int64{1, 2, 3}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{} // empty / not really needed for test
+	var personIds []struct {
+		PersonId int64
+	}
+
+	// Subtest1: correct alias "observation":
+	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
+		Select("observation.person_id")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
+	meta_result := query.Scan(&personIds)
+	if meta_result.Error != nil {
+		t.Errorf("Did NOT expect an error")
+	}
+	// Subtest2: incorrect alias "observationWRONG"...should fail/panic:
+	defer func() {
+		panicMessage := recover()
+
+		if panicMessage == nil {
+			t.Errorf("The code did not panic")
+		}
+		panicMessageStr, isString := panicMessage.(string)
+
+		if !isString || !strings.HasPrefix(panicMessageStr, "Error: this QueryFilterByConceptIdsAndCohortPairsHelper is meant for ") {
+			t.Errorf("The code did not panic with expected error message")
+		}
+
+	}()
+	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
+		Select("*")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
+	query.Scan(&personIds)
+}
+
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	setUp(t)
 	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
@@ -404,18 +445,19 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	// Tests if the method returns an error when query fails.
 
-	// break something in the omop schema to cause a query failure in the next method:
-	tests.BreakSomething(models.Omop, "observation", "person_id")
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+
+	// break something in the Results schema to cause a query failure in the next method:
+	tests.BreakSomething(models.Results, "cohort", "cohort_definition_id")
 	// set last action to restore back:
 	// run test:
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	_, error := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
 		testSourceId, cohortDefinitions[0].Id, allConceptIds)
 	if error == nil {
 		t.Errorf("Expected error")
 	}
 	// revert the broken part:
-	tests.FixSomething(models.Omop, "observation", "person_id")
+	tests.FixSomething(models.Results, "cohort", "cohort_definition_id")
 }
 
 // for given source and cohort, counts how many persons have the given HARE value

@@ -366,6 +366,36 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 	}
 }
 
+func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
+	// This test checks whether the query succeeds when there is a table or
+	// view aliased as "observation" and whether it fails otherwise.
+
+	setUp(t)
+	omopDataSource := tests.GetOmopDataSource()
+	filterConceptIds := []int64{1, 2, 3}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{} // empty / not really needed for test
+	var personIds []struct {
+		PersonId int64
+	}
+
+	// Subtest1: correct alias "observation":
+	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
+		Select("observation.person_id")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
+	meta_result := query.Scan(&personIds)
+	if meta_result.Error != nil {
+		t.Errorf("Did NOT expect an error")
+	}
+	// Subtest2: incorrect alias "observation"...should fail:
+	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
+		Select("*")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
+	meta_result = query.Scan(&personIds)
+	if meta_result.Error == nil {
+		t.Errorf("Expected an error")
+	}
+}
+
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	setUp(t)
 	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)

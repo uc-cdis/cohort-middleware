@@ -3,6 +3,7 @@ package models_tests
 import (
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/uc-cdis/cohort-middleware/config"
@@ -386,14 +387,24 @@ func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
 	if meta_result.Error != nil {
 		t.Errorf("Did NOT expect an error")
 	}
-	// Subtest2: incorrect alias "observation"...should fail:
+	// Subtest2: incorrect alias "observationWRONG"...should fail/panic:
+	defer func() {
+		panicMessage := recover()
+
+		if panicMessage == nil {
+			t.Errorf("The code did not panic")
+		}
+		panicMessageStr, isString := panicMessage.(string)
+
+		if !isString || !strings.HasPrefix(panicMessageStr, "Error: this QueryFilterByConceptIdsAndCohortPairsHelper is meant for ") {
+			t.Errorf("The code did not panic with expected error message")
+		}
+
+	}()
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
 		Select("*")
 	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
-	meta_result = query.Scan(&personIds)
-	if meta_result.Error == nil {
-		t.Errorf("Expected an error")
-	}
+	query.Scan(&personIds)
 }
 
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {

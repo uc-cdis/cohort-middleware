@@ -15,18 +15,18 @@ import (
 //   checked at the start.
 func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, omopSchemaName string, resultSchemaName string) *gorm.DB {
 	// Validate assumption of a table or view aliased as "observation":
-	if query.Statement.Table != "observation" {
-		panic("Error: this QueryFilterByConceptIdsAndCohortPairsHelper is meant for adding extra filters to a query on a table or view with the alias name `observation`")
-	}
+	// if query.Statement.Table != "observation" {
+	// 	panic("Error: this QueryFilterByConceptIdsAndCohortPairsHelper is meant for adding extra filters to a query on a table or view with the alias name `observation`")
+	// }
 
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
 	for i, filterConceptId := range filterConceptIds {
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-		query = query.Joins("INNER JOIN "+omopSchemaName+".observation_continuous as "+observationTableAlias+" ON "+observationTableAlias+".person_id = observation.person_id"). // assumption: there is a table or view named or aliased as "observation"
-			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
-			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
+		query = query.Joins("INNER JOIN "+omopSchemaName+".observation_continuous as "+observationTableAlias+" WITH (NOEXPAND) ON "+observationTableAlias+".person_id = observation.person_id"). // assumption: there is a table or view named or aliased as "observation"
+																										Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
+																										Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
 	}
 	// iterate over the list of filterCohortPairs, adding a new INNER JOIN to the UNION of each pair, so that the resulting set is the
 	// set of persons that are part of the intersections above and of one of the cohorts in the filterCohortPairs:

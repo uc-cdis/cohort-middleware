@@ -161,7 +161,7 @@ func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, c
 	// no value for this concept by first finding the ones that do have some value and
 	// then subtracting them from cohort size before dividing:
 	var conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats
-	meta_result = omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
+	meta_result = omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation WITH (NOEXPAND)").
 		Select("observation_concept_id as concept_id, count(distinct(person_id)) as nperson_ids").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
@@ -220,7 +220,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCoho
 	// count persons, grouping by concept value:
 	var breakdownValueFieldName = "observation.value_as_" + getConceptValueType(breakdownConceptId)
 	var conceptBreakdownList []*ConceptBreakdown
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation").
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation WITH (NOEXPAND)").
 		Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).

@@ -379,7 +379,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 // 	}
 
 // 	// Subtest1: correct alias "observation":
-// 	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation WITH (NOEXPAND)").
+// 	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation"+omopDataSource.GetViewDirective()).
 // 		Select("observation.person_id")
 // 	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
 // 	meta_result := query.Scan(&personIds)

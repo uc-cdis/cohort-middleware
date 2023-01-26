@@ -13,6 +13,7 @@ import (
 type DbAndSchema struct {
 	Db     *gorm.DB
 	Schema string
+	Vendor string
 }
 
 var dataSourceDbMap = make(map[string]*DbAndSchema)
@@ -30,25 +31,36 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 		log.Printf("connecting to cohorts 'postgresql' db...")
 		// workaround for schema names in postgres (can't be uppercase):
 		dbSchema = strings.ToLower(dbSchema)
-		omopDataSource, _ := gorm.Open(postgres.Open(dsn),
+		dataSource, _ := gorm.Open(postgres.Open(dsn),
 			&gorm.Config{
 				NamingStrategy: schema.NamingStrategy{
 					TablePrefix:   dbSchema + ".",
 					SingularTable: true,
 				}})
-		dataSourceDb.Db = omopDataSource
+		dataSourceDb.Db = dataSource
+		dataSourceDb.Vendor = "postgresql"
 	} else {
 		log.Printf("connecting to cohorts 'sqlserver' db...")
-		omopDataSource, _ := gorm.Open(sqlserver.Open(dsn),
+		dataSource, _ := gorm.Open(sqlserver.Open(dsn),
 			&gorm.Config{
 				NamingStrategy: schema.NamingStrategy{
 					TablePrefix:   dbSchema + ".",
 					SingularTable: true,
 				}})
 		// TODO - should throw error if db connection fails! Currently fails "silently" by printing error to log and then just returning ...
-		dataSourceDb.Db = omopDataSource
+		dataSourceDb.Db = dataSource
+		dataSourceDb.Vendor = "sqlserver"
 	}
 	dataSourceDb.Schema = dbSchema
 	dataSourceDbMap[sourceAndSchemaKey] = dataSourceDb
 	return dataSourceDb
+}
+
+// Returns extra DB dialect specific directives to optimize performance when using views:
+func (h DbAndSchema) GetViewDirective() string {
+	if h.Vendor == "sqlserver" {
+		return " WITH (NOEXPAND) "
+	} else {
+		return ""
+	}
 }

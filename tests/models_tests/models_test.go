@@ -3,7 +3,6 @@ package models_tests
 import (
 	"log"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/uc-cdis/cohort-middleware/config"
@@ -214,6 +213,29 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsN
 	}
 }
 
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPairsWithResults(t *testing.T) {
+	setUp(t)
+	filterIds := []int64{hareConceptId}
+	// setting the same cohort id here (artificial...but goal of this test is just to check that it returns results and generated SQL does not crash):
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+		{ // just repeat the same:
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// we expect values since secondLargestCohort has multiple subjects with hare info:
+	if len(stats) < 4 {
+		t.Errorf("Expected at least 4 results, found %d", len(stats))
+	}
+}
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsWithResults(t *testing.T) {
 	setUp(t)
 	filterIds := []int64{hareConceptId}
@@ -368,8 +390,9 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 }
 
 func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
-	// This test checks whether the query succeeds when there is a table or
-	// view aliased as "observation" and whether it fails otherwise.
+	// This test checks whether the query succeeds when there mainObservationTableAlias
+	// argument passed to QueryFilterByConceptIdsAndCohortPairsHelper (last argument)
+	// matches the alias used in the main query, and whether it fails otherwise.
 
 	setUp(t)
 	omopDataSource := tests.GetOmopDataSource()
@@ -380,31 +403,21 @@ func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
 	}
 
 	// Subtest1: correct alias "observation":
-	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
+	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
 		Select("observation.person_id")
-	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
 	meta_result := query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Did NOT expect an error")
 	}
-	// Subtest2: incorrect alias "observationWRONG"...should fail/panic:
-	defer func() {
-		panicMessage := recover()
-
-		if panicMessage == nil {
-			t.Errorf("The code did not panic")
-		}
-		panicMessageStr, isString := panicMessage.(string)
-
-		if !isString || !strings.HasPrefix(panicMessageStr, "Error: this QueryFilterByConceptIdsAndCohortPairsHelper is meant for ") {
-			t.Errorf("The code did not panic with expected error message")
-		}
-
-	}()
+	// Subtest2: incorrect alias "observation"...should fail:
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
 		Select("*")
-	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource.Schema, "")
-	query.Scan(&personIds)
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
+	meta_result = query.Scan(&personIds)
+	if meta_result.Error == nil {
+		t.Errorf("Expected an error")
+	}
 }
 
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {

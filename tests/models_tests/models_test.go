@@ -213,6 +213,29 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsN
 	}
 }
 
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPairsWithResults(t *testing.T) {
+	setUp(t)
+	filterIds := []int64{hareConceptId}
+	// setting the same cohort id here (artificial...but goal of this test is just to check that it returns results and generated SQL does not crash):
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+		{ // just repeat the same:
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// we expect values since secondLargestCohort has multiple subjects with hare info:
+	if len(stats) < 4 {
+		t.Errorf("Expected at least 4 results, found %d", len(stats))
+	}
+}
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsWithResults(t *testing.T) {
 	setUp(t)
 	filterIds := []int64{hareConceptId}

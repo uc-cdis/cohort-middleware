@@ -45,32 +45,42 @@ func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, filterConceptId
 	return query
 }
 
+// Helper function that adds extra filter clauses to the query, for the given filterCohortPairs, intersecting on the
+// right set of tables, excluding data where necessary, etc.
+// It basically iterates over the list of filterCohortPairs, adding relevant INTERSECT and EXCEPT clauses, so that the resulting set is the
+// set of persons that are part of the intersections of cohortDefinitionId and of one of the cohorts in the filterCohortPairs. The EXCEPT
+// clauses exclude the persons that are found in both cohorts of a filterCohortPair.
 func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousVariableDef, resultsDataSource *utils.DbAndSchema, cohortDefinitionId int, unionAndIntersectSQLAlias string) *gorm.DB {
 	unionAndIntersectSQL := "(" +
-		"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? INTERSECT ("
-	var idsList []int
+		"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? "
+	var idsList []interface{}
 	idsList = append(idsList, cohortDefinitionId)
-	for i, filterCohortPair := range filterCohortPairs {
-		unionAndIntersectSQL = unionAndIntersectSQL +
-			"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? UNION " +
-			"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? "
-		if i < len(filterCohortPairs) {
-			unionAndIntersectSQL = unionAndIntersectSQL + "UNION "
+	if len(filterCohortPairs) > 0 {
+		// INTERSECT UNIONs section:
+		unionAndIntersectSQL = unionAndIntersectSQL + "INTERSECT ("
+		for i, filterCohortPair := range filterCohortPairs {
+			unionAndIntersectSQL = unionAndIntersectSQL +
+				"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? UNION " +
+				"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? "
+			if i+1 < len(filterCohortPairs) {
+				unionAndIntersectSQL = unionAndIntersectSQL + " UNION "
+			}
+			idsList = append(idsList, filterCohortPair.CohortId1, filterCohortPair.CohortId2)
 		}
-		idsList = append(idsList, filterCohortPair.CohortId1, filterCohortPair.CohortId2)
-	}
-	unionAndIntersectSQL = unionAndIntersectSQL + ") "
-	for _, filterCohortPair := range filterCohortPairs {
-		unionAndIntersectSQL = unionAndIntersectSQL +
-			"EXCEPT ( " +
-			"SELECT subject_id FROM  " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? " +
-			"INTERSECT " +
-			"SELECT subject_id FROM  " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? " +
-			")"
-		idsList = append(idsList, filterCohortPair.CohortId1, filterCohortPair.CohortId2)
+		unionAndIntersectSQL = unionAndIntersectSQL + ") "
+		// EXCEPTs section:
+		for _, filterCohortPair := range filterCohortPairs {
+			unionAndIntersectSQL = unionAndIntersectSQL +
+				"EXCEPT ( " +
+				"SELECT subject_id FROM  " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? " +
+				"INTERSECT " +
+				"SELECT subject_id FROM  " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? " +
+				")"
+			idsList = append(idsList, filterCohortPair.CohortId1, filterCohortPair.CohortId2)
+		}
 	}
 	unionAndIntersectSQL = unionAndIntersectSQL +
 		") "
-	query := resultsDataSource.Db.Table(unionAndIntersectSQL+" as "+unionAndIntersectSQLAlias+" ", idsList)
+	query := resultsDataSource.Db.Table(unionAndIntersectSQL+" as "+unionAndIntersectSQLAlias+" ", idsList...)
 	return query
 }

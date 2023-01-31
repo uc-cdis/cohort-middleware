@@ -220,16 +220,15 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCoho
 	// count persons, grouping by concept value:
 	var breakdownValueFieldName = "observation.value_as_" + getConceptValueType(breakdownConceptId)
 	var conceptBreakdownList []*ConceptBreakdown
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
+	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
 		Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
 		Where("observation.observation_concept_id = ?", breakdownConceptId).
 		Where(breakdownValueFieldName + " is not null").      // this one seems like a bit of a random constraint...but was a request from the business side: skip records where this field is null
 		Where("observation.value_as_concept_id is not null"). // this is assuming that the breakdownConceptId has its values nicely stored as concepts as well and correctly used in observation table...
 		Where("observation.value_as_concept_id != 0")
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema)
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, []utils.CustomDichotomousVariableDef{}, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Group("observation.value_as_concept_id").
 		Scan(&conceptBreakdownList)

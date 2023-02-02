@@ -44,6 +44,7 @@ func setupSuite() {
 	tests.ExecSQLScript("../setup_local_db/test_data_results_and_cdm.sql", testSourceId)
 
 	// initialize some handy variables to use in tests below:
+	// (see also tests/setup_local_db/test_data_results_and_cdm.sql for these test cohort details)
 	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	largestCohort = allCohortDefinitions[0]
 	secondLargestCohort = allCohortDefinitions[2]
@@ -213,26 +214,53 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsN
 	}
 }
 
+// TODO - add a test specifically for the new QueryFilterByCohortPairsHelper method
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPairsWithResults(t *testing.T) {
 	setUp(t)
 	filterIds := []int64{hareConceptId}
-	// setting the same cohort id here (artificial...but goal of this test is just to check that it returns results and generated SQL does not crash):
+	populationCohort := largestCohort
+	// setting the largest and smallest cohorts here as a pair:
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    secondLargestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
-		{ // just repeat the same:
-			CohortId1:    secondLargestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    largestCohort.Id,
 			ProvidedName: "test"},
 	}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		extendedCopyOfSecondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
-	// we expect values since secondLargestCohort has multiple subjects with hare info:
-	if len(stats) < 4 {
-		t.Errorf("Expected at least 4 results, found %d", len(stats))
+		populationCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// we expect results, and we expect the total of persons to be 6, since only 6 of the persons
+	// in largestCohort have a HARE value (and smallestCohort does not overlap with largest):
+	countPersons := 0
+	for _, stat := range stats {
+		countPersons += stat.NpersonsInCohortWithValue
+	}
+	if countPersons != 6 {
+		t.Errorf("Expected 6 persons, found %d", countPersons)
+	}
+	// now if we add another cohort pair with secondLargestCohort and extendedCopyOfSecondLargestCohort,
+	// then we should expect a reduction in the number of persons found. The reduction in this case
+	// will take place because of a smaller intersection of the new cohorts with the population cohort,
+	// and because of an overlaping person found in the two cohorts of the new pair.
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+		{
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test2"},
+	}
+	stats, _ = conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+		populationCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	countPersons = 0
+	for _, stat := range stats {
+		countPersons += stat.NpersonsInCohortWithValue
+	}
+	if countPersons != 4 {
+		t.Errorf("Expected 4 persons, found %d", countPersons)
 	}
 }
 

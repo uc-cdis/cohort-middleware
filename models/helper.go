@@ -57,17 +57,15 @@ func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousV
 	idsList = append(idsList, cohortDefinitionId)
 	if len(filterCohortPairs) > 0 {
 		// INTERSECT UNIONs section:
-		unionAndIntersectSQL = unionAndIntersectSQL + "INTERSECT ("
-		for i, filterCohortPair := range filterCohortPairs {
+		for _, filterCohortPair := range filterCohortPairs {
 			unionAndIntersectSQL = unionAndIntersectSQL +
-				"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? UNION " +
-				"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? "
-			if i+1 < len(filterCohortPairs) {
-				unionAndIntersectSQL = unionAndIntersectSQL + " UNION "
-			}
+				"INTERSECT ( " +
+				"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? " +
+				"UNION " +
+				"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? " +
+				")"
 			idsList = append(idsList, filterCohortPair.CohortId1, filterCohortPair.CohortId2)
 		}
-		unionAndIntersectSQL = unionAndIntersectSQL + ") "
 		// EXCEPTs section:
 		for _, filterCohortPair := range filterCohortPairs {
 			unionAndIntersectSQL = unionAndIntersectSQL +

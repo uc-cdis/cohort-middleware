@@ -121,7 +121,8 @@ values
     (nextval('observation_id_seq'),          7,           2000007027,           2000007028,            'HIS',           'HIS',                    38000276),
     (nextval('observation_id_seq'),          8,           2000007027,           2000007029,            'ASN',           'ASN',                    38000276),
     (nextval('observation_id_seq'),          9,           2000007027,           2000007031,            'EUR',           'EUR',                    38000276),
-    (nextval('observation_id_seq'),         10,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
+    (nextval('observation_id_seq'),         10,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276),
+    (nextval('observation_id_seq'),         11,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
 ;
 
 -- ========================================================

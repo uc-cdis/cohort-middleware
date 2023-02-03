@@ -94,7 +94,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, filterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
@@ -120,7 +120,7 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 		Where("observation.observation_concept_id = ?", filterConceptId).
 		Where("observation.value_as_concept_id = ?", filterConceptValue)
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error
@@ -149,7 +149,7 @@ func (h CohortData) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sou
 		Where("case_cohort.cohort_definition_id = ?", caseCohortId).
 		Where("control_cohort.cohort_definition_id = ?", controlCohortId)
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error

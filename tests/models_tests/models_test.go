@@ -173,10 +173,13 @@ func TestRetrieveInfoBySourceIdAndConceptTypes(t *testing.T) {
 func TestRetrieveInfoBySourceIdAndConceptIdNotFound(t *testing.T) {
 	setUp(t)
 	// get all concepts:
-	conceptInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptId(testSourceId,
+	conceptInfo, error := conceptModel.RetrieveInfoBySourceIdAndConceptId(testSourceId,
 		-1)
 	if conceptInfo != nil {
-		t.Errorf("Did not expected to find data")
+		t.Errorf("Did not expect to find data")
+	}
+	if error == nil {
+		t.Errorf("Expected error")
 	}
 }
 
@@ -298,8 +301,8 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		extendedCopyOfSecondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
 	// very rough check (ideally we would check the individual stats as well...TODO?):
-	if len(stats) != len(stats2) {
-		t.Errorf("Expected same result, got %d and %d", len(stats), len(stats2))
+	if len(stats) > len(stats2) {
+		t.Errorf("First query is more restrictive, so its stats should not be larger than stats2 of second query. Got %d and %d", len(stats), len(stats2))
 	}
 	// test filtering with smallest cohort, lenght should be 1, since that's the size of the smallest cohort:
 	// setting the same cohort id here (artificial...normally it should be two different ids):
@@ -418,13 +421,13 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 }
 
 func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
-	// This test checks whether the query succeeds when there mainObservationTableAlias
+	// This test checks whether the query succeeds when the mainObservationTableAlias
 	// argument passed to QueryFilterByConceptIdsAndCohortPairsHelper (last argument)
 	// matches the alias used in the main query, and whether it fails otherwise.
 
 	setUp(t)
 	omopDataSource := tests.GetOmopDataSource()
-	filterConceptIds := []int64{1, 2, 3}
+	filterConceptIds := []int64{allConceptIds[0], allConceptIds[1], allConceptIds[2]}
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{} // empty / not really needed for test
 	var personIds []struct {
 		PersonId int64
@@ -433,7 +436,7 @@ func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
 	// Subtest1: correct alias "observation":
 	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
 		Select("observation.person_id")
-	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, testSourceId, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
 	meta_result := query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Did NOT expect an error")
@@ -441,7 +444,7 @@ func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
 	// Subtest2: incorrect alias "observation"...should fail:
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
 		Select("*")
-	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
+	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, testSourceId, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error == nil {
 		t.Errorf("Expected an error")
@@ -596,7 +599,7 @@ func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
 }
 
 func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
-	// Tests if a scenario where NO overlap is expected indeed results in 0
+	// Tests if a scenario where NO overlap ends in the expected error/panic
 	setUp(t)
 	caseCohortId := secondLargestCohort.Id
 	controlCohortId := secondLargestCohort.Id // to ensure THIS part does not cause the 0 overlap, just repeat the same...
@@ -605,11 +608,16 @@ func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
 	// set this list to some dummy non-existing ids:
 	otherFilterConceptIds := []int64{-1, -2}
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+
+	// the RetrieveCohortOverlapStats below should result in panic/error:
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+
+	_, _ = cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
 		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	if stats.CaseControlOverlap != 0 {
-		t.Errorf("Expected overlap of 0, but found %d", stats.CaseControlOverlap)
-	}
 }
 
 func TestRetrieveCohortOverlapStatsZeroOverlapScenario3(t *testing.T) {

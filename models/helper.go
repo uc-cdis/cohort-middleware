@@ -13,7 +13,7 @@ import (
 //   a list of filters in the form of concept ids and cohort pairs. The one assumption it makes is that the given `query` object already contains
 //   a basic query on a table or view that have been named or aliased as "observation" (see comments in code). This assumption is
 //   checked at the start.
-func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef,
+func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, sourceId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef,
 	omopDataSource *utils.DbAndSchema, resultSchemaName string, mainObservationTableAlias string) *gorm.DB {
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
@@ -22,7 +22,7 @@ func QueryFilterByConceptIdsAndCohortPairsHelper(query *gorm.DB, filterConceptId
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+mainObservationTableAlias+".person_id").
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
-			Where("(" + observationTableAlias + ".value_as_string is not null or " + observationTableAlias + ".value_as_number is not null)") // TODO - improve performance by only filtering on type according to getConceptValueType()
+			Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptId))
 	}
 	// iterate over the list of filterCohortPairs, adding a new INNER JOIN to the UNION of each pair, so that the resulting set is the
 	// set of persons that are part of the intersections above and of one of the cohorts in the filterCohortPairs:
@@ -81,4 +81,21 @@ func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousV
 		") "
 	query := resultsDataSource.Db.Table(unionAndIntersectSQL+" as "+unionAndIntersectSQLAlias+" ", idsList...)
 	return query
+}
+
+// This function will get the concept information for given conceptId, and
+// return the best SQL to use for doing a "not null" check on its value in the
+// observation table.
+func GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias string, sourceId int, conceptId int64) string {
+	conceptModel := *new(Concept)
+	conceptInfo, error := conceptModel.RetrieveInfoBySourceIdAndConceptId(sourceId, conceptId)
+	if error != nil {
+		panic("error while trying to get information for conceptId, or conceptId not found")
+	} else if conceptInfo.ConceptType == "MVP Continuous" {
+		return observationTableAlias + ".value_as_number is not null"
+	} else if conceptInfo.ConceptType == "MVP Ordinal" {
+		return observationTableAlias + ".value_as_concept_id is not null and " + observationTableAlias + ".value_as_concept_id != 0"
+	} else {
+		panic(fmt.Sprintf("error: concept type not supported [%s]", conceptInfo.ConceptType))
+	}
 }

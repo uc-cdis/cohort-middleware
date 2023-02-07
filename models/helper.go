@@ -96,6 +96,6 @@ func GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias string,
 	} else if conceptInfo.ConceptType == "MVP Ordinal" {
 		return observationTableAlias + ".value_as_concept_id is not null and " + observationTableAlias + ".value_as_concept_id != 0"
 	} else {
-		return observationTableAlias + ".value_as_string is not null"
+		panic(fmt.Sprintf("error: concept type not supported [%s]", conceptInfo.ConceptType))
 	}
 }

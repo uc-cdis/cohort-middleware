@@ -2,6 +2,7 @@ package tests
 
 import (
 	"bufio"
+	"fmt"
 	"io/ioutil"
 	"log"
 	"net"
@@ -94,6 +95,22 @@ func BreakSomething(sourceType models.SourceType, tableName string, fieldName st
 func FixSomething(sourceType models.SourceType, tableName string, fieldName string) {
 	ExecSQLString("ALTER TABLE IF EXISTS "+GetSchemaNameForType(sourceType)+"."+tableName+
 		" RENAME "+fieldName+"_broken TO "+fieldName, GetTestSourceId())
+}
+
+// utility function that adds a new concept item with some invalid concept_class_id on the fly
+func AddInvalidTypeConcept(sourceType models.SourceType) int64 {
+	omopDataSource := GetOmopDataSource()
+	var lastConcept models.Concept
+	omopDataSource.Db.Last(&lastConcept)
+	conceptId := lastConcept.ConceptId + 1
+	ExecSQLString(fmt.Sprintf("INSERT into "+GetSchemaNameForType(sourceType)+".concept (concept_id,concept_name,concept_class_id,domain_id,concept_code) "+
+		" values (%v, 'dummy concept', 'Invalid type class', 1, 'dummy')", conceptId), GetTestSourceId())
+	return conceptId
+}
+
+func RemoveConcept(sourceType models.SourceType, conceptId int64) {
+	ExecSQLString(fmt.Sprintf("DELETE FROM "+GetSchemaNameForType(sourceType)+".concept  "+
+		" where concept_id =%v", conceptId), GetTestSourceId())
 }
 
 func GetInt64AttributeValue[T any](item T, attributeName string) int64 {

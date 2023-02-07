@@ -3,6 +3,7 @@ package models_tests
 import (
 	"log"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/uc-cdis/cohort-middleware/config"
@@ -104,6 +105,47 @@ func TestGetPrefixedConceptId(t *testing.T) {
 	conceptId := models.GetPrefixedConceptId(12345)
 	if conceptId != "ID_12345" {
 		t.Error()
+	}
+}
+
+func TestGetConceptValueNotNullCheckBasedOnConceptTypeError(t *testing.T) {
+	setUp(t)
+	// the call below should result in panic/error:
+	defer func() {
+		if r := recover(); r == nil {
+			t.Errorf("The code did not panic")
+		}
+	}()
+	models.GetConceptValueNotNullCheckBasedOnConceptType("observation", testSourceId, -1)
+}
+
+func TestGetConceptValueNotNullCheckBasedOnConceptTypeError2(t *testing.T) {
+	setUp(t)
+	// add dummy concept:
+	conceptId := tests.AddInvalidTypeConcept(models.Omop)
+
+	// the call below should result in a specific panic/error on the concept type not being supported:
+	defer func() {
+		r := recover()
+		if r == nil || !strings.HasPrefix(r.(string), "error: concept type not supported") {
+			t.Errorf("The code did not panic with expected error")
+		}
+		// cleanup:
+		tests.RemoveConcept(models.Omop, conceptId)
+	}()
+	models.GetConceptValueNotNullCheckBasedOnConceptType("observation", testSourceId, conceptId)
+}
+
+func TestGetConceptValueNotNullCheckBasedOnConceptTypeSuccess(t *testing.T) {
+	setUp(t)
+	// check success scenarios:
+	result := models.GetConceptValueNotNullCheckBasedOnConceptType("observation", testSourceId, hareConceptId)
+	if result != "observation.value_as_concept_id is not null and observation.value_as_concept_id != 0" {
+		t.Errorf("Unexpected result. Found %s", result)
+	}
+	result = models.GetConceptValueNotNullCheckBasedOnConceptType("observation", testSourceId, histogramConceptId)
+	if result != "observation.value_as_number is not null" {
+		t.Errorf("Unexpected result. Found %s", result)
 	}
 }
 

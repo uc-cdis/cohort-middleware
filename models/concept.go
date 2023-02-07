@@ -16,7 +16,7 @@ type ConceptI interface {
 	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
-	ConceptId   int    `json:"concept_id"`
+	ConceptId   int64  `json:"concept_id"`
 	ConceptName string `json:"concept_name"`
 	ConceptType string `json:"concept_type"`
 }
@@ -108,7 +108,7 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 		conceptItem.PrefixedConceptId = GetPrefixedConceptId(conceptItem.ConceptId)
 	}
 	if len(conceptItems) != len(conceptIds) {
-		return nil, fmt.Errorf("unexpected error: did not find all concepts")
+		return nil, fmt.Errorf("unexpected error: did not find the expected number of concepts")
 	}
 	return conceptItems, nil
 }

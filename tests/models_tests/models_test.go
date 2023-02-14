@@ -41,7 +41,7 @@ func setupSuite() {
 	db.Init()
 	// ensure we start w/ empty db:
 	tearDownSuite()
-	// load test seed data:
+	// load test seed data, including test cohorts referenced below:
 	tests.ExecSQLScript("../setup_local_db/test_data_results_and_cdm.sql", testSourceId)
 
 	// initialize some handy variables to use in tests below:
@@ -259,7 +259,182 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsN
 	}
 }
 
-// TODO - add a test specifically for the new QueryFilterByCohortPairsHelper method
+// Tests various scenarios for QueryFilterByCohortPairsHelper.
+// These tests currently use pre-defined cohorts (see .sql loaded in  setupSuite()).
+// A possible improvement / TODO could be to write more test utility functions
+// to add specific test data on the fly. This could make some of the test code (like the tests here)
+// more readable by having the test data and the test assertions close together. For now,
+// consider reading these tests together with the .sql file that is loaded in setupSuite()
+// to understand how the test cohorts relate to each other.
+func TestQueryFilterByCohortPairsHelper(t *testing.T) {
+	setUp(t)
+
+	type SubjectId struct {
+		SubjectId int
+	}
+	// smallestCohort and largestCohort do not overlap...
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
+	resultsDataSource := tests.GetResultsDataSource()
+	var subjectIds []*SubjectId
+	population := largestCohort
+	query := models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// ...so we expect overlap the size of the largestCohort:
+	if len(subjectIds) != largestCohort.CohortSize {
+		t.Errorf("Expected %d overlap, found %d", largestCohort.CohortSize, len(subjectIds))
+	}
+
+	// now add a pair that overlaps with largestCohort:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+		{
+			CohortId1:    extendedCopyOfSecondLargestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
+	subjectIds = []*SubjectId{}
+	population = largestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size of the largestCohort-5:
+	if len(subjectIds) != (largestCohort.CohortSize - 5) {
+		t.Errorf("Expected %d overlap, found %d", largestCohort.CohortSize-5, len(subjectIds))
+	}
+
+	// order doesn't matter:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    extendedCopyOfSecondLargestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
+	subjectIds = []*SubjectId{}
+	population = largestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect same as previous test above:
+	if len(subjectIds) != (largestCohort.CohortSize - 5) {
+		t.Errorf("Expected %d overlap, found %d", largestCohort.CohortSize-5, len(subjectIds))
+	}
+
+	// now test with two other cohorts that overlap:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	subjectIds = []*SubjectId{}
+	population = extendedCopyOfSecondLargestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size of the extendedCopyOfSecondLargestCohort.CohortSize - secondLargestCohort.CohortSize:
+	if len(subjectIds) != (extendedCopyOfSecondLargestCohort.CohortSize - secondLargestCohort.CohortSize) {
+		t.Errorf("Expected %d overlap, found %d", extendedCopyOfSecondLargestCohort.CohortSize-secondLargestCohort.CohortSize, len(subjectIds))
+	}
+
+	// now add in the largestCohort as a pair of extendedCopyOfSecondLargestCohort to the mix above:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    secondLargestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+		{
+			CohortId1:    largestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	subjectIds = []*SubjectId{}
+	population = extendedCopyOfSecondLargestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size to be 0, since all items remaining from first pair happen to overlap with largestCohort and are therefore excluded (pair overlap is excluded):
+	if len(subjectIds) != 0 {
+		t.Errorf("Expected 0 overlap, found %d", len(subjectIds))
+	}
+
+	// now if the population is largestCohort, for the same pairs above, we expect the overlap to be 0 as well, as the first pair restricts the set for every other following pair (i.e. attrition at work):
+	subjectIds = []*SubjectId{}
+	population = largestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size to be 0 as explained in comment above:
+	if len(subjectIds) != 0 {
+		t.Errorf("Expected 0 overlap, found %d", len(subjectIds))
+	}
+
+	// should return all in cohort:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
+	subjectIds = []*SubjectId{}
+	population = largestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size to be the size of the cohort, since there are no filtering pairs:
+	if len(subjectIds) != largestCohort.CohortSize {
+		t.Errorf("Expected 0 overlap, found %d", len(subjectIds))
+	}
+
+	// should return 0:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    largestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
+	subjectIds = []*SubjectId{}
+	population = largestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size to be 0, since the pair is composed of the same cohort in CohortId1 and CohortId2 and their overlap is excluded:
+	if len(subjectIds) != 0 {
+		t.Errorf("Expected 0 overlap, found %d", len(subjectIds))
+	}
+
+	// should return 0:
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    thirdLargestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
+	subjectIds = []*SubjectId{}
+	population = smallestCohort
+	resultsDataSource = tests.GetResultsDataSource()
+	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
+		Select("subject_id")
+	_ = query.Scan(&subjectIds)
+	// in this case we expect overlap the size to be 0, since the cohorts in the pair do not overlap with the population:
+	if len(subjectIds) != 0 {
+		t.Errorf("Expected 0 overlap, found %d", len(subjectIds))
+	}
+}
 
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPairsWithResults(t *testing.T) {
 	setUp(t)

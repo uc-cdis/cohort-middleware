@@ -79,6 +79,12 @@ func GetOmopDataSource() *utils.DbAndSchema {
 	return omopDataSource
 }
 
+func GetResultsDataSource() *utils.DbAndSchema {
+	var dataSourceModel = new(models.Source)
+	dataSource := dataSourceModel.GetDataSource(GetTestSourceId(), models.Results)
+	return dataSource
+}
+
 func GetSchemaNameForType(sourceType models.SourceType) string {
 	sourceModel := new(models.Source)
 	dbSchema, _ := sourceModel.GetSourceSchemaNameBySourceIdAndSourceType(GetTestSourceId(), sourceType)

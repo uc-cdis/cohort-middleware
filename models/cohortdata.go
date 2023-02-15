@@ -9,7 +9,6 @@ import (
 
 type CohortDataI interface {
 	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
-	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
@@ -96,33 +95,6 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
-}
-
-// DEPRECATED. THIS QC CHECK WAS USED IN V1 OF THE PORTAL.
-// Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only
-// the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criteria.
-func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
-
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
-	var cohortOverlapStats CohortOverlapStats
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("count(distinct(observation.person_id)) as case_control_overlap").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as case_cohort ON case_cohort.subject_id = observation.person_id").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
-		Where("case_cohort.cohort_definition_id = ?", caseCohortId).
-		Where("control_cohort.cohort_definition_id = ?", controlCohortId).
-		Where("observation.observation_concept_id = ?", filterConceptId).
-		Where("observation.value_as_concept_id = ?", filterConceptValue)
-
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
-
-	meta_result := query.Scan(&cohortOverlapStats)
-	return cohortOverlapStats, meta_result.Error
 }
 
 // Basically the same as the method above, but without the extra filtering on filterConceptId and filterConceptValue:

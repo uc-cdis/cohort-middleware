@@ -924,8 +924,48 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
 		otherFilterConceptIds, filterCohortPairs)
 	// basic test:
-	if stats.CaseControlOverlap == 0 {
-		t.Errorf("Expected nr persons to be > 0")
+	if stats.CaseControlOverlap != int64(secondLargestCohort.CohortSize) {
+		t.Errorf("Expected nr persons to be %d, found %d", secondLargestCohort.CohortSize, stats.CaseControlOverlap)
+	}
+
+	// now use largestCohort as background and filter on the extendedCopyOfSecondLargestCohort
+	caseCohortId = largestCohort.Id
+	controlCohortId = largestCohort.Id // to ensure we get largestCohort as initial overlap, just repeat the same here...
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	// then we expect overlap of 5 for extendedCopyOfSecondLargestCohort and largestCohort:
+	stats, _ = cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	if stats.CaseControlOverlap != 5 {
+		t.Errorf("Expected nr persons to be %d, found %d", 5, stats.CaseControlOverlap)
+	}
+
+	// extra test: different parameters that should return the same as above ^:
+	caseCohortId = largestCohort.Id
+	controlCohortId = extendedCopyOfSecondLargestCohort.Id
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
+	otherFilterConceptIds = []int64{histogramConceptId} // extra filter, to cover this part of the code...
+	// then we expect overlap of 5 for extendedCopyOfSecondLargestCohort and largestCohort (the filter on histogramConceptId should not matter
+	// since all in largestCohort have an observation for this concept id):
+	stats2, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	if stats2.CaseControlOverlap != stats.CaseControlOverlap {
+		t.Errorf("Expected nr persons to be %d, found %d", stats.CaseControlOverlap, stats2.CaseControlOverlap)
+	}
+
+	// test for otherFilterConceptIds by filtering above on genderConceptId, which is NOT
+	// found in any observations of the largestCohort:
+	otherFilterConceptIds = []int64{histogramConceptId, genderConceptId}
+	// all other arguments are the same as test above, and we expect overlap of 0, showing the otherFilterConceptIds
+	// had the expected effect:
+	stats3, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	if stats3.CaseControlOverlap != 0 {
+		t.Errorf("Expected nr persons to be 0, found %d", stats3.CaseControlOverlap)
 	}
 }
 

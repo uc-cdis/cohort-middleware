@@ -79,7 +79,6 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 }
 
 func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
-	log.Printf(">> Using inner join impl. for large cohorts")
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
@@ -87,14 +86,13 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
+	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
 		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, filterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, filterConceptIds, []utils.CustomDichotomousVariableDef{}, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error

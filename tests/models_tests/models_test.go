@@ -630,11 +630,26 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t *testing.T) {
 	setUp(t)
 	filterConceptIds := []int64{}
-	filterCohortIds := []utils.CustomDichotomousVariableDef{}
-	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortIds)
-	if len(data) == 0 {
-		t.Errorf("expected 1 or more histogram data but got 0")
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
+	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	// everyone in the largestCohort has the histogramConceptId:
+	if len(data) != largestCohort.CohortSize {
+		t.Errorf("expected 10 or more histogram data but got %d", len(data))
 	}
+
+	// now filter on the extendedCopyOfSecondLargestCohort
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	if len(data) != 5 {
+		t.Errorf("expected 5 histogram data but got %d", len(data))
+	}
+
 }
 
 func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {

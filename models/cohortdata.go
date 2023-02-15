@@ -91,7 +91,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, filterConceptIds, []utils.CustomDichotomousVariableDef{}, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
@@ -113,7 +113,7 @@ func (h CohortData) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sou
 
 	if len(otherFilterConceptIds) > 0 {
 		query = query.Joins("INNER JOIN " + omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective() + " ON control_cohort.subject_id = observation.person_id")
-		query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, otherFilterConceptIds, []utils.CustomDichotomousVariableDef{}, omopDataSource, resultsDataSource.Schema, "observation")
+		query = QueryFilterByConceptIdsHelper(query, sourceId, otherFilterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 	}
 	query = query.Where("control_cohort.cohort_definition_id = ?", controlCohortId)
 	meta_result := query.Scan(&cohortOverlapStats)

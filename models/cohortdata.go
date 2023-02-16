@@ -9,7 +9,6 @@ import (
 
 type CohortDataI interface {
 	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
-	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
@@ -79,7 +78,6 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 }
 
 func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
-	log.Printf(">> Using inner join impl. for large cohorts")
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
@@ -87,89 +85,37 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
+	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
 		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
+		Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, filterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
-}
-
-// Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only
-// the persons that have data for each of the selected conceptIds and match the filterConceptId/filterConceptValue criteria.
-func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptId int64, filterConceptValue int64, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
-
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
-	var cohortOverlapStats CohortOverlapStats
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("count(distinct(observation.person_id)) as case_control_overlap").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as case_cohort ON case_cohort.subject_id = observation.person_id").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
-		Where("case_cohort.cohort_definition_id = ?", caseCohortId).
-		Where("control_cohort.cohort_definition_id = ?", controlCohortId).
-		Where("observation.observation_concept_id = ?", filterConceptId).
-		Where("observation.value_as_concept_id = ?", filterConceptValue)
-
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
-
-	meta_result := query.Scan(&cohortOverlapStats)
-	return cohortOverlapStats, meta_result.Error
 }
 
 // Basically the same as the method above, but without the extra filtering on filterConceptId and filterConceptValue:
 func (h CohortData) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId int, caseCohortId int, controlCohortId int,
 	otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
 
-	// special case for when filter lists are empty:
-	if len(otherFilterConceptIds) == 0 && len(filterCohortPairs) == 0 {
-		// call the faster version of overlap check:
-		return h.RetrieveCohortOverlapStatsWithoutFiltering(sourceId, caseCohortId, controlCohortId)
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
+	var cohortOverlapStats CohortOverlapStats
+	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, caseCohortId, "case_cohort_unionedAndIntersectedWithFilters").
+		Select("count(distinct(case_cohort_unionedAndIntersectedWithFilters.subject_id)) as case_control_overlap").
+		Joins("INNER JOIN " + resultsDataSource.Schema + ".cohort as control_cohort ON control_cohort.subject_id = case_cohort_unionedAndIntersectedWithFilters.subject_id") // this one allows for the intersection between case and control and the assessment of the overlap
+
+	if len(otherFilterConceptIds) > 0 {
+		query = query.Joins("INNER JOIN " + omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective() + " ON control_cohort.subject_id = observation.person_id")
+		query = QueryFilterByConceptIdsHelper(query, sourceId, otherFilterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 	}
-
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
-	var cohortOverlapStats CohortOverlapStats
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("count(distinct(observation.person_id)) as case_control_overlap").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as case_cohort ON case_cohort.subject_id = observation.person_id").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
-		Where("case_cohort.cohort_definition_id = ?", caseCohortId).
-		Where("control_cohort.cohort_definition_id = ?", controlCohortId)
-
-	query = QueryFilterByConceptIdsAndCohortPairsHelper(query, sourceId, otherFilterConceptIds, filterCohortPairs, omopDataSource, resultsDataSource.Schema, "observation")
-
-	meta_result := query.Scan(&cohortOverlapStats)
-	return cohortOverlapStats, meta_result.Error
-}
-
-// Basically the same as the method above, but without any filtering on any concepts or on any CustomDichotomousVariableDef:
-func (h CohortData) RetrieveCohortOverlapStatsWithoutFiltering(sourceId int, caseCohortId int, controlCohortId int) (CohortOverlapStats, error) {
-
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// count persons that are in the intersection of both case and control cohorts, filtering on filterConceptValue:
-	var cohortOverlapStats CohortOverlapStats
-	query := omopDataSource.Db.Table(resultsDataSource.Schema+".cohort as case_cohort").
-		Select("count(distinct(case_cohort.subject_id)) as case_control_overlap").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
-		Where("case_cohort.cohort_definition_id = ?", caseCohortId).
-		Where("control_cohort.cohort_definition_id = ?", controlCohortId)
-
+	query = query.Where("control_cohort.cohort_definition_id = ?", controlCohortId)
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error
 }

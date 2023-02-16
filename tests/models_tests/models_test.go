@@ -24,7 +24,6 @@ var thirdLargestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
 var genderConceptId = tests.GetTestGenderConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
-var asnHareConceptId = tests.GetTestAsnHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
 
 func TestMain(m *testing.M) {
@@ -630,22 +629,36 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t *testing.T) {
 	setUp(t)
 	filterConceptIds := []int64{}
-	filterCohortIds := []utils.CustomDichotomousVariableDef{}
-	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortIds)
-	if len(data) == 0 {
-		t.Errorf("expected 1 or more histogram data but got 0")
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
+	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	// everyone in the largestCohort has the histogramConceptId:
+	if len(data) != largestCohort.CohortSize {
+		t.Errorf("expected 10 or more histogram data but got %d", len(data))
 	}
+
+	// now filter on the extendedCopyOfSecondLargestCohort
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	if len(data) != 5 {
+		t.Errorf("expected 5 histogram data but got %d", len(data))
+	}
+
 }
 
-func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
+func TestQueryFilterByConceptIdsHelper(t *testing.T) {
 	// This test checks whether the query succeeds when the mainObservationTableAlias
-	// argument passed to QueryFilterByConceptIdsAndCohortPairsHelper (last argument)
+	// argument passed to QueryFilterByConceptIdsHelper (last argument)
 	// matches the alias used in the main query, and whether it fails otherwise.
 
 	setUp(t)
 	omopDataSource := tests.GetOmopDataSource()
 	filterConceptIds := []int64{allConceptIds[0], allConceptIds[1], allConceptIds[2]}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{} // empty / not really needed for test
 	var personIds []struct {
 		PersonId int64
 	}
@@ -653,7 +666,7 @@ func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
 	// Subtest1: correct alias "observation":
 	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
 		Select("observation.person_id")
-	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, testSourceId, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
+	query = models.QueryFilterByConceptIdsHelper(query, testSourceId, filterConceptIds, omopDataSource, "", "observation")
 	meta_result := query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Did NOT expect an error")
@@ -661,7 +674,7 @@ func TestQueryFilterByConceptIdsAndCohortPairsHelper(t *testing.T) {
 	// Subtest2: incorrect alias "observation"...should fail:
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
 		Select("*")
-	query = models.QueryFilterByConceptIdsAndCohortPairsHelper(query, testSourceId, filterConceptIds, filterCohortPairs, omopDataSource, "", "observation")
+	query = models.QueryFilterByConceptIdsHelper(query, testSourceId, filterConceptIds, omopDataSource, "", "observation")
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error == nil {
 		t.Errorf("Expected an error")
@@ -721,184 +734,6 @@ func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId
 	tests.FixSomething(models.Results, "cohort", "cohort_definition_id")
 }
 
-// for given source and cohort, counts how many persons have the given HARE value
-func getNrPersonsWithHareConceptValue(sourceId int, cohortId int, hareConceptValue int64) int64 {
-	conceptIds := []int64{hareConceptId}
-	personLevelData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
-	var count int64 = 0
-	for _, personLevelDatum := range personLevelData {
-		if personLevelDatum.ConceptValueAsConceptId == hareConceptValue {
-			count++
-		}
-	}
-	return count
-}
-
-func TestRetrieveCohortOverlapStats(t *testing.T) {
-	// Tests if we get the expected overlap
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
-	filterConceptId := hareConceptId
-	filterConceptValue := asnHareConceptId
-	otherFilterConceptIds := []int64{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	// get the number of persons in this cohort that have this filterConceptValue:
-	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
-	if nr_expected == 0 {
-		t.Errorf("Expected nr persons with HARE value should be > 0")
-	}
-	if stats.CaseControlOverlap != nr_expected {
-		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlap)
-	}
-}
-
-func TestRetrieveCohortOverlapStatsScenario2(t *testing.T) {
-	// Tests if we get the expected overlap
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
-	filterConceptId := hareConceptId
-	filterConceptValue := asnHareConceptId
-	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	// get the number of persons in this cohort that have this filterConceptValue:
-	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, caseCohortId, filterConceptValue)
-	if nr_expected == 0 {
-		t.Errorf("Expected nr persons with HARE value should be > 0")
-	}
-	if stats.CaseControlOverlap != nr_expected {
-		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlap)
-	}
-}
-
-func TestRetrieveCohortOverlapStatsScenario3(t *testing.T) {
-	// Tests if we get the expected overlap
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
-	filterConceptId := hareConceptId
-	filterConceptValue := asnHareConceptId // filter on 'ASN'
-	otherFilterConceptIds := []int64{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{
-		{
-			CohortId1:    extendedCopyOfSecondLargestCohort.Id,
-			CohortId2:    smallestCohort.Id,
-			ProvidedName: "test",
-		},
-	}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	// there are 2 persons with 'ASN' value for HARE in secondLargestCohort, so expect 2:
-	if stats.CaseControlOverlap != 2 {
-		t.Errorf("Expected overlap of 2, but found %d", stats.CaseControlOverlap)
-	}
-}
-
-func TestRetrieveCohortOverlapStatsZeroOverlap(t *testing.T) {
-	// Tests if a scenario where NO overlap is expected indeed results in 0
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := smallestCohort.Id
-	filterConceptId := hareConceptId
-	var filterConceptValue int64 = -1 // should result in 0 overlap
-	otherFilterConceptIds := []int64{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	if stats.CaseControlOverlap != 0 {
-		t.Errorf("Expected overlap of 0, but found %d", stats.CaseControlOverlap)
-	}
-}
-
-func TestRetrieveCohortOverlapStatsZeroOverlapScenario2(t *testing.T) {
-	// Tests if a scenario where NO overlap ends in the expected error/panic
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := secondLargestCohort.Id // to ensure THIS part does not cause the 0 overlap, just repeat the same...
-	filterConceptId := hareConceptId
-	filterConceptValue := asnHareConceptId
-	// set this list to some dummy non-existing ids:
-	otherFilterConceptIds := []int64{-1, -2}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-
-	// the RetrieveCohortOverlapStats below should result in panic/error:
-	defer func() {
-		if r := recover(); r == nil {
-			t.Errorf("The code did not panic")
-		}
-	}()
-
-	_, _ = cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-}
-
-func TestRetrieveCohortOverlapStatsZeroOverlapScenario3(t *testing.T) {
-	// Tests if a scenario where NO overlap is expected indeed results in 0
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := secondLargestCohort.Id // to ensure THIS part does not cause the 0 overlap, just repeat the same...
-	filterConceptId := hareConceptId
-	filterConceptValue := asnHareConceptId // filter on 'ASN'
-	otherFilterConceptIds := []int64{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{
-		{
-			CohortId1:    extendedCopyOfSecondLargestCohort.Id, // does not really matter which cohort here, as long as CohortId1 and CohortId2 are the same it should result in an empty set since we remove the intersecting part of the cohorts in a dichotomous pair
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test",
-		},
-	}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	if stats.CaseControlOverlap != 0 {
-		t.Errorf("Expected overlap of 0, but found %d", stats.CaseControlOverlap)
-	}
-}
-
-func TestRetrieveCohortOverlapStatsWithCohortPairs(t *testing.T) {
-	// Tests if we get the expected overlap
-	setUp(t)
-	caseCohortId := secondLargestCohort.Id
-	controlCohortId := secondLargestCohort.Id // to ensure we get overlap, just repeat the same here...
-	filterConceptId := hareConceptId
-	filterConceptValue := asnHareConceptId          // the cohorts we use below both have persons with "ASN" HARE value
-	otherFilterConceptIds := []int64{hareConceptId} // repeat hare concept id here...Artificial, but will ensure overlap
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{
-		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    thirdLargestCohort.Id,
-			ProvidedName: "test"}, // pair1
-		{
-			CohortId1:    thirdLargestCohort.Id,
-			CohortId2:    smallestCohort.Id,
-			ProvidedName: "test"}, // pair2 (same as above, but switched...artificial, but will ensure some data):
-	}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	// get the number of persons in the smaller cohorts that have this filterConceptValue (this can be the expected nr because
-	// the secondLargestCohort in this case contains all other cohorts):
-	nr_expected := getNrPersonsWithHareConceptValue(testSourceId, thirdLargestCohort.Id, filterConceptValue)
-	nr_expected = nr_expected + getNrPersonsWithHareConceptValue(testSourceId, smallestCohort.Id, filterConceptValue)
-	if nr_expected == 0 {
-		t.Errorf("Expected nr persons with HARE value should be > 0")
-	}
-	if stats.CaseControlOverlap != nr_expected {
-		t.Errorf("Expected overlap of %d, but found %d", nr_expected, stats.CaseControlOverlap)
-	}
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-	// without the restrictive filter on cohort pairs, the result should be bigger, as the largest cohort has more persons with
-	// the asnHareConceptId than the ones used in the pairs above:
-	stats2, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		filterConceptId, filterConceptValue, otherFilterConceptIds, filterCohortPairs)
-	if stats.CaseControlOverlap >= stats2.CaseControlOverlap {
-		t.Errorf("Expected overlap in first query to be smaller than in second one")
-	}
-}
-
 func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) {
 	// Tests if we get the expected overlap
 	setUp(t)
@@ -909,8 +744,48 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	stats, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
 		otherFilterConceptIds, filterCohortPairs)
 	// basic test:
-	if stats.CaseControlOverlap == 0 {
-		t.Errorf("Expected nr persons to be > 0")
+	if stats.CaseControlOverlap != int64(secondLargestCohort.CohortSize) {
+		t.Errorf("Expected nr persons to be %d, found %d", secondLargestCohort.CohortSize, stats.CaseControlOverlap)
+	}
+
+	// now use largestCohort as background and filter on the extendedCopyOfSecondLargestCohort
+	caseCohortId = largestCohort.Id
+	controlCohortId = largestCohort.Id // to ensure we get largestCohort as initial overlap, just repeat the same here...
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName: "test"},
+	}
+	// then we expect overlap of 5 for extendedCopyOfSecondLargestCohort and largestCohort:
+	stats, _ = cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	if stats.CaseControlOverlap != 5 {
+		t.Errorf("Expected nr persons to be %d, found %d", 5, stats.CaseControlOverlap)
+	}
+
+	// extra test: different parameters that should return the same as above ^:
+	caseCohortId = largestCohort.Id
+	controlCohortId = extendedCopyOfSecondLargestCohort.Id
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
+	otherFilterConceptIds = []int64{histogramConceptId} // extra filter, to cover this part of the code...
+	// then we expect overlap of 5 for extendedCopyOfSecondLargestCohort and largestCohort (the filter on histogramConceptId should not matter
+	// since all in largestCohort have an observation for this concept id):
+	stats2, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	if stats2.CaseControlOverlap != stats.CaseControlOverlap {
+		t.Errorf("Expected nr persons to be %d, found %d", stats.CaseControlOverlap, stats2.CaseControlOverlap)
+	}
+
+	// test for otherFilterConceptIds by filtering above on genderConceptId, which is NOT
+	// found in any observations of the largestCohort:
+	otherFilterConceptIds = []int64{histogramConceptId, genderConceptId}
+	// all other arguments are the same as test above, and we expect overlap of 0, showing the otherFilterConceptIds
+	// had the expected effect:
+	stats3, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,
+		otherFilterConceptIds, filterCohortPairs)
+	if stats3.CaseControlOverlap != 0 {
+		t.Errorf("Expected nr persons to be 0, found %d", stats3.CaseControlOverlap)
 	}
 }
 

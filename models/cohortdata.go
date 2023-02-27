@@ -39,6 +39,10 @@ type PersonIdAndCohort struct {
 	CohortId int64
 }
 
+type Person struct {
+	PersonId int64
+}
+
 // This function returns the subjects that belong to both cohorts (the intersection of both cohorts)
 // TODO - name this function as such
 func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error) {

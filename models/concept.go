@@ -35,6 +35,7 @@ type ConceptBreakdown struct {
 }
 
 type Observation struct {
+	ObservationId int64
 }
 
 func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {

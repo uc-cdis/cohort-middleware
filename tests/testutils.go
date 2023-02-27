@@ -5,14 +5,17 @@ import (
 	"fmt"
 	"io/ioutil"
 	"log"
+	"math/rand"
 	"net"
 	"net/http"
 	"path/filepath"
 	"reflect"
+	"time"
 
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
+	"gorm.io/gorm"
 )
 
 func GetTestSourceId() int {
@@ -29,11 +32,6 @@ func GetTestHistogramConceptId() int64 {
 
 func GetTestHareConceptId() int64 {
 	return 2000007027
-}
-
-func GetTestAsnHareConceptId() int64 {
-	// one of the HARE codes, this one being for "ASN-Asian":
-	return 2000007029
 }
 
 func ExecAtlasSQLScript(sqlFilePath string) {
@@ -58,30 +56,86 @@ func ExecAtlasSQLString(sqlString string) {
 	ExecSQLString(sqlString, -1)
 }
 
-func ExecSQLString(sqlString string, sourceId int) {
+func ExecSQLString(sqlString string, sourceId int) (tx *gorm.DB) {
 	// just take a random model:
 	var dataSourceModel = new(models.Source)
 	if sourceId == -1 {
 		// assume Atlas DB:
 		var atlasDB = db.GetAtlasDB()
-		atlasDB.Db.Model(models.Source{}).Exec(sqlString)
+		return atlasDB.Db.Model(models.Source{}).Exec(sqlString)
 
 	} else {
 		// look up the data source in source table:
 		omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
-		omopDataSource.Db.Model(models.Source{}).Exec(sqlString)
+		return omopDataSource.Db.Model(models.Source{}).Exec(sqlString)
 	}
 }
 
+// Same as ExecSQLString above, but panics if the SQL statement fails
+func ExecSQLStringOrFail(sqlString string, sourceId int) {
+	result := ExecSQLString(sqlString, sourceId)
+	if result.Error != nil {
+		panic(fmt.Sprintf("Error while executing DB statement: %v", result.Error))
+	}
+}
+
+func GetCount(dataSource *utils.DbAndSchema, tableName string) int64 {
+	var count int64
+	result := dataSource.Db.Table(fmt.Sprintf("%s.%s", dataSource.Schema, tableName))
+	result.Count(&count)
+	return count
+}
+
+func EmptyTable(dataSource *utils.DbAndSchema, tableName string) {
+	dataSource.Db.Model(models.Source{}).Exec(
+		fmt.Sprintf("Delete from %s.%s", dataSource.Schema, tableName))
+}
+
+func GetLastCohortId() int {
+	dataSource := db.GetAtlasDB()
+	var lastCohortDefinition models.CohortDefinition
+	dataSource.Db.Last(&lastCohortDefinition)
+	return lastCohortDefinition.Id
+}
+
+func GetLastConceptId(sourceId int) int64 {
+	dataSource := GetOmopDataSourceForSourceId(sourceId)
+	var lastConcept models.Concept
+	dataSource.Db.Last(&lastConcept)
+	return lastConcept.ConceptId
+}
+
+func GetLastObservationId(sourceId int) int64 {
+	dataSource := GetOmopDataSourceForSourceId(sourceId)
+	var lastObservation models.Observation
+	dataSource.Db.Last(&lastObservation)
+	return lastObservation.ObservationId
+}
+
+func GetLastPersonId(sourceId int) int64 {
+	dataSource := GetOmopDataSourceForSourceId(sourceId)
+	var lastPerson models.Person
+	dataSource.Db.Last(&lastPerson)
+	return lastPerson.PersonId
+}
+
 func GetOmopDataSource() *utils.DbAndSchema {
+	return GetOmopDataSourceForSourceId(GetTestSourceId())
+}
+
+func GetOmopDataSourceForSourceId(sourceId int) *utils.DbAndSchema {
 	var dataSourceModel = new(models.Source)
-	omopDataSource := dataSourceModel.GetDataSource(GetTestSourceId(), models.Omop)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
 	return omopDataSource
 }
 
 func GetResultsDataSource() *utils.DbAndSchema {
+	return GetResultsDataSourceForSourceId(GetTestSourceId())
+}
+
+func GetResultsDataSourceForSourceId(sourceId int) *utils.DbAndSchema {
 	var dataSourceModel = new(models.Source)
-	dataSource := dataSourceModel.GetDataSource(GetTestSourceId(), models.Results)
+	dataSource := dataSourceModel.GetDataSource(sourceId, models.Results)
 	return dataSource
 }
 
@@ -105,10 +159,8 @@ func FixSomething(sourceType models.SourceType, tableName string, fieldName stri
 
 // utility function that adds a new concept item with some invalid concept_class_id on the fly
 func AddInvalidTypeConcept(sourceType models.SourceType) int64 {
-	omopDataSource := GetOmopDataSource()
-	var lastConcept models.Concept
-	omopDataSource.Db.Last(&lastConcept)
-	conceptId := lastConcept.ConceptId + 1
+	var lastConceptId = GetLastConceptId(GetTestSourceId())
+	conceptId := lastConceptId + 1
 	ExecSQLString(fmt.Sprintf("INSERT into "+GetSchemaNameForType(sourceType)+".concept (concept_id,concept_name,concept_class_id,domain_id,concept_code) "+
 		" values (%v, 'dummy concept', 'Invalid type class', 1, 'dummy')", conceptId), GetTestSourceId())
 	return conceptId
@@ -123,6 +175,24 @@ func GetInt64AttributeValue[T any](item T, attributeName string) int64 {
 	r := reflect.ValueOf(item)
 	f := reflect.Indirect(r).FieldByName(attributeName)
 	return f.Int()
+}
+
+func GetRandomSubset(values []int64, subsetSize int) []int64 {
+	copyValues := make([]int64, len(values))
+	copy(copyValues, values)
+	seed := time.Now().UnixNano()
+	rand.Seed(seed)
+	log.Printf("Getting a random subset of size %d from a set of values of size %d using seed %d",
+		subsetSize, len(values), seed)
+	rand.Shuffle(len(copyValues),
+		func(i, j int) {
+			copyValues[i], copyValues[j] = copyValues[j], copyValues[i]
+		})
+	subset := make([]int64, subsetSize)
+	for i := 0; i < subsetSize; i++ {
+		subset[i] = copyValues[i]
+	}
+	return subset
 }
 
 // returns an int array with the attribute values of the given attribute

@@ -22,7 +22,7 @@ var secondLargestCohort *models.CohortDefinitionStats
 var extendedCopyOfSecondLargestCohort *models.CohortDefinitionStats
 var thirdLargestCohort *models.CohortDefinitionStats
 var allConceptIds []int64
-var genderConceptId = tests.GetTestGenderConceptId()
+var dummyContinuousConceptId = tests.GetTestDummyContinuousConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
 
@@ -156,34 +156,6 @@ func TestRetriveAllBySourceId(t *testing.T) {
 	}
 }
 
-func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
-	setUp(t)
-	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
-		smallestCohort.Id,
-		allConceptIds)
-	// simple test: we expect stats for each valid conceptId, therefore the lists are
-	//  expected to have the same lenght here:
-	if len(conceptsStats) != len(allConceptIds) {
-		t.Errorf("Found %d", len(conceptsStats))
-	}
-}
-
-func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsCheckRatio(t *testing.T) {
-	setUp(t)
-	filterIds := []int64{genderConceptId}
-	conceptsStats, _ := conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(testSourceId,
-		secondLargestCohort.Id,
-		filterIds)
-	// simple test: in the test data we keep the gender concept *missing* at a ratio of 1/3 for the largest cohort. Here
-	// we check if the missing ratio calculation is working correctly:
-	if len(conceptsStats) != 1 {
-		t.Errorf("Found %d", len(conceptsStats))
-	}
-	if conceptsStats[0].NmissingRatio != 1.0/3.0 {
-		t.Errorf("Found wrong ratio %f", conceptsStats[0].NmissingRatio)
-	}
-}
-
 func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	setUp(t)
 	conceptsInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptIds(testSourceId,
@@ -228,7 +200,7 @@ func TestRetrieveInfoBySourceIdAndConceptId(t *testing.T) {
 	setUp(t)
 	// get all concepts:
 	conceptInfo, _ := conceptModel.RetrieveInfoBySourceIdAndConceptId(testSourceId,
-		genderConceptId)
+		hareConceptId)
 	if conceptInfo == nil {
 		t.Errorf("Expected to find data")
 	}
@@ -777,9 +749,9 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 		t.Errorf("Expected nr persons to be %d, found %d", stats.CaseControlOverlap, stats2.CaseControlOverlap)
 	}
 
-	// test for otherFilterConceptIds by filtering above on genderConceptId, which is NOT
+	// test for otherFilterConceptIds by filtering above on dummyContinuousConceptId, which is NOT
 	// found in any observations of the largestCohort:
-	otherFilterConceptIds = []int64{histogramConceptId, genderConceptId}
+	otherFilterConceptIds = []int64{histogramConceptId, dummyContinuousConceptId}
 	// all other arguments are the same as test above, and we expect overlap of 0, showing the otherFilterConceptIds
 	// had the expected effect:
 	stats3, _ := cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,

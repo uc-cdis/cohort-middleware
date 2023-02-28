@@ -2,7 +2,6 @@ package models
 
 import (
 	"fmt"
-	"log"
 
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -11,7 +10,6 @@ type ConceptI interface {
 	RetriveAllBySourceId(sourceId int) ([]*Concept, error)
 	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error)
 	RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error)
-	RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
@@ -19,20 +17,6 @@ type Concept struct {
 	ConceptId   int64  `json:"concept_id"`
 	ConceptName string `json:"concept_name"`
 	ConceptType string `json:"concept_type"`
-}
-
-type ConceptAndPersonsWithDataStats struct {
-	ConceptId  int64
-	NpersonIds int
-}
-
-type ConceptStats struct {
-	ConceptId         int64   `json:"concept_id"`
-	PrefixedConceptId string  `json:"prefixed_concept_id"`
-	ConceptName       string  `json:"concept_name"`
-	ConceptType       string  `json:"concept_type"`
-	CohortSize        int     `json:"cohort_size"`
-	NmissingRatio     float32 `json:"n_missing_ratio"`
 }
 
 type ConceptSimple struct {
@@ -63,15 +47,6 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 		Order("concept_name").
 		Scan(&concepts)
 	return concepts, meta_result.Error
-}
-
-func getNrPersonsWithData(conceptId int64, conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats) int {
-	for _, conceptsAndDataInfo := range conceptsAndPersonsWithData {
-		if conceptsAndDataInfo.ConceptId == conceptId {
-			return conceptsAndDataInfo.NpersonIds
-		}
-	}
-	return 0
 }
 
 // Retrieve just a simple concept info for a given conceptId.
@@ -131,63 +106,6 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 		conceptItem.PrefixedConceptId = GetPrefixedConceptId(conceptItem.ConceptId)
 	}
 	return conceptItems, nil
-}
-
-// Retrieve concept name, type and missing ratio statistics for given list of conceptIds.
-// Assumption is that both OMOP and RESULTS schemas are on same DB.
-func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error) {
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-
-	var conceptStats []*ConceptStats
-	meta_result := omopDataSource.Db.Model(&Concept{}).
-		Select("concept_id, concept_name, 0 as n_missing_ratio, concept_class_id as concept_type").
-		Where("concept_id in (?)", conceptIds).
-		Order("concept_name").
-		Scan(&conceptStats)
-	if meta_result.Error != nil {
-		return nil, meta_result.Error
-	}
-
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-	var cohortSize int
-	meta_result = resultsDataSource.Db.Model(&Cohort{}).
-		Select("count(*) as cohort_size").
-		Where("cohort_definition_id = ?", cohortDefinitionId).
-		Scan(&cohortSize)
-	if meta_result.Error != nil {
-		return nil, meta_result.Error
-	}
-
-	// find, for each concept, the ratio of persons in the given cohortId that have
-	// no value for this concept by first finding the ones that do have some value and
-	// then subtracting them from cohort size before dividing:
-	var conceptsAndPersonsWithData []*ConceptAndPersonsWithDataStats
-	meta_result = omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("observation_concept_id as concept_id, count(distinct(person_id)) as nperson_ids").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-		Where("observation_concept_id in (?)", conceptIds).
-		Where("(value_as_string is not null or value_as_number is not null)").
-		Group("observation_concept_id").
-		Scan(&conceptsAndPersonsWithData)
-
-	for _, conceptStat := range conceptStats {
-		// since we are looping over items anyway, also set prefixed_concept_id and cohort_size:
-		conceptStat.PrefixedConceptId = GetPrefixedConceptId(conceptStat.ConceptId)
-		conceptStat.CohortSize = cohortSize
-		if cohortSize == 0 {
-			conceptStat.NmissingRatio = 0
-		} else {
-			// calculate missing ratio for cohorts that actually have a size:
-			var nrPersonsWithData = getNrPersonsWithData(conceptStat.ConceptId, conceptsAndPersonsWithData)
-			log.Printf("Found %d persons with data for concept_id %d", nrPersonsWithData, conceptStat.ConceptId)
-			n_missing := cohortSize - nrPersonsWithData
-			conceptStat.NmissingRatio = float32(n_missing) / float32(cohortSize)
-		}
-	}
-
-	return conceptStats, meta_result.Error
 }
 
 // This function will return cohort size broken down over the different values

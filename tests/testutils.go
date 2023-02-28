@@ -19,7 +19,7 @@ func GetTestSourceId() int {
 	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
 }
 
-func GetTestGenderConceptId() int64 {
+func GetTestDummyContinuousConceptId() int64 {
 	return 2000000324
 }
 

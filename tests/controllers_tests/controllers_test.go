@@ -157,17 +157,6 @@ func (h dummyConceptDataModel) RetrieveInfoBySourceIdAndConceptTypes(sourceId in
 	}
 	return conceptSimple, nil
 }
-func (h dummyConceptDataModel) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.ConceptStats, error) {
-	// dummy data with _some_ of the relevant fields:
-	conceptStats := []*models.ConceptStats{
-		{ConceptId: 1234, CohortSize: 11, NmissingRatio: 0.56},
-		{ConceptId: 4567, CohortSize: 22, NmissingRatio: 0.67},
-	}
-	if dummyModelReturnError {
-		return nil, fmt.Errorf("fake model error!")
-	}
-	return conceptStats, nil
-}
 func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 5, ValueName: "value1_name"},
@@ -545,49 +534,6 @@ func TestRetrieveInfoBySourceIdAndConceptTypesMissingBody(t *testing.T) {
 	}
 	if !strings.Contains(result.CustomResponseWriterOut, "no request body") {
 		t.Errorf("Expected 'no request body' error message")
-	}
-}
-
-func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIds(t *testing.T) {
-	setUp(t)
-	requestContext := new(gin.Context)
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
-	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	conceptController.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
-	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
-	// expect result with dummy data:
-	if !strings.Contains(result.CustomResponseWriterOut, "n_missing_ratio") ||
-		!strings.Contains(result.CustomResponseWriterOut, "cohort_size") {
-		t.Errorf("Expected data not found in result")
-	}
-}
-
-func TestRetrieveStatsBySourceIdAndCohortIdAndConceptIdsModelError(t *testing.T) {
-	setUp(t)
-	requestContext := new(gin.Context)
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
-	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	// set flag to let mock model layer return error instead of mock data:
-	dummyModelReturnError = true
-	conceptController.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(requestContext)
-	if !requestContext.IsAborted() {
-		t.Errorf("Expected aborted request")
-	}
-	// error message:
-	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
-	// expect specific error message:
-	if !strings.Contains(result.CustomResponseWriterOut, "Error retrieving concept details") {
-		t.Errorf("Expected error did not occur...other error occurred instead")
 	}
 }
 

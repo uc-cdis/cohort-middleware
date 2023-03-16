@@ -19,7 +19,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	
 	var result Source
-	db2.Exec("SELECT * FROM atlas.source;").Scan(&result)
+	db2.Raw("SELECT * FROM atlas.source;").Scan(&result)
 	fmt.Println(result)
 
 	var dataSource *Source
@@ -34,7 +34,7 @@ func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 
 	var result Source
-	db2.Exec("SELECT * FROM atlas.source;").Scan(&result)
+	db2.Raw("SELECT * FROM atlas.source;").Scan(&result)
 	fmt.Println(result)
 
 	var dataSource *Source
@@ -54,7 +54,7 @@ func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType So
 	db2 := atlasDb.Db
 	
 	var result Source
-	db2.Exec("SELECT * FROM atlas.source;").Scan(&result)
+	db2.Raw("SELECT * FROM atlas.source;").Scan(&result)
 	fmt.Println(result)
 
 	var sourceSchema *SourceSchema

@@ -26,13 +26,16 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 }
 
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
-	fmt.Println(id)
+	fmt.Println("a", id)
 	db2 := db.GetAtlasDB().Db
+	fmt.Println("b", id)
 	var dataSource *Source
+	fmt.Println("c", id)
 	db2.Model(&Source{}).
 		Select("source_id, source_name, source_connection, source_dialect, username, password").
 		Where("source_id = ?", id).
 		Scan(&dataSource)
+	fmt.Println("d", id)
 	return dataSource, nil
 }
 

@@ -18,7 +18,7 @@ type Source struct {
 func (h Source) GetSourceById(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	
-	var result Result
+	var result Source
 	db2.Exec("SELECT * FROM atlas.source;").Scan(&result)
 	fmt.Println(result)
 
@@ -33,7 +33,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 
-	var result Result
+	var result Source
 	db2.Exec("SELECT * FROM atlas.source;").Scan(&result)
 	fmt.Println(result)
 
@@ -53,7 +53,7 @@ func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType So
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db
 	
-	var result Result
+	var result Source
 	db2.Exec("SELECT * FROM atlas.source;").Scan(&result)
 	fmt.Println(result)
 

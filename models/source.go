@@ -17,7 +17,7 @@ type Source struct {
 
 func (h Source) GetSourceById(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
-	fmt.Println(db2.Exec("SELECT * FROM ohdsi.source;"))
+	fmt.Println(db2.Exec("SELECT * FROM atlas.source;"))
 	var dataSource *Source
 	db2.Model(&Source{}).
 		Select("source_id, source_name").
@@ -28,7 +28,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
-	fmt.Println(db2.Exec("SELECT * FROM ohdsi.source;"))
+	fmt.Println(db2.Exec("SELECT * FROM atlas.source;"))
 	var dataSource *Source
 	db2.Model(&Source{}).
 		Select("source_id, source_name, source_connection, source_dialect, username, password").
@@ -44,7 +44,7 @@ type SourceSchema struct {
 func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType SourceType) (*SourceSchema, error) {
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db
-	fmt.Println(db2.Exec("SELECT * FROM ohdsi.source;"))
+	fmt.Println(db2.Exec("SELECT * FROM atlas.source;"))
 	var sourceSchema *SourceSchema
 	db2.Model(&Source{}).
 		Select("source_daimon.table_qualifier as schema_name").

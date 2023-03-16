@@ -128,7 +128,9 @@ func GetOmopDataSource() *utils.DbAndSchema {
 
 func GetOmopDataSourceForSourceId(sourceId int) *utils.DbAndSchema {
 	var dataSourceModel = new(models.Source)
+	fmt.Println(dataSourceModel)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
+	fmt.Println(omopDataSource)
 	return omopDataSource
 }
 

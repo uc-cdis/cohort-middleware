@@ -1,7 +1,6 @@
 package models
 
 import (
-	"fmt"
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -28,16 +27,10 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
-	result := db2.Model(&Source{}).
+	db2.Model(&Source{}).
 		Select("source_id, source_name, source_connection, source_dialect, username, password").
 		Where("source_id = ?", id).
 		Scan(&dataSource)
-
-	if result.Error != nil {
-		fmt.Println(result.Error)
-	}
-	fmt.Println("c", "here")
-	fmt.Println("d", dataSource)
 	return dataSource, nil
 }
 

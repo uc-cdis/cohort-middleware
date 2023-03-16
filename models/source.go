@@ -40,7 +40,8 @@ type SourceSchema struct {
 }
 
 func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType SourceType) (*SourceSchema, error) {
-	db2 := db.GetAtlasDB().Db
+	atlasDb := db.GetAtlasDB()
+	db2 := atlasDb.Db
 	var sourceSchema *SourceSchema
 	db2.Model(&Source{}).
 		Select("source_daimon.table_qualifier as schema_name").

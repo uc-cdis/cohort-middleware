@@ -68,7 +68,8 @@ func ExecSQLString(sqlString string, sourceId int) (tx *gorm.DB) {
 		// look up the data source in source table:
 		fmt.Println("here before")
 		omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
-		fmt.Println("here after")
+		fmt.Println("here after", omopDataSource)
+		fmt.Println("sql here after", sqlString)
 		return omopDataSource.Db.Model(models.Source{}).Exec(sqlString)
 	}
 }

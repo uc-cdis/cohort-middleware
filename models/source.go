@@ -28,7 +28,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
-	result = db2.Model(&Source{}).
+	result := db2.Model(&Source{}).
 		Select("source_id, source_name, source_connection, source_dialect, username, password").
 		Where("source_id = ?", id).
 		Scan(&dataSource)

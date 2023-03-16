@@ -29,7 +29,7 @@ jobs:
       COVERAGE_PROFILE_OUTPUT_LOCATION: "./profile.cov"
     steps:
       - name: Checkout code / lint code / install dependencies for goveralls / run tests
-        uses: uc-cdis/.github/.github/actions/golang-ci@master
+        uses: uc-cdis/.github/.github/actions/golang-ci@feat/no-parallel-go-test
         with:
           COVERAGE_PROFILE_OUTPUT_LOCATION: ${{ env.COVERAGE_PROFILE_OUTPUT_LOCATION }}
       - name: Send coverage to coveralls using goveralls

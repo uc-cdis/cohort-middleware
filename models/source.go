@@ -26,6 +26,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 }
 
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
+	fmt.Println(id)
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
 	db2.Model(&Source{}).
@@ -63,7 +64,6 @@ const (
 // Get the data source details for given source id and source type.
 // The source type can be one of the type SourceType.
 func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndSchema {
-	fmt.Println(sourceId, sourceType)
 	dataSource, _ := h.GetSourceByIdWithConnection(sourceId)
 
 	sourceConnectionString := dataSource.SourceConnection

@@ -257,12 +257,13 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 		}
 		valueAsConceptId = concept.PossibleValues[randIndex]
 	}
+	fmt.Println(lastObservationId+1, personId, conceptId, valueAsConceptId, valueAsNumber)
 	tests.ExecSQLStringOrFail(
 		fmt.Sprintf(
 			"INSERT into %s.observation "+
 				"(observation_id,person_id,observation_concept_id,value_as_concept_id,value_as_number) "+
 				"values "+
-				"(%d,%d,%d,'%s','%s')",
+				"(%d,%d,%d,%s,%s)",
 			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
 			lastObservationId+1, personId, conceptId, valueAsConceptId, valueAsNumber),
 		sourceId)

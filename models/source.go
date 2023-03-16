@@ -1,6 +1,7 @@
 package models
 
 import (
+	"fmt"
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -62,6 +63,7 @@ const (
 // Get the data source details for given source id and source type.
 // The source type can be one of the type SourceType.
 func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndSchema {
+	fmt.Println(sourceId, sourceType)
 	dataSource, _ := h.GetSourceByIdWithConnection(sourceId)
 
 	sourceConnectionString := dataSource.SourceConnection

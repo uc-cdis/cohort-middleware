@@ -5,4 +5,4 @@ atlas_db:
   username: postgres
   password: mysecretpassword # pragma: allowlist secret
   db: postgres
-  schema: atlas
+  schema: atlas2

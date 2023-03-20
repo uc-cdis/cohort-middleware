@@ -17,7 +17,7 @@ func TestMain(m *testing.M) {
 	os.Exit(retCode)
 }
 
-var environment = "development"
+var environment = "example_custom_db"
 
 func setupSuite() {
 	log.Println("setup for suite")
@@ -32,13 +32,13 @@ func setupSuite() {
 
 func tearDownSuite() {
 	log.Println("teardown for suite")
-	tests.ExecAtlasSQLScript("../setup_local_db/ddl_atlas.sql")
+	tests.ExecAtlasSQLScript("./test_resources/ddl_atlas.sql")
 	// we need some basic atlas data in "source" table to be able to connect to results DB, and this script has it:
-	tests.ExecAtlasSQLScript("../setup_local_db/test_data_atlas.sql")
+	tests.ExecAtlasSQLScript("./test_resources/test_data_atlas.sql")
 	// remove the rows in cohort_definition, created by script above: TODO - this will not be needed anymore once we cleanup these test_data .sql scripts...
 	tests.EmptyTable(db.GetAtlasDB(), "cohort_definition")
 	// create results and cdm tables:
-	tests.ExecSQLScript("../setup_local_db/ddl_results_and_cdm.sql", tests.GetTestSourceId())
+	tests.ExecSQLScript("./test_resources/ddl_results_and_cdm.sql", tests.GetTestSourceId())
 }
 
 func setUp(t *testing.T) {

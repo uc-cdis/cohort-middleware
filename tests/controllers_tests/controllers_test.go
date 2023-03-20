@@ -62,28 +62,16 @@ var conceptController = controllers.NewConceptController(*new(dummyConceptDataMo
 type dummyCohortDataModel struct{}
 
 func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.PersonConceptAndValue, error) {
+	value := float32(0.0)
 	cohortData := []*models.PersonConceptAndValue{
-		{PersonId: 1, ConceptId: 10, ConceptValueAsString: "abc", ConceptValueAsNumber: 0.0},
-		{PersonId: 1, ConceptId: 22, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
-		{PersonId: 2, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
+		{PersonId: 1, ConceptId: 10, ConceptClassId: "something", ConceptValueAsString: "abc", ConceptValueAsNumber: &value},
 	}
 	return cohortData, nil
 }
 
 func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
 
-	cohortData := []*models.PersonConceptAndValue{
-		{PersonId: 10, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
-		{PersonId: 11, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 6.0},
-		{PersonId: 12, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 56.7},
-		{PersonId: 13, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 47.0},
-		{PersonId: 14, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 25.1},
-		{PersonId: 15, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 8.0},
-		{PersonId: 16, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 30.5},
-		{PersonId: 17, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 93.0},
-		{PersonId: 18, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 30.5},
-		{PersonId: 19, ConceptId: 55, ConceptValueAsString: "", ConceptValueAsNumber: 35.0},
-	}
+	cohortData := []*models.PersonConceptAndValue{}
 	return cohortData, nil
 }
 
@@ -308,26 +296,35 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValueBadRequest(t *t
 
 func TestGenerateCSV(t *testing.T) {
 	setUp(t)
+	value1 := float32(0.0)
+	value2 := float32(1.5)
+
 	cohortData := []*models.PersonConceptAndValue{
-		{PersonId: 1, ConceptId: 10, ConceptValueAsString: "abc", ConceptValueAsNumber: 0.0},
-		{PersonId: 1, ConceptId: 22, ConceptValueAsString: "", ConceptValueAsNumber: 1.5},
-		{PersonId: 2789580123456, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: 0.0},
+		{PersonId: 1, ConceptId: 10, ConceptClassId: "something else", ConceptValueAsString: "abc", ConceptValueAsNumber: &value1},
+		{PersonId: 1, ConceptId: 22, ConceptClassId: "MVP Continuous", ConceptValueAsString: ">1", ConceptValueAsNumber: &value2},
+		{PersonId: 2789580123456, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: &value1},
+		{PersonId: 344567, ConceptId: tests.GetTestHareConceptId(), ConceptClassId: "MVP Ordinal", ConceptValueAsString: "HIS", ConceptValueAsConceptId: 2000007028, ConceptValueAsNumber: &value1},
+		{PersonId: 344567, ConceptId: 22, ConceptClassId: "MVP Continuous", ConceptValueAsString: "", ConceptValueAsNumber: &value1},
+		{PersonId: 789567, ConceptId: 22, ConceptClassId: "MVP Continuous"},
+		{PersonId: 789567, ConceptId: 10, ConceptClassId: "something else", ConceptValueAsString: ""},
 	}
-	conceptIds := []int64{10, 22}
+	conceptIds := []int64{10, 22, tests.GetTestHareConceptId()}
 
 	csvLines := controllers.GeneratePartialCSV(
 		testSourceId, cohortData, conceptIds)
 
 	// the above should result in one header line and 2 data lines (2 persons)
-	if len(csvLines) != 3 {
-		t.Errorf("Expected 1 header line + 2 data lines, found %d lines in total",
+	if len(csvLines) != 5 {
+		t.Errorf("Expected 1 header line + 4 data lines, found %d lines in total",
 			len(csvLines))
 		t.Errorf("Lines: %s", csvLines)
 	}
 	expectedLines := [][]string{
-		{"sample.id", "ID_10", "ID_22"},
-		{"1", "abc", "1.50"},
-		{"2789580123456", "A value with, comma!", "NA"},
+		{"sample.id", "ID_10", "ID_22", fmt.Sprintf("ID_%d", tests.GetTestHareConceptId())},
+		{"1", "abc", "1.50", "NA"},
+		{"2789580123456", "A value with, comma!", "NA", "NA"},
+		{"344567", "NA", "0.00", "HIS"},
+		{"789567", "NA", "NA", "NA"},
 	}
 
 	for i, expectedLine := range expectedLines {

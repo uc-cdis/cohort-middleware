@@ -53,7 +53,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 
 	conceptValues := []float64{}
 	for _, personData := range cohortData {
-		conceptValues = append(conceptValues, float64(personData.ConceptValueAsNumber))
+		conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 	}
 
 	histogramData := utils.GenerateHistogramData(conceptValues)
@@ -206,10 +206,15 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 	if conceptIdIdx != -1 {
 		// conceptIdIdx+1 because first column is sample.id:
 		conceptIdxInRow := conceptIdIdx + 1
-		if cohortItem.ConceptValueAsString != "" {
-			row[conceptIdxInRow] = cohortItem.ConceptValueAsString
-		} else if cohortItem.ConceptValueAsNumber != 0.0 {
-			row[conceptIdxInRow] = strconv.FormatFloat(float64(cohortItem.ConceptValueAsNumber), 'f', 2, 64)
+		if cohortItem.ConceptClassId == "MVP Continuous" {
+			if cohortItem.ConceptValueAsNumber != nil {
+				row[conceptIdxInRow] = strconv.FormatFloat(float64(*cohortItem.ConceptValueAsNumber), 'f', 2, 64)
+			}
+		} else {
+			// default to the value as string for now:
+			if cohortItem.ConceptValueAsString != "" {
+				row[conceptIdxInRow] = cohortItem.ConceptValueAsString
+			}
 		}
 	}
 	return row

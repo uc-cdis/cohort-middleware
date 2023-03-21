@@ -686,6 +686,8 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
 	var sumNumeric float32 = 0
 	textConcat := ""
+	classIdConcat := ""
+	foundConceptValueAsNumberAsNil := false
 	for _, cohortDefinition := range cohortDefinitions {
 
 		cohortData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
@@ -702,8 +704,13 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 				t.Errorf("Data not ordered by person_id!")
 			}
 			previousPersonId = cohortDatum.PersonId
-			sumNumeric += cohortDatum.ConceptValueAsNumber
+			if cohortDatum.ConceptValueAsNumber != nil {
+				sumNumeric += *cohortDatum.ConceptValueAsNumber
+			} else {
+				foundConceptValueAsNumberAsNil = true
+			}
 			textConcat += cohortDatum.ConceptValueAsString
+			classIdConcat += cohortDatum.ConceptClassId
 		}
 	}
 	// check for data: sum of all numeric values > 0
@@ -714,6 +721,15 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 	if textConcat == "" {
 		t.Errorf("Expected some string cohort data")
 	}
+	// check for data: some concepts have class id, so this should not be empty
+	if classIdConcat == "" {
+		t.Errorf("Expected query to return concept class id information")
+	}
+	// check if some numeric values were nil as expected:
+	if foundConceptValueAsNumberAsNil == false {
+		t.Errorf("Expected query to return some nil values for ConceptValueAsNumber")
+	}
+
 }
 
 func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {

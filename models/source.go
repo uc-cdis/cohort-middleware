@@ -17,20 +17,24 @@ type Source struct {
 func (h Source) GetSourceById(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
-	db2.Model(&Source{}).
+	query := db2.Model(&Source{}).
 		Select("source_id, source_name").
-		Where("source_id = ?", id).
-		Scan(&dataSource)
+		Where("source_id = ?", id)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	query.Scan(&dataSource)
 	return dataSource, nil
 }
 
 func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
-	db2.Model(&Source{}).
+	query := db2.Model(&Source{}).
 		Select("source_id, source_name, source_connection, source_dialect, username, password").
-		Where("source_id = ?", id).
-		Scan(&dataSource)
+		Where("source_id = ?", id)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	query.Scan(&dataSource)
 	return dataSource, nil
 }
 
@@ -42,12 +46,14 @@ func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType So
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db
 	var sourceSchema *SourceSchema
-	db2.Model(&Source{}).
+	query := db2.Model(&Source{}).
 		Select("source_daimon.table_qualifier as schema_name").
 		Joins("INNER JOIN "+atlasDb.Schema+".source_daimon ON source.source_id = source_daimon.source_id").
 		Where("source.source_id = ?", id).
-		Where("source_daimon.daimon_type = ?", sourceType).
-		Scan(&sourceSchema)
+		Where("source_daimon.daimon_type = ?", sourceType)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	query.Scan(&sourceSchema)
 	return sourceSchema, nil
 }
 
@@ -74,18 +80,22 @@ func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndS
 func (h Source) GetSourceByName(name string) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
-	db2.Model(&Source{}).
+	query := db2.Model(&Source{}).
 		Select("source_id, source_name").
-		Where("source_name = ?", name).
-		Scan(&dataSource)
+		Where("source_name = ?", name)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	query.Scan(&dataSource)
 	return dataSource, nil
 }
 
 func (h Source) GetAllSources() ([]*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource []*Source
-	db2.Model(&Source{}).
-		Select("source_id, source_name").
-		Scan(&dataSource)
+	query := db2.Model(&Source{}).
+		Select("source_id, source_name")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	query.Scan(&dataSource)
 	return dataSource, nil
 }

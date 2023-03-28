@@ -1,8 +1,10 @@
 package utils
 
 import (
+	"context"
 	"log"
 	"strings"
+	"time"
 
 	"gorm.io/driver/postgres"
 	"gorm.io/driver/sqlserver"
@@ -54,6 +56,20 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 	dataSourceDb.Schema = dbSchema
 	dataSourceDbMap[sourceAndSchemaKey] = dataSourceDb
 	return dataSourceDb
+}
+
+// Adds a default timeout to a query
+func AddTimeoutToQuery(query *gorm.DB) (*gorm.DB, context.CancelFunc) {
+	// default timeout of 3 minutes:
+	query, cancel := AddSpecificTimeoutToQuery(query, 180*time.Second)
+	return query, cancel
+}
+
+// Adds a specific timeout to a query
+func AddSpecificTimeoutToQuery(query *gorm.DB, timeout time.Duration) (*gorm.DB, context.CancelFunc) {
+	ctx, cancel := context.WithTimeout(context.Background(), timeout)
+	query = query.WithContext(ctx)
+	return query, cancel
 }
 
 // Returns extra DB dialect specific directives to optimize performance when using views:

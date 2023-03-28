@@ -47,12 +47,14 @@ func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, origi
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	var personData []*PersonIdAndCohort
 
-	meta_result := resultsDataSource.Db.Model(&Cohort{}).
+	query := resultsDataSource.Db.Model(&Cohort{}).
 		Select("cohort.subject_id as person_id, cohort.cohort_definition_id as cohort_id").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as original_cohort ON cohort.subject_id = original_cohort.subject_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-		Where("original_cohort.cohort_definition_id = ?", originalCohortDefinitionId).
-		Scan(&personData)
+		Where("original_cohort.cohort_definition_id = ?", originalCohortDefinitionId)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&personData)
 	return personData, meta_result.Error
 }
 
@@ -68,14 +70,16 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	meta_result := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
 		Select("observation.person_id, observation.observation_concept_id as concept_id, concept.concept_class_id, observation.value_as_string as concept_value_as_string, observation.value_as_number as concept_value_as_number, observation.value_as_concept_id as concept_value_as_concept_id").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as concept ON concept.concept_id = observation.observation_concept_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
 		Where("observation.observation_concept_id in (?)", conceptIds).
-		Order("observation.person_id asc"). // this order is important!
-		Scan(&cohortData)
+		Order("observation.person_id asc") // this order is important!
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
 }
 
@@ -95,6 +99,8 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 
 	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
 }
@@ -118,6 +124,8 @@ func (h CohortData) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sou
 		query = QueryFilterByConceptIdsHelper(query, sourceId, otherFilterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 	}
 	query = query.Where("control_cohort.cohort_definition_id = ?", controlCohortId)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
 	meta_result := query.Scan(&cohortOverlapStats)
 	return cohortOverlapStats, meta_result.Error
 }
@@ -152,6 +160,8 @@ func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64
 			Group("observation.person_id, observation.observation_concept_id").
 			Having("count(*) > 1")
 
+		query, cancel := utils.AddTimeoutToQuery(query)
+		defer cancel()
 		meta_result := query.Scan(&personConceptAndCount)
 		if meta_result.Error != nil {
 			return -1, meta_result.Error

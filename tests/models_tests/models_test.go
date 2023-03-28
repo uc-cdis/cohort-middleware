@@ -5,6 +5,7 @@ import (
 	"os"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/db"
@@ -887,5 +888,30 @@ func TestRetrieveDataByOriginalCohortAndNewCohort(t *testing.T) {
 		if personIdAndCohort.PersonId == int64(0) {
 			t.Error("person id should be valid and not 0")
 		}
+	}
+}
+
+func TestAddTimeoutToQuery(t *testing.T) {
+	setUp(t)
+
+	// take a simple query, run with short timeout, and expect error:
+	db2 := db.GetAtlasDB().Db
+	var dataSource []*models.Source
+	query := db2.Model(&models.Source{}).
+		Select("source_id, source_name")
+	query, cancel := utils.AddSpecificTimeoutToQuery(query, 2*time.Nanosecond)
+	defer cancel()
+	meta_result := query.Scan(&dataSource)
+	if meta_result.Error == nil || len(dataSource) > 0 {
+		t.Errorf("Expected timeout error and NO data")
+	}
+
+	// then switch to default (longer) timeout and expect a result:
+	query2, cancel2 := utils.AddTimeoutToQuery(query)
+	defer cancel2()
+	meta_result2 := query2.Scan(&dataSource)
+
+	if meta_result2.Error != nil || len(dataSource) == 0 {
+		t.Errorf("Expected result and NO error")
 	}
 }

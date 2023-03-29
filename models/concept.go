@@ -58,10 +58,12 @@ func (h Concept) RetriveAllBySourceId(sourceId int) ([]*Concept, error) {
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var concepts []*Concept
-	meta_result := omopDataSource.Db.Model(&Concept{}).
+	query := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, concept_class_id as concept_type").
-		Order("concept_name").
-		Scan(&concepts)
+		Order("concept_name")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&concepts)
 	return concepts, meta_result.Error
 }
 
@@ -95,11 +97,13 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var conceptItems []*ConceptSimple
-	meta_result := omopDataSource.Db.Model(&Concept{}).
+	query := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, concept_code, concept_class_id as concept_type").
 		Where("concept_id in (?)", conceptIds).
-		Order("concept_name").
-		Scan(&conceptItems)
+		Order("concept_name")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&conceptItems)
 	if meta_result.Error != nil {
 		return nil, meta_result.Error
 	}
@@ -118,11 +122,14 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	var conceptItems []*ConceptSimple
-	meta_result := omopDataSource.Db.Model(&Concept{}).
+	query := omopDataSource.Db.Model(&Concept{}).
 		Select("concept_id, concept_name, concept_class_id as concept_type").
 		Where("concept_class_id in (?)", conceptTypes).
-		Order("concept_name").
-		Scan(&conceptItems)
+		Order("concept_name")
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&conceptItems)
 	if meta_result.Error != nil {
 		return nil, meta_result.Error
 	}
@@ -135,6 +142,7 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 
 // Retrieve concept name, type and missing ratio statistics for given list of conceptIds.
 // Assumption is that both OMOP and RESULTS schemas are on same DB.
+// TODO - remove this code as it is NOT used anymore by the frontend
 func (h Concept) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*ConceptStats, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
@@ -227,6 +235,8 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCoho
 	// which is a better performing SQL in this particular scenario:
 	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
 
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
 	meta_result := query.Group("observation.value_as_concept_id").
 		Scan(&conceptBreakdownList)
 

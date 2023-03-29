@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/uc-cdis/cohort-middleware/db"
+	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDefinitionI interface {
@@ -32,29 +33,35 @@ type CohortDefinitionStats struct {
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
-	meta_result := db2.Model(&CohortDefinition{}).
+	query := db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
-		Where("id = ?", id).
-		Scan(&cohortDefinition)
+		Where("id = ?", id)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortDefinition)
 	return cohortDefinition, meta_result.Error
 }
 
 func (h CohortDefinition) GetCohortDefinitionByName(name string) (*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
-	meta_result := db2.Model(&CohortDefinition{}).
+	query := db2.Model(&CohortDefinition{}).
 		Select("id, name, description").
-		Where("name = ?", name).
-		Scan(&cohortDefinition)
+		Where("name = ?", name)
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortDefinition)
 	return cohortDefinition, meta_result.Error
 }
 
 func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error) {
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition []*CohortDefinition
-	meta_result := db2.Model(&CohortDefinition{}).
-		Select("id, name, description").
-		Scan(&cohortDefinition)
+	query := db2.Model(&CohortDefinition{}).
+		Select("id, name, description")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortDefinition)
 	return cohortDefinition, meta_result.Error
 }
 
@@ -64,11 +71,13 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 	var dataSourceModel = new(Source)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	var cohortDefinitionStats []*CohortDefinitionStats
-	meta_result := resultsDataSource.Db.Model(&Cohort{}).
+	query := resultsDataSource.Db.Model(&Cohort{}).
 		Select("cohort_definition_id as id, '' as name, count(*) as cohort_size").
 		Group("cohort_definition_id").
-		Order("count(*) desc").
-		Scan(&cohortDefinitionStats)
+		Order("count(*) desc")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortDefinitionStats)
 
 	// add name details:
 	for _, cohortDefinitionStat := range cohortDefinitionStats {

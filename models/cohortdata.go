@@ -169,8 +169,8 @@ func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64
 			log.Printf("INFO: no issues found in observation table of data source %d.", source.SourceId)
 		} else {
 			log.Printf("WARNING: !!! found a total of %d `person` records with duplicated `observation` entries for one or more concepts "+
-				"where this is not expected (in data source=%d). These are the entries found: %v !!!",
-				len(personConceptAndCount), source.SourceId, personConceptAndCount)
+				"where this is not expected (in data source=%d).",
+				len(personConceptAndCount), source.SourceId)
 			countIssues += len(personConceptAndCount)
 		}
 	}

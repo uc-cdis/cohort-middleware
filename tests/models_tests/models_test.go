@@ -1,6 +1,7 @@
 package models_tests
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"strings"
@@ -607,6 +608,34 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 		}
 		previousSize = cohortDefinition.CohortSize
 	}
+}
+
+// Tests whether the code deals correctly with the (error) situation where
+// the `cohort_definition` and `cohort` tables are not in sync (more specifically
+// the situation where a cohort still exists in `cohort` table but not in `cohort_definition`).
+func TestGetAllCohortDefinitionsAndStatsOrderBySizeDescWhenCohortDefinitionIsMissing(t *testing.T) {
+	setUp(t)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	if len(cohortDefinitions) != len(allCohortDefinitions) {
+		t.Errorf("Found %d", len(cohortDefinitions))
+	}
+
+	// remove one cohort_definition record and verify that the list is now indeed smaller:
+	firstCohort := cohortDefinitions[0]
+	tests.ExecAtlasSQLString(fmt.Sprintf("delete from %s.cohort_definition where id = %d",
+		db.GetAtlasDB().Schema, firstCohort.Id))
+	cohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	if len(cohortDefinitions) != len(allCohortDefinitions)-1 {
+		t.Errorf("Number of cohor_definition records expected to be %d, found %d",
+			len(allCohortDefinitions)-1, len(cohortDefinitions))
+	}
+	// restore:
+	tests.ExecAtlasSQLString(fmt.Sprintf("insert into %s.cohort_definition (id,name,description) "+
+		"values (%d, '%s', '%s')",
+		db.GetAtlasDB().Schema,
+		firstCohort.Id,
+		firstCohort.Name,
+		firstCohort.Name))
 }
 
 func TestGetCohortName(t *testing.T) {

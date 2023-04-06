@@ -55,7 +55,7 @@ func ExecSQLScript(sqlFilePath string, sourceId int) {
 }
 
 func ExecAtlasSQLString(sqlString string) {
-	ExecSQLScript(sqlString, -1)
+	ExecSQLString(sqlString, -1)
 }
 
 func ExecSQLString(sqlString string, sourceId int) {

@@ -3,6 +3,8 @@ package models
 import (
 	"fmt"
 
+	"log"
+
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -80,11 +82,20 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 	meta_result := query.Scan(&cohortDefinitionStats)
 
 	// add name details:
+	finalList := []*CohortDefinitionStats{}
 	for _, cohortDefinitionStat := range cohortDefinitionStats {
 		var cohortDefinition, _ = h.GetCohortDefinitionById(cohortDefinitionStat.Id)
-		cohortDefinitionStat.Name = cohortDefinition.Name
+		if cohortDefinition == nil {
+			// unexpected issue: cohortDefinition not found. Warn and skip:
+			log.Printf("WARNING: found a cohort of size %d with missing cohort_definition record",
+				cohortDefinitionStat.CohortSize)
+			continue
+		} else {
+			cohortDefinitionStat.Name = cohortDefinition.Name
+			finalList = append(finalList, cohortDefinitionStat)
+		}
 	}
-	return cohortDefinitionStats, meta_result.Error
+	return finalList, meta_result.Error
 }
 
 func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {

@@ -6,9 +6,13 @@ import (
 	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	gintrace "gopkg.in/DataDog/dd-trace-go.v1/contrib/gin-gonic/gin"
+	"gopkg.in/DataDog/dd-trace-go.v1/ddtrace/tracer"
 )
 
 func NewRouter() *gin.Engine {
+	tracer.Start()
+	defer tracer.Stop()
+
 	r := gin.New()
 	r.Use(gin.Logger())
 	r.Use(gin.Recovery())

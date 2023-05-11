@@ -43,6 +43,14 @@ func Pos(value int64, list []int64) int {
 	return -1
 }
 
+func ParseInt64(strValue string) int64 {
+	value, error := strconv.ParseInt(strValue, 10, 64)
+	if error != nil {
+		panic(fmt.Sprintf("Invalid numeric value. Error: %v", error))
+	}
+	return value
+}
+
 func ContainsNonNil(errors []error) bool {
 	for _, v := range errors {
 		if v != nil {

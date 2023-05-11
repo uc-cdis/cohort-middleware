@@ -43,27 +43,6 @@ func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
 	c.Abort()
 }
 
-func (u ConceptController) RetrieveStatsBySourceIdAndCohortIdAndConceptIds(c *gin.Context) {
-
-	sourceId, cohortId, conceptIds, err := utils.ParseSourceIdAndCohortIdAndConceptIds(c)
-	if err != nil {
-		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusBadRequest, gin.H{"message": err.Error()})
-		c.Abort()
-		return
-	}
-
-	// call model method:
-	conceptStats, err := u.conceptModel.RetrieveStatsBySourceIdAndCohortIdAndConceptIds(sourceId, cohortId, conceptIds)
-	if err != nil {
-		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
-		c.Abort()
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"concepts": conceptStats})
-}
-
 func (u ConceptController) RetrieveInfoBySourceIdAndConceptIds(c *gin.Context) {
 
 	sourceId, conceptIds, err := utils.ParseSourceIdAndConceptIds(c)

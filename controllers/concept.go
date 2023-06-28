@@ -167,60 +167,8 @@ func generateRowForVariable(variableName string, breakdownConceptValuesToPeopleC
 	return row
 }
 
-func (u ConceptController) GetConceptVariablesAttritionRows(sourceId int, cohortId int, conceptIds []int64, breakdownConceptId int64, sortedConceptValues []string) ([][]string, error) {
-	conceptIdToName := make(map[int64]string)
-	conceptInformations, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
-	if err != nil {
-		return nil, fmt.Errorf("could not retrieve concept informations due to error: %s", err.Error())
-	}
-	for _, conceptInformation := range conceptInformations {
-		conceptIdToName[conceptInformation.ConceptId] = conceptInformation.ConceptName
-	}
-
-	var rows [][]string
-	for idx, conceptId := range conceptIds {
-		// run each query with a longer list of filterConceptIds, until the last query is run with them all:
-		filterConceptIds := conceptIds[0 : idx+1]
-		// use empty cohort pairs list:
-		filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
-		if err != nil {
-			return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v due to error: %s", filterConceptIds, err.Error())
-		}
-
-		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
-		variableName := conceptIdToName[conceptId]
-		log.Printf("Generating row for variable with name %s", variableName)
-		generatedRow := generateRowForVariable(variableName, conceptValuesToPeopleCount, sortedConceptValues)
-		rows = append(rows, generatedRow)
-	}
-
-	return rows, nil
-}
-
-func (u ConceptController) GetCustomDichotomousVariablesAttritionRows(sourceId int, cohortId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64, sortedConceptValues []string) ([][]string, error) {
-	// TODO - this function is very similar to GetConceptVariablesAttritionRows above and they can probably be merged.
-	var rows [][]string
-	for idx, cohortPair := range filterCohortPairs {
-		// run each query with the full list of filterConceptIds and an increasingly longer list of filterCohortPairs, until the last query is run with them all:
-		filterCohortPairs := filterCohortPairs[0 : idx+1]
-		breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
-		if err != nil {
-			return nil, fmt.Errorf("could not retrieve concept Breakdown for dichotomous variables %v due to error: %s", filterConceptIds, err.Error())
-		}
-
-		conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
-		variableName := cohortPair.ProvidedName
-		log.Printf("Generating row for variable...")
-		generatedRow := generateRowForVariable(variableName, conceptValuesToPeopleCount, sortedConceptValues)
-		rows = append(rows, generatedRow)
-	}
-
-	return rows, nil
-}
-
 func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
-	sourceId, cohortId, conceptIds, cohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesList(c)
+	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
@@ -245,7 +193,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId, cohortId, breakdownConceptId)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown for given cohortId", "error": err.Error()})
 		c.Abort()
 		return
 	}
@@ -255,32 +203,58 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	headerAndNonFilteredRow, err := u.GenerateHeaderAndNonFilteredRow(breakdownStats, sortedConceptValues, cohortName)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error generating concept breakdown header and cohort rows", "error": err.Error()})
 		c.Abort()
 		return
 	}
-
-	// append concepts to attrition table:
-	conceptVariablesAttritionRows, err := u.GetConceptVariablesAttritionRows(sourceId, cohortId, conceptIds, breakdownConceptId, sortedConceptValues)
+	otherAttritionRows, err := u.GetAttritionRowForConceptIdsAndCohortPairs(sourceId, cohortId, conceptIdsAndCohortPairs, breakdownConceptId, sortedConceptValues)
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with filtered conceptIds", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown rows for filter conceptIds and cohortPairs", "error": err.Error()})
 		c.Abort()
 		return
 	}
-	// append custom dichotomous items to attrition table:
-	customDichotomousVariablesAttritionRows, err := u.GetCustomDichotomousVariablesAttritionRows(sourceId, cohortId, conceptIds, cohortPairs, breakdownConceptId, sortedConceptValues)
-	if err != nil {
-		log.Printf("Error: %s", err.Error())
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept breakdown with custom dichotomous variables (aka cohortpairs)", "error": err.Error()})
-		c.Abort()
-		return
-	}
-
-	// concat all rows:
-	var allVariablesAttritionRows = append(conceptVariablesAttritionRows, customDichotomousVariablesAttritionRows...)
-	b := GenerateAttritionCSV(headerAndNonFilteredRow, allVariablesAttritionRows)
+	b := GenerateAttritionCSV(headerAndNonFilteredRow, otherAttritionRows)
 	c.String(http.StatusOK, b.String())
+}
+
+func (u ConceptController) GetAttritionRowForConceptIdsAndCohortPairs(sourceId int, cohortId int, conceptIdsAndCohortPairs []interface{}, breakdownConceptId int64, sortedConceptValues []string) ([][]string, error) {
+	var otherAttritionRows [][]string
+	for idx, conceptIdOrCohortPair := range conceptIdsAndCohortPairs {
+		// attrition filter: run each query with an increasingly longer list of filterConceptIdsAndCohortPairs, until the last query is run with them all:
+		filterConceptIdsAndCohortPairs := conceptIdsAndCohortPairs[0 : idx+1]
+
+		attritionRow, err := u.GetAttritionRowForConceptIdOrCohortPair(sourceId, cohortId, conceptIdOrCohortPair, filterConceptIdsAndCohortPairs, breakdownConceptId, sortedConceptValues)
+		if err != nil {
+			log.Printf("Error: %s", err.Error())
+			return nil, err
+		}
+		otherAttritionRows = append(otherAttritionRows, attritionRow)
+	}
+	return otherAttritionRows, nil
+}
+
+func (u ConceptController) GetAttritionRowForConceptIdOrCohortPair(sourceId int, cohortId int, conceptIdOrCohortPair interface{}, filterConceptIdsAndCohortPairs []interface{}, breakdownConceptId int64, sortedConceptValues []string) ([]string, error) {
+	filterConceptIds, filterCohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(filterConceptIdsAndCohortPairs)
+	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
+	if err != nil {
+		return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v dichotomous variables %v due to error: %s", filterConceptIds, filterCohortPairs, err.Error())
+	}
+	conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
+	variableName := ""
+	switch convertedItem := conceptIdOrCohortPair.(type) {
+	case int64:
+		conceptInformation, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptId(sourceId, convertedItem)
+		if err != nil {
+			return nil, fmt.Errorf("could not retrieve concept details for %v due to error: %s", convertedItem, err.Error())
+		}
+		variableName = conceptInformation.ConceptName
+	case utils.CustomDichotomousVariableDef:
+		variableName = convertedItem.ProvidedName
+	}
+	log.Printf("Generating row for variable with name %s", variableName)
+	generatedRow := generateRowForVariable(variableName, conceptValuesToPeopleCount, sortedConceptValues)
+	return generatedRow, nil
 }
 
 func getSortedConceptValues(breakdownStats []*models.ConceptBreakdown) []string {

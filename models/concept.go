@@ -8,6 +8,7 @@ import (
 
 type ConceptI interface {
 	RetriveAllBySourceId(sourceId int) ([]*Concept, error)
+	RetrieveInfoBySourceIdAndConceptId(sourceId int, conceptId int64) (*ConceptSimple, error)
 	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error)
 	RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)

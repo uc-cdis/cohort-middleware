@@ -102,27 +102,27 @@ func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int)
 //   {variable_type: "custom_dichotomous", provided_name: "name2", cohort_ids: [cohortM_id, cohortN_id]},
 //       ...
 // ]}
-// It returns the list of concept_id values and the list of custom dichotomous variable definitions.
-func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]int64, []CustomDichotomousVariableDef, error) {
+// It returns the list with all concept_id values and custom dichotomous variable definitions.
+func ParseConceptIdsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface{}, error) {
 	if c.Request == nil || c.Request.Body == nil {
-		return nil, nil, errors.New("bad request - no request body")
+		return nil, errors.New("bad request - no request body")
 	}
 	decoder := json.NewDecoder(c.Request.Body)
 	request := make(map[string][]map[string]interface{})
 	err := decoder.Decode(&request)
 	if err != nil {
 		log.Printf("Error: %s", err)
-		return nil, nil, err
+		return nil, err
 	}
 
 	variables := request["variables"]
-	conceptIds := []int64{}
-	variableDefinitions := []CustomDichotomousVariableDef{}
+	conceptIdsAndCohortPairs := make([]interface{}, 0)
+
 	// TODO - this parsing will throw a lot of "null pointer" errors since it does not validate if specific entries are found in the json before
 	// accessing them...needs to be fixed to throw better errors:
 	for _, variable := range variables {
 		if variable["variable_type"] == "concept" {
-			conceptIds = append(conceptIds, int64(variable["concept_id"].(float64)))
+			conceptIdsAndCohortPairs = append(conceptIdsAndCohortPairs, int64(variable["concept_id"].(float64)))
 		}
 		if variable["variable_type"] == "custom_dichotomous" {
 			cohortPair := []int{}
@@ -139,10 +139,21 @@ func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]int64, []CustomDichoto
 				CohortId2:    cohortPair[1],
 				ProvidedName: providedName,
 			}
-			variableDefinitions = append(variableDefinitions, customDichotomousVariableDef)
+			conceptIdsAndCohortPairs = append(conceptIdsAndCohortPairs, customDichotomousVariableDef)
 		}
 	}
-	return conceptIds, variableDefinitions, nil
+	return conceptIdsAndCohortPairs, nil
+}
+
+// deprecated: for backwards compatibility
+func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]int64, []CustomDichotomousVariableDef, error) {
+	conceptIdsAndCohortPairs, err := ParseConceptIdsAndDichotomousDefsAsSingleList(c)
+	if err != nil {
+		log.Printf("Error: %s", err)
+		return nil, nil, err
+	}
+	conceptIds, cohortPairs := GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	return conceptIds, cohortPairs, nil
 }
 
 func ParseSourceIdAndConceptIds(c *gin.Context) (int, []int64, error) {
@@ -217,16 +228,41 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 	return sourceId, cohortId, nil
 }
 
-// returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
+// separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list
+func GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]int64, []CustomDichotomousVariableDef) {
+	conceptIds := []int64{}
+	cohortPairs := []CustomDichotomousVariableDef{}
+	for _, item := range conceptIdsAndCohortPairs {
+		switch convertedItem := item.(type) {
+		case int64:
+			conceptIds = append(conceptIds, convertedItem)
+		case CustomDichotomousVariableDef:
+			cohortPairs = append(cohortPairs, convertedItem)
+		}
+	}
+	return conceptIds, cohortPairs
+}
+
+// deprecated: returns the conceptIds and cohortPairs as separate lists (for backwards compatibility)
 func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, []CustomDichotomousVariableDef, error) {
+	sourceId, cohortId, conceptIdsAndCohortPairs, err := ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
+	if err != nil {
+		return -1, -1, nil, nil, err
+	}
+	conceptIds, cohortPairs := GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	return sourceId, cohortId, conceptIds, cohortPairs, nil
+}
+
+// returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
+func ParseSourceIdAndCohortIdAndVariablesAsSingleList(c *gin.Context) (int, int, []interface{}, error) {
 	// parse and validate all parameters:
 	sourceId, cohortId, err := ParseSourceAndCohortId(c)
 	if err != nil {
-		return -1, -1, nil, nil, err
+		return -1, -1, nil, err
 	}
-	conceptIds, cohortPairs, err := ParseConceptIdsAndDichotomousDefs(c)
+	conceptIdsAndCohortPairs, err := ParseConceptIdsAndDichotomousDefsAsSingleList(c)
 	if err != nil {
-		return -1, -1, nil, nil, err
+		return -1, -1, nil, err
 	}
-	return sourceId, cohortId, conceptIds, cohortPairs, nil
+	return sourceId, cohortId, conceptIdsAndCohortPairs, nil
 }

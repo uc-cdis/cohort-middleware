@@ -1,8 +1,18 @@
-FROM quay.io/cdis/golang:1.18-bullseye as build-deps
+FROM public.ecr.aws/amazonlinux/amazonlinux:2023-minimal as base
+
+ARG TARGETOS
+ARG TARGETARCH
+
+ENV appname=cohort-middleware
 
 ENV CGO_ENABLED=0
-ENV GOOS=linux
-ENV GOARCH=amd64
+ENV GOOS=${TARGETOS}
+ENV GOARCH=${TARGETARCH}
+
+FROM base as builder
+RUN dnf install -y go \
+    && dnf clean all \
+    && rm -rf /var/cache/yum/
 
 WORKDIR $GOPATH/src/github.com/uc-cdis/cohort-middleware/
 
@@ -20,6 +30,6 @@ RUN GITCOMMIT=$(git rev-parse HEAD) \
     -o /cohort-middleware
 
 FROM scratch
-COPY --from=build-deps /etc/ssl/certs/ca-certificates.crt /etc/ssl/certs/
-COPY --from=build-deps /cohort-middleware /cohort-middleware
+COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-certificates.crt
+COPY --from=builder /cohort-middleware /cohort-middleware
 CMD ["/cohort-middleware"]

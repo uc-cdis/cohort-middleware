@@ -15,9 +15,7 @@ ENV GOARCH=${TARGETARCH}
 FROM base as builder
 WORKDIR $GOPATH/src/github.com/uc-cdis/cohort-middleware/
 
-COPY go.mod .
-COPY go.sum .
-
+COPY go.mod go.sum ./
 RUN go mod download -x
 
 COPY . .

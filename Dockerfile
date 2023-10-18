@@ -18,7 +18,7 @@ WORKDIR $GOPATH/src/github.com/uc-cdis/cohort-middleware/
 COPY go.mod .
 COPY go.sum .
 
-RUN go mod download
+RUN go mod download -x
 
 COPY . .
 

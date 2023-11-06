@@ -34,7 +34,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		// arborist will return with 200 if the user has been granted access to the cohort-middleware URL in ctx:
 		if resp.StatusCode != 200 {
 			// return Unauthorized otherwise:
-			log.Printf("Got response status %d from Arborist. Aborting this cohort-middleware request with 401...", resp.StatusCode)
+			log.Printf("Got response status %d from Arborist. Aborting this cohort-middleware request with 401....", resp.StatusCode)
 			ctx.AbortWithStatus(401)
 			return
 		}

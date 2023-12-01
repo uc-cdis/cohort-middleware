@@ -62,12 +62,18 @@ func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"cohort_definitions": cohortDefinitions})
 }
 
-func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.Context) {
 	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
 
 	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
+	teamProject := c.Param("teamproject")
+	if teamProject == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
+		c.Abort()
+		return
+	}
 	if err1 == nil {
-		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId)
+		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err.Error()})
 			c.Abort()

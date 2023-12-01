@@ -43,6 +43,15 @@ func Pos(value int64, list []int64) int {
 	return -1
 }
 
+func Contains(list []int, value int) bool {
+	for _, item := range list {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
 func ParseInt64(strValue string) int64 {
 	value, error := strconv.ParseInt(strValue, 10, 64)
 	if error != nil {
@@ -52,8 +61,8 @@ func ParseInt64(strValue string) int64 {
 }
 
 func ContainsNonNil(errors []error) bool {
-	for _, v := range errors {
-		if v != nil {
+	for _, item := range errors {
+		if item != nil {
 			return true
 		}
 	}

@@ -30,7 +30,7 @@ func NewRouter() *gin.Engine {
 		authorized.GET("/cohortdefinition/by-id/:id", cohortdefinitions.RetriveById)
 		authorized.GET("/cohortdefinition/by-name/:name", cohortdefinitions.RetriveByName)
 		authorized.GET("/cohortdefinitions", cohortdefinitions.RetriveAll)
-		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid", cohortdefinitions.RetriveStatsBySourceId)
+		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-team-project/:teamproject", cohortdefinitions.RetriveStatsBySourceIdAndTeamProject)
 
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition))

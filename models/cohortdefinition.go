@@ -13,7 +13,7 @@ type CohortDefinitionI interface {
 	GetCohortDefinitionById(id int) (*CohortDefinition, error)
 	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
-	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error)
+	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error)
 	GetCohortName(cohortId int) (string, error)
 }
 
@@ -67,7 +67,19 @@ func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	return cohortDefinition, meta_result.Error
 }
 
-func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error) {
+// Get the list of cohort_definition ids for a given "team project" (where "team project" is basically
+// a security role name of one of the roles in Atlas/WebAPI database).
+func (h CohortDefinition) GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error) {
+	db2 := db.GetAtlasDB().Db
+	var cohortDefinitionIds []int
+	query := db2.Table(db.GetAtlasDB().Schema+".cohort_definition_sec_role").
+		Select("cohort_definition_id").
+		Where("sec_role_name = ?", teamProject).
+		Scan(&cohortDefinitionIds)
+	return cohortDefinitionIds, query.Error
+}
+
+func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error) {
 
 	// Connect to source db and gather stats:
 	var dataSourceModel = new(Source)
@@ -80,6 +92,11 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&cohortDefinitionStats)
+
+	// get (from separate Atlas DB - hence not using JOIN above) the list of cohort_definition_ids
+	// that are allowed for the given teamProject:
+	allowedCohortDefinitionIds, _ := h.GetCohortDefinitionIdsForTeamProject(teamProject)
+	log.Printf("INFO: found %d cohorts for this team project", len(allowedCohortDefinitionIds))
 
 	// add name details:
 	finalList := []*CohortDefinitionStats{}
@@ -95,7 +112,15 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 			finalList = append(finalList, cohortDefinitionStat)
 		}
 	}
-	return finalList, meta_result.Error
+	// filter to keep only the allowed ones:
+	filteredFinalList := []*CohortDefinitionStats{}
+	for _, cohortDefinitionStat := range finalList {
+		if utils.Contains(allowedCohortDefinitionIds, cohortDefinitionStat.Id) {
+			filteredFinalList = append(filteredFinalList, cohortDefinitionStat)
+		}
+	}
+
+	return filteredFinalList, meta_result.Error
 }
 
 func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {

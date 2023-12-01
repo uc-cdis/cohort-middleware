@@ -33,7 +33,8 @@ values
     (1,'public',true),
     (1005,'teamprojectX',false),
     (1009,'teamprojectY',false),
-    (3000,'someotherrole',false)
+    (3000,'someotherrole',false),
+    (4000,'defaultteamproject',false)
 ;
 
 insert into atlas.sec_permission
@@ -52,7 +53,10 @@ values
     (1191, 'cohortdefinition:4:version:*:get', 'Get cohort version'),
     (1192, 'cohortdefinition:4:info:get', 'no description'),
     (1193, 'cohortdefinition:4:get', 'Get Cohort Definition by ID'),
-    (1194, 'cohortdefinition:4:version:get', 'Get list of cohort versions')
+    (1194, 'cohortdefinition:4:version:get', 'Get list of cohort versions'),
+    (2193, 'cohortdefinition:1:get', 'Get Cohort Definition by ID'),
+    (3193, 'cohortdefinition:3:get', 'Get Cohort Definition by ID'),
+    (4193, 'cohortdefinition:32:get', 'Get Cohort Definition by ID')
 ;
 
 insert into atlas.sec_role_permission
@@ -71,5 +75,22 @@ values
     (1464, 1009, 1191),
     (1465, 1009, 1192),
     (1466, 1009, 1193),
-    (1467, 1009, 1194)
+    (1467, 1009, 1194),
+    (2454, 4000, 1181),
+    (2455, 4000, 1182),
+    (2456, 4000, 1183),
+    (2457, 4000, 1184),
+    (2458, 4000, 1185),
+    (2459, 4000, 1186),
+    (2460, 4000, 1187),
+    (2461, 4000, 1188),
+    (2462, 4000, 1189),
+    (2463, 4000, 1190),
+    (2464, 4000, 1191),
+    (2465, 4000, 1192),
+    (2466, 4000, 1193),
+    (2467, 4000, 1194),
+    (2468, 4000, 2193),
+    (2469, 4000, 3193),
+    (2470, 4000, 4193)
 ;

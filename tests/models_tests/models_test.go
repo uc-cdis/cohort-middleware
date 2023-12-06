@@ -564,6 +564,38 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoH
 	}
 }
 
+func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testing.T) {
+	setUp(t)
+	cohortDefinitionId := 2
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    smallestCohort.Id,
+			CohortId2:    largestCohort.Id,
+			ProvidedName: "test"},
+	}
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionId, filterCohortPairs)
+	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+	if len(teamProjects) != 1 || teamProjects[0] != "defaultteamproject" {
+		t.Errorf("Expected to find only defaultteamproject")
+	}
+}
+
+func TestGetTeamProjectsThatMatchAllCohortDefinitionIds(t *testing.T) {
+	setUp(t)
+	cohortDefinitionId := 2
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortId1:    2,
+			CohortId2:    2,
+			ProvidedName: "test"},
+	}
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionId, filterCohortPairs)
+	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+	if len(teamProjects) != 2 {
+		t.Errorf("Expected to find two 'team projects' matching the cohort list, found %s", teamProjects)
+	}
+}
+
 func TestGetCohortDefinitionIdsForTeamProject(t *testing.T) {
 	setUp(t)
 	testTeamProject := "teamprojectX"

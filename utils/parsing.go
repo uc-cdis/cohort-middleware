@@ -275,3 +275,28 @@ func ParseSourceIdAndCohortIdAndVariablesAsSingleList(c *gin.Context) (int, int,
 	}
 	return sourceId, cohortId, conceptIdsAndCohortPairs, nil
 }
+
+func MakeUnique(input []int) []int {
+	uniqueMap := make(map[int]bool)
+	var uniqueList []int
+
+	for _, num := range input {
+		if !uniqueMap[num] {
+			uniqueMap[num] = true
+			uniqueList = append(uniqueList, num)
+		}
+	}
+	return uniqueList
+}
+
+func GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionId int, filterCohortPairs []CustomDichotomousVariableDef) []int {
+	var idsList []int
+	idsList = append(idsList, cohortDefinitionId)
+	if len(filterCohortPairs) > 0 {
+		for _, filterCohortPair := range filterCohortPairs {
+			idsList = append(idsList, filterCohortPair.CohortId1, filterCohortPair.CohortId2) // TODO - rename CohortId1/2 here to cohortDefinition1/2
+		}
+	}
+	uniqueIdsList := MakeUnique(idsList)
+	return uniqueIdsList
+}

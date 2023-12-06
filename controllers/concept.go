@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -87,7 +88,8 @@ func (u ConceptController) RetrieveInfoBySourceIdAndConceptTypes(c *gin.Context)
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {
 	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
-	if err != nil {
+	validRequest := middlewares.TeamProjectValidationForCohort(c, cohortId)
+	if err != nil || !validRequest {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
@@ -112,7 +114,8 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	sourceId, cohortId, conceptIds, cohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesList(c)
-	if err != nil {
+	validRequest := middlewares.TeamProjectValidation(c, cohortId, cohortPairs)
+	if err != nil || !validRequest {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
@@ -169,7 +172,9 @@ func generateRowForVariable(variableName string, breakdownConceptValuesToPeopleC
 
 func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
-	if err != nil {
+	_, cohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	validRequest := middlewares.TeamProjectValidation(c, cohortId, cohortPairs)
+	if err != nil || !validRequest {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()

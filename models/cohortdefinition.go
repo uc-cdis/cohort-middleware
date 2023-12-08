@@ -15,6 +15,8 @@ type CohortDefinitionI interface {
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error)
 	GetCohortName(cohortId int) (string, error)
+	GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error)
+	GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error)
 }
 
 type CohortDefinition struct {

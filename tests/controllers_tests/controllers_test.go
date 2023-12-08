@@ -96,6 +96,14 @@ type dummyCohortDefinitionDataModel struct{}
 
 var dummyModelReturnError bool = false
 
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error) {
+	return []int{1}, nil
+}
+
+func (h dummyCohortDefinitionDataModel) GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error) {
+	return []string{"test"}, nil
+}
+
 func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, error) {
 	return "dummy cohort name", nil
 }
@@ -127,7 +135,17 @@ func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitions() ([]*models.Coh
 	return nil, nil
 }
 
-var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel))
+type dummyTeamProjectAuthz struct{}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+	return true
+}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return true
+}
+
+var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
 
 type dummyConceptDataModel struct{}
 

@@ -18,10 +18,15 @@ import (
 type ConceptController struct {
 	conceptModel          models.ConceptI
 	cohortDefinitionModel models.CohortDefinitionI
+	teamProjectAuthz      middlewares.TeamProjectAuthzI
 }
 
-func NewConceptController(conceptModel models.ConceptI, cohortDefinitionModel models.CohortDefinitionI) ConceptController {
-	return ConceptController{conceptModel: conceptModel, cohortDefinitionModel: cohortDefinitionModel}
+func NewConceptController(conceptModel models.ConceptI, cohortDefinitionModel models.CohortDefinitionI, teamProjectAuthz middlewares.TeamProjectAuthzI) ConceptController {
+	return ConceptController{
+		conceptModel:          conceptModel,
+		cohortDefinitionModel: cohortDefinitionModel,
+		teamProjectAuthz:      teamProjectAuthz,
+	}
 }
 
 func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
@@ -88,7 +93,7 @@ func (u ConceptController) RetrieveInfoBySourceIdAndConceptTypes(c *gin.Context)
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {
 	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
-	validRequest := middlewares.TeamProjectValidationForCohort(c, cohortId)
+	validRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
 	if err != nil || !validRequest {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
@@ -114,7 +119,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	sourceId, cohortId, conceptIds, cohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesList(c)
-	validRequest := middlewares.TeamProjectValidation(c, cohortId, cohortPairs)
+	validRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
 	if err != nil || !validRequest {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
@@ -173,7 +178,7 @@ func generateRowForVariable(variableName string, breakdownConceptValuesToPeopleC
 func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
 	_, cohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
-	validRequest := middlewares.TeamProjectValidation(c, cohortId, cohortPairs)
+	validRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
 	if err != nil || !validRequest {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})

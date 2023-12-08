@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/tests"
 )
@@ -42,6 +43,7 @@ func tearDown() {
 
 func TestPrepareNewArboristRequest(t *testing.T) {
 	setUp(t)
+	config.Init("mocktest")
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Authorization", Value: "dummy_token_value"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
@@ -51,8 +53,7 @@ func TestPrepareNewArboristRequest(t *testing.T) {
 	}
 	u, _ := url.Parse("https://some-cohort-middl-server/api/abc/123")
 	requestContext.Request.URL = u
-	arboristEndpoint := "https://arboristdummyurl"
-	resultArboristRequest, error := middlewares.PrepareNewArboristRequest(requestContext, arboristEndpoint)
+	resultArboristRequest, error := middlewares.PrepareNewArboristRequest(requestContext)
 
 	expectedResult := "resource=/cohort-middleware/api/abc/123&service=cohort-middleware&method=access"
 	// check if expected result URL was produced:
@@ -63,12 +64,14 @@ func TestPrepareNewArboristRequest(t *testing.T) {
 
 func TestPrepareNewArboristRequestMissingToken(t *testing.T) {
 	setUp(t)
+	config.Init("mocktest")
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	arboristEndpoint := "https://arboristdummyurl"
-	_, error := middlewares.PrepareNewArboristRequest(requestContext, arboristEndpoint)
+	u, _ := url.Parse("https://some-cohort-middl-server/api/abc/123")
+	requestContext.Request.URL = u
+	_, error := middlewares.PrepareNewArboristRequest(requestContext)
 
 	// Params above are wrong, so request should abort:
 	if error.Error() != "missing Authorization header" {

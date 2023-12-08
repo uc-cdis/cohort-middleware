@@ -10,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
+	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
 )
 
@@ -76,5 +77,110 @@ func TestPrepareNewArboristRequestMissingToken(t *testing.T) {
 	// Params above are wrong, so request should abort:
 	if error.Error() != "missing Authorization header" {
 		t.Errorf("Expected error")
+	}
+}
+
+type dummyHttpClient struct {
+	statusCode int
+	nrCalls    int
+}
+
+func (h *dummyHttpClient) Do(req *http.Request) (*http.Response, error) {
+	h.nrCalls++
+	return &http.Response{StatusCode: h.statusCode}, nil
+}
+
+type dummyCohortDefinitionDataModel struct{}
+
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error) {
+	return nil, nil
+}
+
+func (h dummyCohortDefinitionDataModel) GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error) {
+	// dummy switch just to support two test scenarios:
+	if uniqueCohortDefinitionIdsList[0] == 0 {
+		return nil, nil
+	} else {
+		return []string{"teamProject1", "teamProject2"}, nil
+	}
+}
+
+func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, error) {
+	return "dummy cohort name", nil
+}
+
+func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*models.CohortDefinitionStats, error) {
+	return nil, nil
+}
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionById(id int) (*models.CohortDefinition, error) {
+	return nil, nil
+}
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionByName(name string) (*models.CohortDefinition, error) {
+	return nil, nil
+}
+func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitions() ([]*models.CohortDefinition, error) {
+	return nil, nil
+}
+
+func TestTeamProjectValidation(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 200
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel),
+		dummyHttpClient)
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {"dummy_token_value"},
+	}
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, 1, nil)
+	if result == false {
+		t.Errorf("Expected TeamProjectValidation result to be 'true'")
+	}
+	if dummyHttpClient.nrCalls != 1 {
+		t.Errorf("Expected dummyHttpClient to have been only once")
+	}
+}
+
+func TestTeamProjectValidationArborist401(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 401
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel),
+		dummyHttpClient)
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {"dummy_token_value"},
+	}
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, 1, nil)
+	if result == true {
+		t.Errorf("Expected TeamProjectValidation result to be 'false'")
+	}
+	if dummyHttpClient.nrCalls <= 1 {
+		t.Errorf("Expected dummyHttpClient to have been called more than once")
+	}
+}
+
+func TestTeamProjectValidationNoTeamProjectMatchingAllCohortDefinitions(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 200
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel),
+		dummyHttpClient)
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {"dummy_token_value"},
+	}
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, 0, nil)
+	if result == true {
+		t.Errorf("Expected TeamProjectValidation result to be 'false'")
+	}
+	if dummyHttpClient.nrCalls > 0 {
+		t.Errorf("Expected dummyHttpClient to NOT have been called")
 	}
 }

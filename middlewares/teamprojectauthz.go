@@ -14,14 +14,22 @@ type TeamProjectAuthzI interface {
 	TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
 }
 
-type TeamProjectAuthz struct {
-	cohortDefinitionModel models.CohortDefinitionI
+type HttpClientI interface {
+	Do(req *http.Request) (*http.Response, error)
 }
 
-func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI) TeamProjectAuthz {
-	return TeamProjectAuthz{cohortDefinitionModel: cohortDefinitionModel}
+type TeamProjectAuthz struct {
+	cohortDefinitionModel models.CohortDefinitionI
+	httpClient            HttpClientI
 }
-func hasAccessToAtLeastOne(ctx *gin.Context, teamProjects []string) bool {
+
+func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI, httpClient HttpClientI) TeamProjectAuthz {
+	return TeamProjectAuthz{
+		cohortDefinitionModel: cohortDefinitionModel,
+		httpClient:            httpClient,
+	}
+}
+func (u TeamProjectAuthz) HasAccessToAtLeastOne(ctx *gin.Context, teamProjects []string) bool {
 
 	// query Arborist and return as soon as one of the teamProjects access check returns 200:
 	for _, teamProject := range teamProjects {
@@ -33,16 +41,16 @@ func hasAccessToAtLeastOne(ctx *gin.Context, teamProjects []string) bool {
 			ctx.AbortWithStatus(500)
 			panic("Error while preparing Arborist request")
 		}
-		client := &http.Client{}
 		// send the request to Arborist:
-		resp, _ := client.Do(req)
+		resp, _ := u.httpClient.Do(req)
+		log.Printf("Got response status %d from Arborist...", resp.StatusCode)
 
 		// arborist will return with 200 if the user has been granted access to the cohort-middleware URL in ctx:
 		if resp.StatusCode == 200 {
 			return true
 		} else {
 			// unauthorized or otherwise:
-			log.Printf("Got response status %d from Arborist...", resp.StatusCode)
+			log.Printf("Status %d does NOT give access to team project...", resp.StatusCode)
 		}
 	}
 	return false
@@ -65,7 +73,7 @@ func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefiniti
 		log.Printf("Invalid request error: could not find a 'team project' that is associated to ALL the cohorts present in this request")
 		return false
 	}
-	if !hasAccessToAtLeastOne(ctx, teamProjects) {
+	if !u.HasAccessToAtLeastOne(ctx, teamProjects) {
 		log.Printf("Invalid request error: user does not have access to any of the 'team projects' associated with the cohorts in this request")
 		return false
 	}

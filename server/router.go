@@ -1,6 +1,8 @@
 package server
 
 import (
+	"net/http"
+
 	"github.com/gin-gonic/gin"
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
@@ -33,7 +35,8 @@ func NewRouter() *gin.Engine {
 		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-team-project/:teamproject", cohortdefinitions.RetriveStatsBySourceIdAndTeamProject)
 
 		// concept endpoints:
-		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition), *new(middlewares.TeamProjectAuthz))
+		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition),
+			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
 		authorized.GET("/concept/by-source-id/:sourceid", concepts.RetriveAllBySourceId)
 		authorized.POST("/concept/by-source-id/:sourceid", concepts.RetrieveInfoBySourceIdAndConceptIds)
 		authorized.POST("/concept/by-source-id/:sourceid/by-type", concepts.RetrieveInfoBySourceIdAndConceptTypes)

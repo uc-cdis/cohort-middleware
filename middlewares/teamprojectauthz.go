@@ -29,7 +29,7 @@ func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI, httpCli
 		httpClient:            httpClient,
 	}
 }
-func (u TeamProjectAuthz) HasAccessToAtLeastOne(ctx *gin.Context, teamProjects []string) bool {
+func (u TeamProjectAuthz) hasAccessToAtLeastOne(ctx *gin.Context, teamProjects []string) bool {
 
 	// query Arborist and return as soon as one of the teamProjects access check returns 200:
 	for _, teamProject := range teamProjects {
@@ -73,7 +73,7 @@ func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefiniti
 		log.Printf("Invalid request error: could not find a 'team project' that is associated to ALL the cohorts present in this request")
 		return false
 	}
-	if !u.HasAccessToAtLeastOne(ctx, teamProjects) {
+	if !u.hasAccessToAtLeastOne(ctx, teamProjects) {
 		log.Printf("Invalid request error: user does not have access to any of the 'team projects' associated with the cohorts in this request")
 		return false
 	}

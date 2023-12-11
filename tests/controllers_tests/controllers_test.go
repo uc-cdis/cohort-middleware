@@ -145,7 +145,18 @@ func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDef
 	return true
 }
 
+type dummyFailingTeamProjectAuthz struct{}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return false
+}
+
 var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
+var conceptControllerWithFailingTeamProjectAuthz = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyFailingTeamProjectAuthz))
 
 type dummyConceptDataModel struct{}
 
@@ -461,6 +472,34 @@ func TestRetriveByIdModelError(t *testing.T) {
 	}
 }
 
+func TestRetrieveBreakdownStatsBySourceIdAndCohortId(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortId(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
+		t.Errorf("Expected data in result")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	conceptControllerWithFailingTeamProjectAuthz.RetrieveBreakdownStatsBySourceIdAndCohortId(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
+}
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -478,6 +517,18 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
 		t.Errorf("Expected data in result")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	conceptControllerWithFailingTeamProjectAuthz.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
 	}
 }
 
@@ -898,5 +949,17 @@ func TestRetrieveAttritionTable(t *testing.T) {
 				expectedLine, csvLines[i])
 		}
 		i++
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	conceptControllerWithFailingTeamProjectAuthz.RetrieveAttritionTable(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
 	}
 }

@@ -93,13 +93,20 @@ func (u ConceptController) RetrieveInfoBySourceIdAndConceptTypes(c *gin.Context)
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Context) {
 	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
-	validRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
-	if err != nil || !validRequest {
+	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	breakdownConceptId, err := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
@@ -119,13 +126,20 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 
 func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(c *gin.Context) {
 	sourceId, cohortId, conceptIds, cohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesList(c)
-	validRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
-	if err != nil || !validRequest {
+	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	breakdownConceptId, err := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
@@ -178,13 +192,20 @@ func generateRowForVariable(variableName string, breakdownConceptValuesToPeopleC
 func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
 	_, cohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
-	validRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
-	if err != nil || !validRequest {
+	if err != nil {
 		log.Printf("Error: %s", err.Error())
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	breakdownConceptId, err := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err != nil {
 		log.Printf("Error: %s", err.Error())

@@ -108,19 +108,15 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 				cohortDefinitionStat.CohortSize)
 			continue
 		} else {
-			cohortDefinitionStat.Name = cohortDefinition.Name
-			finalList = append(finalList, cohortDefinitionStat)
-		}
-	}
-	// filter to keep only the allowed ones:
-	filteredFinalList := []*CohortDefinitionStats{}
-	for _, cohortDefinitionStat := range finalList {
-		if utils.Contains(allowedCohortDefinitionIds, cohortDefinitionStat.Id) {
-			filteredFinalList = append(filteredFinalList, cohortDefinitionStat)
+			// filter to keep only the allowed ones:
+			if utils.Contains(allowedCohortDefinitionIds, cohortDefinitionStat.Id) {
+				cohortDefinitionStat.Name = cohortDefinition.Name
+				finalList = append(finalList, cohortDefinitionStat)
+			}
 		}
 	}
 
-	return filteredFinalList, meta_result.Error
+	return finalList, meta_result.Error
 }
 
 func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {

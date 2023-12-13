@@ -100,7 +100,7 @@ func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, err
 	return "dummy cohort name", nil
 }
 
-func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*models.CohortDefinitionStats, error) {
+func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
 		{Id: 1, CohortSize: 10, Name: "name1"},
 		{Id: 2, CohortSize: 22, Name: "name2"},
@@ -340,22 +340,23 @@ func TestGenerateCSV(t *testing.T) {
 	}
 }
 
-func TestRetriveStatsBySourceIdWrongParams(t *testing.T) {
+func TestRetriveStatsBySourceIdAndTeamProjectWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionController.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	// Params above are wrong, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
 }
 
-func TestRetriveStatsBySourceIdDbPanic(t *testing.T) {
+func TestRetriveStatsBySourceIdAndTeamProjectDbPanic(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 
 	defer func() {
@@ -366,16 +367,33 @@ func TestRetriveStatsBySourceIdDbPanic(t *testing.T) {
 			}
 		}
 	}()
-	cohortDefinitionControllerNeedsDb.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionControllerNeedsDb.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	t.Errorf("Expected error")
 }
 
-func TestRetriveStatsBySourceId(t *testing.T) {
+func TestRetriveStatsBySourceIdAndTeamProjectCheckMandatoryTeamProject(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionController.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	// Params above are wrong, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "team-project is a mandatory parameter") {
+		t.Errorf("Expected error about mandatory team-project")
+	}
+}
+
+func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
 	// expect result with all of the dummy data:

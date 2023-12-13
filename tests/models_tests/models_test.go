@@ -27,6 +27,7 @@ var allConceptIds []int64
 var dummyContinuousConceptId = tests.GetTestDummyContinuousConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
+var defaultTeamProject = "defaultteamproject"
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -47,7 +48,7 @@ func setupSuite() {
 
 	// initialize some handy variables to use in tests below:
 	// (see also tests/setup_local_db/test_data_results_and_cdm.sql for these test cohort details)
-	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	largestCohort = allCohortDefinitions[0]
 	secondLargestCohort = allCohortDefinitions[2]
 	extendedCopyOfSecondLargestCohort = allCohortDefinitions[1]
@@ -563,11 +564,29 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoH
 	}
 }
 
+func TestGetCohortDefinitionIdsForTeamProject(t *testing.T) {
+	setUp(t)
+	testTeamProject := "teamprojectX"
+	allowedCohortDefinitionIds, _ := cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(testTeamProject)
+	if len(allowedCohortDefinitionIds) != 1 {
+		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitionIds))
+	}
+	// test data is crafted in such a way that the default "team project" has access to all
+	// the cohorts. Check if this is indeed the case:
+	testTeamProject = defaultTeamProject
+	allowedCohortDefinitionIds, _ = cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(testTeamProject)
+	allCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitions()
+	if len(allCohortDefinitions) != len(allowedCohortDefinitionIds) && len(allCohortDefinitions) > 1 {
+		t.Errorf("Found %d, expected %d", len(allowedCohortDefinitionIds), len(allCohortDefinitions))
+	}
+}
+
 func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	if len(cohortDefinitions) != len(allCohortDefinitions) {
-		t.Errorf("Found %d", len(cohortDefinitions))
+		t.Errorf("Found %d, expected %d", len(cohortDefinitions), len(allCohortDefinitions))
 	}
 	// check if stats fields are filled and if order is as expected:
 	previousSize := 1000000
@@ -580,6 +599,24 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 		}
 		previousSize = cohortDefinition.CohortSize
 	}
+
+	// some extra tests to cover also the teamProject option for this method:
+	testTeamProject := "teamprojectX"
+	allowedCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 1 {
+		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
+	if len(cohortDefinitions) <= len(allowedCohortDefinitions) {
+		t.Errorf("Expected list of projects for '%s' to be larger than for %s",
+			defaultTeamProject, testTeamProject)
+	}
+	testTeamProject = "teamprojectNonExisting"
+	allowedCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 0 {
+		t.Errorf("Expected teamProject '%s' to have NO cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
 }
 
 // Tests whether the code deals correctly with the (error) situation where
@@ -587,7 +624,7 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 // the situation where a cohort still exists in `cohort` table but not in `cohort_definition`).
 func TestGetAllCohortDefinitionsAndStatsOrderBySizeDescWhenCohortDefinitionIsMissing(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	if len(cohortDefinitions) != len(allCohortDefinitions) {
 		t.Errorf("Found %d", len(cohortDefinitions))
 	}
@@ -596,7 +633,7 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDescWhenCohortDefinitionIsMis
 	firstCohort := cohortDefinitions[0]
 	tests.ExecAtlasSQLString(fmt.Sprintf("delete from %s.cohort_definition where id = %d",
 		db.GetAtlasDB().Schema, firstCohort.Id))
-	cohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	if len(cohortDefinitions) != len(allCohortDefinitions)-1 {
 		t.Errorf("Number of cohor_definition records expected to be %d, found %d",
 			len(allCohortDefinitions)-1, len(cohortDefinitions))
@@ -685,7 +722,7 @@ func TestQueryFilterByConceptIdsHelper(t *testing.T) {
 
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	var sumNumeric float32 = 0
 	textConcat := ""
 	classIdConcat := ""
@@ -737,7 +774,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	// Tests if the method returns an error when query fails.
 
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 
 	// break something in the Results schema to cause a query failure in the next method:
 	tests.BreakSomething(models.Results, "cohort", "cohort_definition_id")

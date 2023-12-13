@@ -37,3 +37,52 @@ CREATE TABLE atlas.cohort_definition
     modified_by_id  integer,
     CONSTRAINT PK_cohort_definition PRIMARY KEY (id)
 );
+
+CREATE TABLE atlas.sec_role
+(
+    id integer NOT NULL,
+    name varchar(255) ,
+    system_role boolean NOT NULL DEFAULT false,
+    CONSTRAINT pk_sec_role PRIMARY KEY (id),
+    CONSTRAINT sec_role_name_uq UNIQUE (name, system_role)
+);
+
+CREATE TABLE atlas.sec_permission
+(
+    id integer NOT NULL,
+    value varchar(255) NOT NULL,
+    description varchar(255),
+    CONSTRAINT pk_sec_permission PRIMARY KEY (id),
+    CONSTRAINT permission_unique UNIQUE (value)
+);
+
+CREATE TABLE atlas.sec_role_permission
+(
+    id integer NOT NULL,
+    role_id integer NOT NULL,
+    permission_id integer NOT NULL,
+    status varchar(255),
+    CONSTRAINT pk_sec_role_permission PRIMARY KEY (id),
+    CONSTRAINT role_permission_unique UNIQUE (role_id, permission_id),
+    CONSTRAINT fk_role_permission_to_permission FOREIGN KEY (permission_id)
+        REFERENCES atlas.sec_permission (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION,
+    CONSTRAINT fk_role_permission_to_role FOREIGN KEY (role_id)
+        REFERENCES atlas.sec_role (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+);
+
+CREATE VIEW atlas.COHORT_DEFINITION_SEC_ROLE AS
+  select
+    distinct cast(regexp_replace(sec_permission.value,
+         '^cohortdefinition:([0-9]+):.*','\1') as integer) as cohort_definition_id,
+    sec_role.name as sec_role_name
+  from
+    atlas.sec_role
+    inner join atlas.sec_role_permission on sec_role.id = sec_role_permission.role_id
+    inner join atlas.sec_permission on sec_role_permission.permission_id = sec_permission.id
+  where
+    sec_permission.value ~ 'cohortdefinition:[0-9]+'
+;

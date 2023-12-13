@@ -631,6 +631,24 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 		}
 		previousSize = cohortDefinition.CohortSize
 	}
+
+	// some extra tests to cover also the teamProject option for this method:
+	testTeamProject := "teamprojectX"
+	allowedCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 1 {
+		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
+	if len(cohortDefinitions) <= len(allowedCohortDefinitions) {
+		t.Errorf("Expected list of projects for '%s' to be larger than for %s",
+			defaultTeamProject, testTeamProject)
+	}
+	testTeamProject = "teamprojectNonExisting"
+	allowedCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 0 {
+		t.Errorf("Expected teamProject '%s' to have NO cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
 }
 
 // Tests whether the code deals correctly with the (error) situation where

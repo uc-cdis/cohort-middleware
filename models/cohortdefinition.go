@@ -15,6 +15,8 @@ type CohortDefinitionI interface {
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error)
 	GetCohortName(cohortId int) (string, error)
+	GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error)
+	GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error)
 }
 
 type CohortDefinition struct {
@@ -65,6 +67,23 @@ func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	defer cancel()
 	meta_result := query.Scan(&cohortDefinition)
 	return cohortDefinition, meta_result.Error
+}
+
+// Returns any "team project" entries that are matched to _each and every one_ of the
+// cohort definition ids found in uniqueCohortDefinitionIdsList.
+func (h CohortDefinition) GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error) {
+
+	db2 := db.GetAtlasDB().Db
+	var teamProjects []string
+	// Find any roles that are paired to each and every one of the cohort_definition_id values.
+	// Roles that ony match part of the values are filtered out by the having(count) clause:
+	query := db2.Table(db.GetAtlasDB().Schema+".cohort_definition_sec_role").
+		Select("sec_role_name").
+		Where("cohort_definition_id in (?)", uniqueCohortDefinitionIdsList).
+		Group("sec_role_name").
+		Having("count(DISTINCT cohort_definition_id) = ?", len(uniqueCohortDefinitionIdsList)).
+		Scan(&teamProjects)
+	return teamProjects, query.Error
 }
 
 // Get the list of cohort_definition ids for a given "team project" (where "team project" is basically

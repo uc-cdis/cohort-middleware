@@ -10,6 +10,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -17,10 +18,15 @@ import (
 type ConceptController struct {
 	conceptModel          models.ConceptI
 	cohortDefinitionModel models.CohortDefinitionI
+	teamProjectAuthz      middlewares.TeamProjectAuthzI
 }
 
-func NewConceptController(conceptModel models.ConceptI, cohortDefinitionModel models.CohortDefinitionI) ConceptController {
-	return ConceptController{conceptModel: conceptModel, cohortDefinitionModel: cohortDefinitionModel}
+func NewConceptController(conceptModel models.ConceptI, cohortDefinitionModel models.CohortDefinitionI, teamProjectAuthz middlewares.TeamProjectAuthzI) ConceptController {
+	return ConceptController{
+		conceptModel:          conceptModel,
+		cohortDefinitionModel: cohortDefinitionModel,
+		teamProjectAuthz:      teamProjectAuthz,
+	}
 }
 
 func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
@@ -93,6 +99,14 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 		c.Abort()
 		return
 	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	breakdownConceptId, err := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
@@ -118,6 +132,14 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariabl
 		c.Abort()
 		return
 	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	breakdownConceptId, err := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err != nil {
 		log.Printf("Error: %s", err.Error())
@@ -175,6 +197,15 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	_, cohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, cohortId, cohortPairs)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	breakdownConceptId, err := utils.ParseBigNumericArg(c, "breakdownconceptid")
 	if err != nil {
 		log.Printf("Error: %s", err.Error())

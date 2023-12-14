@@ -9,16 +9,21 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDataController struct {
-	cohortDataModel models.CohortDataI
+	cohortDataModel  models.CohortDataI
+	teamProjectAuthz middlewares.TeamProjectAuthzI
 }
 
-func NewCohortDataController(cohortDataModel models.CohortDataI) CohortDataController {
-	return CohortDataController{cohortDataModel: cohortDataModel}
+func NewCohortDataController(cohortDataModel models.CohortDataI, teamProjectAuthz middlewares.TeamProjectAuthzI) CohortDataController {
+	return CohortDataController{
+		cohortDataModel:  cohortDataModel,
+		teamProjectAuthz: teamProjectAuthz,
+	}
 }
 
 func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Context) {
@@ -43,6 +48,15 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
 	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
+
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, uniqueCohortDefinitionIdsList)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 
 	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, histogramConceptId, filterConceptIds, cohortPairs)
 	if err != nil {
@@ -84,6 +98,15 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
+
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, uniqueCohortDefinitionIdsList)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -229,6 +252,15 @@ func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFilteringOnConcep
 	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
 	conceptIds, cohortPairs, errors[3] = utils.ParseConceptIdsAndDichotomousDefs(c)
+
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{caseCohortId, controlCohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, uniqueCohortDefinitionIdsList)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 
 	if utils.ContainsNonNil(errors) {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})

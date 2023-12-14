@@ -49,7 +49,8 @@ func tearDown() {
 	log.Println("teardown for test")
 }
 
-var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel))
+var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyTeamProjectAuthz))
+var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
 var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition))
@@ -145,6 +146,10 @@ func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDef
 	return true
 }
 
+func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+	return true
+}
+
 type dummyFailingTeamProjectAuthz struct{}
 
 func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
@@ -152,6 +157,10 @@ func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Co
 }
 
 func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
 	return false
 }
 
@@ -258,6 +267,18 @@ func TestRetrieveHistogramForCohortIdAndConceptIdWithCorrectParams(t *testing.T)
 	if !strings.Contains(result.CustomResponseWriterOut, "bins") {
 		t.Errorf("Expected output starting with 'bins,...'")
 	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveHistogramForCohortIdAndConceptId(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
 }
 
 func TestRetrieveDataBySourceIdAndCohortIdAndVariablesWrongParams(t *testing.T) {
@@ -290,6 +311,18 @@ func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T
 	if !strings.Contains(result.CustomResponseWriterOut, "sample.id,") {
 		t.Errorf("Expected output starting with 'sample.id,...'")
 	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
 }
 
 func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) {
@@ -311,6 +344,18 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap") {
 		t.Errorf("Expected output containing 'case_control_overlap...'")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
 	}
 }
 

@@ -289,9 +289,9 @@ func MakeUnique(input []int) []int {
 	return uniqueList
 }
 
-func GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionId int, filterCohortPairs []CustomDichotomousVariableDef) []int {
+func GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionIds []int, filterCohortPairs []CustomDichotomousVariableDef) []int {
 	var idsList []int
-	idsList = append(idsList, cohortDefinitionId)
+	idsList = append(idsList, cohortDefinitionIds...)
 	if len(filterCohortPairs) > 0 {
 		for _, filterCohortPair := range filterCohortPairs {
 			idsList = append(idsList, filterCohortPair.CohortDefinitionId1, filterCohortPair.CohortDefinitionId2)

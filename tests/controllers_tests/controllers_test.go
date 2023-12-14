@@ -717,14 +717,14 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 		int64(1234),
 		int64(5678),
 		utils.CustomDichotomousVariableDef{
-			CohortId1:    1,
-			CohortId2:    2,
-			ProvidedName: "testA12"},
+			CohortDefinitionId1: 1,
+			CohortDefinitionId2: 2,
+			ProvidedName:        "testA12"},
 		int64(2090006880),
 		utils.CustomDichotomousVariableDef{
-			CohortId1:    3,
-			CohortId2:    4,
-			ProvidedName: "testB34"},
+			CohortDefinitionId1: 3,
+			CohortDefinitionId2: 4,
+			ProvidedName:        "testB34"},
 	}
 
 	result, _ := conceptController.GetAttritionRowForConceptIdsAndCohortPairs(sourceId, cohortId, conceptIdsAndCohortPairs, breakdownConceptId, sortedConceptValues)
@@ -771,9 +771,9 @@ func TestGenerateCompleteCSV(t *testing.T) {
 
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    2,
-			CohortId2:    3,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: 3,
+			ProvidedName:        "test"},
 	}
 
 	b := controllers.GenerateCompleteCSV(partialCsv, personIdToCSVValues, cohortPairs)
@@ -798,9 +798,9 @@ func TestRetrievePeopleIdAndCohort(t *testing.T) {
 	cohortId := 1
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    2,
-			CohortId2:    3,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: 3,
+			ProvidedName:        "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{
@@ -839,9 +839,9 @@ func TestRetrievePeopleIdAndCohortNonExistingCohortPair(t *testing.T) {
 	cohortId := 1
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    4,
-			CohortId2:    5,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 4,
+			CohortDefinitionId2: 5,
+			ProvidedName:        "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{
@@ -880,9 +880,9 @@ func TestRetrievePeopleIdAndCohortOverlappingCohortPair(t *testing.T) {
 	cohortId := 1
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    1,
-			CohortId2:    1,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 1,
+			CohortDefinitionId2: 1,
+			ProvidedName:        "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{

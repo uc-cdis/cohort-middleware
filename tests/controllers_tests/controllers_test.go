@@ -478,45 +478,6 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	}
 }
 
-func TestRetriveByIdWrongParam(t *testing.T) {
-	setUp(t)
-	requestContext := new(gin.Context)
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionController.RetriveById(requestContext)
-	// Params above are wrong, so request should abort:
-	if !requestContext.IsAborted() {
-		t.Errorf("Expected aborted request")
-	}
-}
-
-func TestRetriveById(t *testing.T) {
-	setUp(t)
-	requestContext := new(gin.Context)
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "id", Value: "1"})
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionController.RetriveById(requestContext)
-	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
-	// expect result with dummy data:
-	if !strings.Contains(result.CustomResponseWriterOut, "test 1") {
-		t.Errorf("Expected data in result")
-	}
-}
-
-func TestRetriveByIdModelError(t *testing.T) {
-	setUp(t)
-	requestContext := new(gin.Context)
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "id", Value: "1"})
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	// set flag to let mock model layer return error instead of mock data:
-	dummyModelReturnError = true
-	cohortDefinitionController.RetriveById(requestContext)
-	if !requestContext.IsAborted() {
-		t.Errorf("Expected aborted request")
-	}
-}
-
 func TestRetrieveBreakdownStatsBySourceIdAndCohortId(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)

@@ -11,7 +11,7 @@ import (
 
 type TeamProjectAuthzI interface {
 	TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool
-	TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
+	TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
 	TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool
 }
 
@@ -59,12 +59,12 @@ func (u TeamProjectAuthz) hasAccessToAtLeastOne(ctx *gin.Context, teamProjects [
 
 func (u TeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	return u.TeamProjectValidation(ctx, cohortDefinitionId, filterCohortPairs)
+	return u.TeamProjectValidation(ctx, []int{cohortDefinitionId}, filterCohortPairs)
 }
 
-func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
 
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionIds, filterCohortPairs)
 	return u.TeamProjectValidationForCohortIdsList(ctx, uniqueCohortDefinitionIdsList)
 }
 

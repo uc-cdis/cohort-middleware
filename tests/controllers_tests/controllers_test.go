@@ -142,7 +142,7 @@ func (h dummyTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, 
 	return true
 }
 
-func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
 	return true
 }
 
@@ -156,7 +156,7 @@ func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Co
 	return false
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionId int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
 	return false
 }
 

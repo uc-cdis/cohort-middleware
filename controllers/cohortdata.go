@@ -49,8 +49,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 	cohortId, _ := strconv.Atoi(cohortIdStr)
 	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
 
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortId}, cohortPairs)
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, uniqueCohortDefinitionIdsList)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
@@ -99,8 +98,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
 
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortId}, cohortPairs)
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, uniqueCohortDefinitionIdsList)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
@@ -253,8 +251,7 @@ func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFilteringOnConcep
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
 	conceptIds, cohortPairs, errors[3] = utils.ParseConceptIdsAndDichotomousDefs(c)
 
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{caseCohortId, controlCohortId}, cohortPairs)
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, uniqueCohortDefinitionIdsList)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{caseCohortId, controlCohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})

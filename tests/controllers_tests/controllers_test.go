@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -111,9 +112,9 @@ func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, err
 
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
-		{Id: 1, CohortSize: 10, Name: "name1"},
-		{Id: 2, CohortSize: 22, Name: "name2"},
-		{Id: 3, CohortSize: 33, Name: "name3"},
+		{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+		{Id: 2, CohortSize: 22, Name: "name2_" + teamProject},
+		{Id: 3, CohortSize: 33, Name: "name3_" + teamProject},
 	}
 	return cohortDefinitionStats, nil
 }
@@ -430,7 +431,8 @@ func TestRetriveStatsBySourceIdAndTeamProjectDbPanic(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	requestContext.Request.URL.RawQuery = "team-project=dummy-team-project"
 	requestContext.Writer = new(tests.CustomResponseWriter)
 
 	defer func() {
@@ -465,15 +467,18 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
+	//requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
 	// expect result with all of the dummy data:
-	if !strings.Contains(result.CustomResponseWriterOut, "name1") ||
-		!strings.Contains(result.CustomResponseWriterOut, "name2") ||
-		!strings.Contains(result.CustomResponseWriterOut, "name3") {
+	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
 		t.Errorf("Expected 3 rows in result")
 	}
 }

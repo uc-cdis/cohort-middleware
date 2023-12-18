@@ -18,9 +18,8 @@ func NewCohortDefinitionController(cohortDefinitionModel models.CohortDefinition
 
 func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.Context) {
 	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
-
 	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
-	teamProject := c.Param("teamproject")
+	teamProject := c.Query("team-project")
 	if teamProject == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
 		c.Abort()

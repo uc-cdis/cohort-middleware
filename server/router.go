@@ -29,10 +29,7 @@ func NewRouter() *gin.Engine {
 		authorized.GET("/sources", source.RetriveAll)
 
 		cohortdefinitions := controllers.NewCohortDefinitionController(*new(models.CohortDefinition))
-		authorized.GET("/cohortdefinition/by-id/:id", cohortdefinitions.RetriveById)
-		authorized.GET("/cohortdefinition/by-name/:name", cohortdefinitions.RetriveByName)
-		authorized.GET("/cohortdefinitions", cohortdefinitions.RetriveAll)
-		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-team-project/:teamproject", cohortdefinitions.RetriveStatsBySourceIdAndTeamProject)
+		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-team-project", cohortdefinitions.RetriveStatsBySourceIdAndTeamProject)
 
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition),
@@ -46,7 +43,7 @@ func NewRouter() *gin.Engine {
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid/csv", concepts.RetrieveAttritionTable)
 
 		// cohort stats and checks:
-		cohortData := controllers.NewCohortDataController(*new(models.CohortData))
+		cohortData := controllers.NewCohortDataController(*new(models.CohortData), middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
 		// :casecohortid/:controlcohortid are just labels here and have no special meaning. Could also just be :cohortAId/:cohortBId here:
 		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue)
 

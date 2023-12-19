@@ -573,7 +573,7 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testi
 			CohortDefinitionId2: largestCohort.Id,
 			ProvidedName:        "test"},
 	}
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionId, filterCohortPairs)
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
 	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
 	if len(teamProjects) != 1 || teamProjects[0] != "defaultteamproject" {
 		t.Errorf("Expected to find only defaultteamproject")
@@ -589,7 +589,7 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIds(t *testing.T) {
 			CohortDefinitionId2: 2,
 			ProvidedName:        "test"},
 	}
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionId, filterCohortPairs)
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
 	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
 	if len(teamProjects) != 2 {
 		t.Errorf("Expected to find two 'team projects' matching the cohort list, found %s", teamProjects)

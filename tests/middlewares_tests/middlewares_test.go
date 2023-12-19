@@ -134,7 +134,7 @@ func TestTeamProjectValidation(t *testing.T) {
 	requestContext.Request.Header = map[string][]string{
 		"Authorization": {"dummy_token_value"},
 	}
-	result := teamProjectAuthz.TeamProjectValidation(requestContext, 1, nil)
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{1}, nil)
 	if result == false {
 		t.Errorf("Expected TeamProjectValidation result to be 'true'")
 	}
@@ -155,7 +155,7 @@ func TestTeamProjectValidationArborist401(t *testing.T) {
 	requestContext.Request.Header = map[string][]string{
 		"Authorization": {"dummy_token_value"},
 	}
-	result := teamProjectAuthz.TeamProjectValidation(requestContext, 1, nil)
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{1}, nil)
 	if result == true {
 		t.Errorf("Expected TeamProjectValidation result to be 'false'")
 	}
@@ -176,7 +176,7 @@ func TestTeamProjectValidationNoTeamProjectMatchingAllCohortDefinitions(t *testi
 	requestContext.Request.Header = map[string][]string{
 		"Authorization": {"dummy_token_value"},
 	}
-	result := teamProjectAuthz.TeamProjectValidation(requestContext, 0, nil)
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{0}, nil)
 	if result == true {
 		t.Errorf("Expected TeamProjectValidation result to be 'false'")
 	}

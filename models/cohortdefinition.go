@@ -13,8 +13,10 @@ type CohortDefinitionI interface {
 	GetCohortDefinitionById(id int) (*CohortDefinition, error)
 	GetCohortDefinitionByName(name string) (*CohortDefinition, error)
 	GetAllCohortDefinitions() ([]*CohortDefinition, error)
-	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error)
+	GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error)
 	GetCohortName(cohortId int) (string, error)
+	GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error)
+	GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error)
 }
 
 type CohortDefinition struct {
@@ -67,7 +69,36 @@ func (h CohortDefinition) GetAllCohortDefinitions() ([]*CohortDefinition, error)
 	return cohortDefinition, meta_result.Error
 }
 
-func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*CohortDefinitionStats, error) {
+// Returns any "team project" entries that are matched to _each and every one_ of the
+// cohort definition ids found in uniqueCohortDefinitionIdsList.
+func (h CohortDefinition) GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error) {
+
+	db2 := db.GetAtlasDB().Db
+	var teamProjects []string
+	// Find any roles that are paired to each and every one of the cohort_definition_id values.
+	// Roles that ony match part of the values are filtered out by the having(count) clause:
+	query := db2.Table(db.GetAtlasDB().Schema+".cohort_definition_sec_role").
+		Select("sec_role_name").
+		Where("cohort_definition_id in (?)", uniqueCohortDefinitionIdsList).
+		Group("sec_role_name").
+		Having("count(DISTINCT cohort_definition_id) = ?", len(uniqueCohortDefinitionIdsList)).
+		Scan(&teamProjects)
+	return teamProjects, query.Error
+}
+
+// Get the list of cohort_definition ids for a given "team project" (where "team project" is basically
+// a security role name of one of the roles in Atlas/WebAPI database).
+func (h CohortDefinition) GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error) {
+	db2 := db.GetAtlasDB().Db
+	var cohortDefinitionIds []int
+	query := db2.Table(db.GetAtlasDB().Schema+".cohort_definition_sec_role").
+		Select("cohort_definition_id").
+		Where("sec_role_name = ?", teamProject).
+		Scan(&cohortDefinitionIds)
+	return cohortDefinitionIds, query.Error
+}
+
+func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error) {
 
 	// Connect to source db and gather stats:
 	var dataSourceModel = new(Source)
@@ -81,6 +112,11 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 	defer cancel()
 	meta_result := query.Scan(&cohortDefinitionStats)
 
+	// get (from separate Atlas DB - hence not using JOIN above) the list of cohort_definition_ids
+	// that are allowed for the given teamProject:
+	allowedCohortDefinitionIds, _ := h.GetCohortDefinitionIdsForTeamProject(teamProject)
+	log.Printf("INFO: found %d cohorts for this team project", len(allowedCohortDefinitionIds))
+
 	// add name details:
 	finalList := []*CohortDefinitionStats{}
 	for _, cohortDefinitionStat := range cohortDefinitionStats {
@@ -91,10 +127,14 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 				cohortDefinitionStat.CohortSize)
 			continue
 		} else {
-			cohortDefinitionStat.Name = cohortDefinition.Name
-			finalList = append(finalList, cohortDefinitionStat)
+			// filter to keep only the allowed ones:
+			if utils.Contains(allowedCohortDefinitionIds, cohortDefinitionStat.Id) {
+				cohortDefinitionStat.Name = cohortDefinition.Name
+				finalList = append(finalList, cohortDefinitionStat)
+			}
 		}
 	}
+
 	return finalList, meta_result.Error
 }
 

@@ -18,6 +18,7 @@ func NewCohortDefinitionController(cohortDefinitionModel models.CohortDefinition
 }
 
 func (u CohortDefinitionController) RetriveById(c *gin.Context) {
+	// TODO - add teamproject validation - check if user has the necessary atlas and arborist permissions
 	cohortDefinitionId := c.Param("id")
 
 	if cohortDefinitionId != "" {
@@ -35,39 +36,18 @@ func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 	c.Abort()
 }
 
-func (u CohortDefinitionController) RetriveByName(c *gin.Context) {
-	cohortDefinitionName := c.Param("name")
-
-	if cohortDefinitionName != "" {
-		cohortDefinition, err := u.cohortDefinitionModel.GetCohortDefinitionByName(cohortDefinitionName)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err.Error()})
-			c.Abort()
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"CohortDefinition": cohortDefinition})
-		return
-	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-	c.Abort()
-}
-
-func (u CohortDefinitionController) RetriveAll(c *gin.Context) {
-	cohortDefinitions, err := u.cohortDefinitionModel.GetAllCohortDefinitions()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err.Error()})
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.Context) {
+	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
+	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
+	teamProject := c.Query("team-project")
+	if teamProject == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
 		c.Abort()
 		return
 	}
-	c.JSON(http.StatusOK, gin.H{"cohort_definitions": cohortDefinitions})
-}
-
-func (u CohortDefinitionController) RetriveStatsBySourceId(c *gin.Context) {
-	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
-
-	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
+	// TODO - validate teamproject against arborist
 	if err1 == nil {
-		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId)
+		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err.Error()})
 			c.Abort()

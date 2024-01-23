@@ -22,10 +22,11 @@ func AuthMiddleware() gin.HandlerFunc {
 	}
 
 	return func(ctx *gin.Context) {
-		req, err := PrepareNewArboristRequest(ctx, c.GetString("arborist_endpoint"))
+		req, err := PrepareNewArboristRequest(ctx)
 		if err != nil {
 			ctx.AbortWithStatus(500)
 			log.Printf("Error while preparing Arborist request: %s", err.Error())
+			return
 		}
 		client := &http.Client{}
 		// send the request to Arborist:
@@ -44,9 +45,22 @@ func AuthMiddleware() gin.HandlerFunc {
 }
 
 // this function will take the request from the given ctx, validated it for the presence of an "Authorization / Bearer" token
-// and then return the URL that can be used to consult Arborist regarding access permissions. This function
+// and then return the URL that can be used to consult Arborist regarding cohort-middleware access permissions. This function
 // returns an error if "Authorization / Bearer" token is missing in ctx
-func PrepareNewArboristRequest(ctx *gin.Context, arboristEndpoint string) (*http.Request, error) {
+func PrepareNewArboristRequest(ctx *gin.Context) (*http.Request, error) {
+
+	resourcePath := fmt.Sprintf("/cohort-middleware%s", ctx.Request.URL.Path)
+	service := "cohort-middleware"
+
+	return PrepareNewArboristRequestForResourceAndService(ctx, resourcePath, service)
+}
+
+// this function will take the request from the given ctx, validated it for the presence of an "Authorization / Bearer" token
+// and then return the URL that can be used to consult Arborist regarding access permissions for the given
+// resource path and service.
+func PrepareNewArboristRequestForResourceAndService(ctx *gin.Context, resourcePath string, service string) (*http.Request, error) {
+	c := config.GetConfig()
+	arboristEndpoint := c.GetString("arborist_endpoint")
 	// validate:
 	authorization := ctx.Request.Header.Get("Authorization")
 	if authorization == "" {
@@ -54,11 +68,10 @@ func PrepareNewArboristRequest(ctx *gin.Context, arboristEndpoint string) (*http
 	}
 
 	// build up the request URL string:
-	resourcePath := fmt.Sprintf("/cohort-middleware%s", ctx.Request.URL.Path)
 	arboristAuth := fmt.Sprintf("%s/auth/proxy?resource=%s&service=%s&method=%s",
 		arboristEndpoint,
 		resourcePath,
-		"cohort-middleware",
+		service,
 		"access")
 
 	// make request object / validate URL:

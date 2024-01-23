@@ -5,6 +5,7 @@ import (
 	"io"
 	"log"
 	"net/http"
+	"net/url"
 	"os"
 	"reflect"
 	"strconv"
@@ -49,7 +50,8 @@ func tearDown() {
 	log.Println("teardown for test")
 }
 
-var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel))
+var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyTeamProjectAuthz))
+var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
 var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition))
@@ -96,15 +98,23 @@ type dummyCohortDefinitionDataModel struct{}
 
 var dummyModelReturnError bool = false
 
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error) {
+	return []int{1}, nil
+}
+
+func (h dummyCohortDefinitionDataModel) GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error) {
+	return []string{"test"}, nil
+}
+
 func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, error) {
 	return "dummy cohort name", nil
 }
 
-func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int) ([]*models.CohortDefinitionStats, error) {
+func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*models.CohortDefinitionStats, error) {
 	cohortDefinitionStats := []*models.CohortDefinitionStats{
-		{Id: 1, CohortSize: 10, Name: "name1"},
-		{Id: 2, CohortSize: 22, Name: "name2"},
-		{Id: 3, CohortSize: 33, Name: "name3"},
+		{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+		{Id: 2, CohortSize: 22, Name: "name2_" + teamProject},
+		{Id: 3, CohortSize: 33, Name: "name3_" + teamProject},
 	}
 	return cohortDefinitionStats, nil
 }
@@ -127,7 +137,36 @@ func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitions() ([]*models.Coh
 	return nil, nil
 }
 
-var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel))
+type dummyTeamProjectAuthz struct{}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+	return true
+}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return true
+}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+	return true
+}
+
+type dummyFailingTeamProjectAuthz struct{}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+	return false
+}
+
+var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
+var conceptControllerWithFailingTeamProjectAuthz = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyFailingTeamProjectAuthz))
 
 type dummyConceptDataModel struct{}
 
@@ -229,6 +268,18 @@ func TestRetrieveHistogramForCohortIdAndConceptIdWithCorrectParams(t *testing.T)
 	if !strings.Contains(result.CustomResponseWriterOut, "bins") {
 		t.Errorf("Expected output starting with 'bins,...'")
 	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveHistogramForCohortIdAndConceptId(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
 }
 
 func TestRetrieveDataBySourceIdAndCohortIdAndVariablesWrongParams(t *testing.T) {
@@ -261,6 +312,18 @@ func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T
 	if !strings.Contains(result.CustomResponseWriterOut, "sample.id,") {
 		t.Errorf("Expected output starting with 'sample.id,...'")
 	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
 }
 
 func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) {
@@ -282,6 +345,18 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap") {
 		t.Errorf("Expected output containing 'case_control_overlap...'")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
 	}
 }
 
@@ -340,22 +415,24 @@ func TestGenerateCSV(t *testing.T) {
 	}
 }
 
-func TestRetriveStatsBySourceIdWrongParams(t *testing.T) {
+func TestRetriveStatsBySourceIdAndTeamProjectWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "Abc", Value: "def"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionController.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	// Params above are wrong, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
 }
 
-func TestRetriveStatsBySourceIdDbPanic(t *testing.T) {
+func TestRetriveStatsBySourceIdAndTeamProjectDbPanic(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	requestContext.Request.URL.RawQuery = "team-project=dummy-team-project"
 	requestContext.Writer = new(tests.CustomResponseWriter)
 
 	defer func() {
@@ -366,22 +443,42 @@ func TestRetriveStatsBySourceIdDbPanic(t *testing.T) {
 			}
 		}
 	}()
-	cohortDefinitionControllerNeedsDb.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionControllerNeedsDb.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	t.Errorf("Expected error")
 }
 
-func TestRetriveStatsBySourceId(t *testing.T) {
+func TestRetriveStatsBySourceIdAndTeamProjectCheckMandatoryTeamProject(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionController.RetriveStatsBySourceId(requestContext)
+	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	// Params above are wrong, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "team-project is a mandatory parameter") {
+		t.Errorf("Expected error about mandatory team-project")
+	}
+}
+
+func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	//requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	log.Printf("result: %s", result)
 	// expect result with all of the dummy data:
-	if !strings.Contains(result.CustomResponseWriterOut, "name1") ||
-		!strings.Contains(result.CustomResponseWriterOut, "name2") ||
-		!strings.Contains(result.CustomResponseWriterOut, "name3") {
+	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
 		t.Errorf("Expected 3 rows in result")
 	}
 }
@@ -425,6 +522,34 @@ func TestRetriveByIdModelError(t *testing.T) {
 	}
 }
 
+func TestRetrieveBreakdownStatsBySourceIdAndCohortId(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
+
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortId(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	log.Printf("result: %s", result)
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
+		t.Errorf("Expected data in result")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	conceptControllerWithFailingTeamProjectAuthz.RetrieveBreakdownStatsBySourceIdAndCohortId(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
+}
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -442,6 +567,18 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
 		t.Errorf("Expected data in result")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	conceptControllerWithFailingTeamProjectAuthz.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
 	}
 }
 
@@ -630,14 +767,14 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 		int64(1234),
 		int64(5678),
 		utils.CustomDichotomousVariableDef{
-			CohortId1:    1,
-			CohortId2:    2,
-			ProvidedName: "testA12"},
+			CohortDefinitionId1: 1,
+			CohortDefinitionId2: 2,
+			ProvidedName:        "testA12"},
 		int64(2090006880),
 		utils.CustomDichotomousVariableDef{
-			CohortId1:    3,
-			CohortId2:    4,
-			ProvidedName: "testB34"},
+			CohortDefinitionId1: 3,
+			CohortDefinitionId2: 4,
+			ProvidedName:        "testB34"},
 	}
 
 	result, _ := conceptController.GetAttritionRowForConceptIdsAndCohortPairs(sourceId, cohortId, conceptIdsAndCohortPairs, breakdownConceptId, sortedConceptValues)
@@ -684,9 +821,9 @@ func TestGenerateCompleteCSV(t *testing.T) {
 
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    2,
-			CohortId2:    3,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: 3,
+			ProvidedName:        "test"},
 	}
 
 	b := controllers.GenerateCompleteCSV(partialCsv, personIdToCSVValues, cohortPairs)
@@ -711,9 +848,9 @@ func TestRetrievePeopleIdAndCohort(t *testing.T) {
 	cohortId := 1
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    2,
-			CohortId2:    3,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: 3,
+			ProvidedName:        "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{
@@ -752,9 +889,9 @@ func TestRetrievePeopleIdAndCohortNonExistingCohortPair(t *testing.T) {
 	cohortId := 1
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    4,
-			CohortId2:    5,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 4,
+			CohortDefinitionId2: 5,
+			ProvidedName:        "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{
@@ -793,9 +930,9 @@ func TestRetrievePeopleIdAndCohortOverlappingCohortPair(t *testing.T) {
 	cohortId := 1
 	cohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    1,
-			CohortId2:    1,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 1,
+			CohortDefinitionId2: 1,
+			ProvidedName:        "test"},
 	}
 
 	cohortData := []*models.PersonConceptAndValue{
@@ -862,5 +999,17 @@ func TestRetrieveAttritionTable(t *testing.T) {
 				expectedLine, csvLines[i])
 		}
 		i++
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	conceptControllerWithFailingTeamProjectAuthz.RetrieveAttritionTable(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
 	}
 }

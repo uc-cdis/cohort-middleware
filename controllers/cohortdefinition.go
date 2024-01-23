@@ -18,6 +18,7 @@ func NewCohortDefinitionController(cohortDefinitionModel models.CohortDefinition
 }
 
 func (u CohortDefinitionController) RetriveById(c *gin.Context) {
+	// TODO - add teamproject validation - check if user has the necessary atlas and arborist permissions
 	cohortDefinitionId := c.Param("id")
 
 	if cohortDefinitionId != "" {
@@ -44,6 +45,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 		c.Abort()
 		return
 	}
+	// TODO - validate teamproject against arborist
 	if err1 == nil {
 		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
 		if err != nil {

@@ -1,28 +1,41 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
 type CohortDefinitionController struct {
 	cohortDefinitionModel models.CohortDefinitionI
+	teamProjectAuthz      middlewares.TeamProjectAuthzI
 }
 
-func NewCohortDefinitionController(cohortDefinitionModel models.CohortDefinitionI) CohortDefinitionController {
-	return CohortDefinitionController{cohortDefinitionModel: cohortDefinitionModel}
+func NewCohortDefinitionController(cohortDefinitionModel models.CohortDefinitionI, teamProjectAuthz middlewares.TeamProjectAuthzI) CohortDefinitionController {
+	return CohortDefinitionController{
+		cohortDefinitionModel: cohortDefinitionModel,
+		teamProjectAuthz:      teamProjectAuthz,
+	}
 }
 
 func (u CohortDefinitionController) RetriveById(c *gin.Context) {
-	// TODO - add teamproject validation - check if user has the necessary atlas and arborist permissions
 	cohortDefinitionId := c.Param("id")
 
 	if cohortDefinitionId != "" {
 		cohortDefinitionId, _ := strconv.Atoi(cohortDefinitionId)
+		// validate teamproject access permission for cohort:
+		validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortDefinitionId)
+		if !validAccessRequest {
+			log.Printf("Error: invalid request")
+			c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+			c.Abort()
+			return
+		}
 		cohortDefinition, err := u.cohortDefinitionModel.GetCohortDefinitionById(cohortDefinitionId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err.Error()})
@@ -45,7 +58,15 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 		c.Abort()
 		return
 	}
-	// TODO - validate teamproject against arborist
+	// validate teamproject access permission:
+	validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	if err1 == nil {
 		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
 		if err != nil {

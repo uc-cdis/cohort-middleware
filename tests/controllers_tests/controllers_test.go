@@ -54,10 +54,10 @@ var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortD
 var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
-var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition))
+var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition), *new(dummyTeamProjectAuthz))
 
 // instance of the controller that talks to a mock implementation of the model:
-var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel))
+var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
 
 type dummyCohortDataModel struct{}
 
@@ -151,6 +151,10 @@ func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Co
 	return true
 }
 
+func (h dummyTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool {
+	return true
+}
+
 type dummyFailingTeamProjectAuthz struct{}
 
 func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
@@ -162,6 +166,10 @@ func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, co
 }
 
 func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool {
 	return false
 }
 

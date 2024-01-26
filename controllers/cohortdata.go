@@ -52,7 +52,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}
@@ -101,7 +101,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}
@@ -254,7 +254,7 @@ func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFilteringOnConcep
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{caseCohortId, controlCohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}

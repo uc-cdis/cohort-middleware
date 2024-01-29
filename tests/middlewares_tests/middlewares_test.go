@@ -97,9 +97,11 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionIdsForTeamProject(tea
 }
 
 func (h dummyCohortDefinitionDataModel) GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error) {
-	// dummy switch just to support two test scenarios:
+	// dummy switch just to support three test scenarios:
 	if uniqueCohortDefinitionIdsList[0] == 0 {
 		return nil, nil
+	} else if len(uniqueCohortDefinitionIdsList) == 1 {
+		return []string{"teamProject1"}, nil
 	} else {
 		return []string{"teamProject1", "teamProject2"}, nil
 	}
@@ -122,6 +124,48 @@ func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitions() ([]*models.Coh
 	return nil, nil
 }
 
+func TestTeamProjectValidationForCohort(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 200
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel),
+		dummyHttpClient)
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {"dummy_token_value"},
+	}
+	result := teamProjectAuthz.TeamProjectValidationForCohort(requestContext, 1)
+	if result == false {
+		t.Errorf("Expected TeamProjectValidationForCohort result to be 'true'")
+	}
+	if dummyHttpClient.nrCalls != 1 {
+		t.Errorf("Expected dummyHttpClient to have been only once")
+	}
+}
+
+func TestTeamProjectValidationForCohortPart2(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 401
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel),
+		dummyHttpClient)
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {"dummy_token_value"},
+	}
+	result := teamProjectAuthz.TeamProjectValidationForCohort(requestContext, 1)
+	if result == true {
+		t.Errorf("Expected TeamProjectValidationForCohort result to be 'false'")
+	}
+	if dummyHttpClient.nrCalls != 1 {
+		t.Errorf("Expected dummyHttpClient to have been only once")
+	}
+}
+
 func TestTeamProjectValidation(t *testing.T) {
 	setUp(t)
 	config.Init("mocktest")
@@ -134,7 +178,7 @@ func TestTeamProjectValidation(t *testing.T) {
 	requestContext.Request.Header = map[string][]string{
 		"Authorization": {"dummy_token_value"},
 	}
-	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{1}, nil)
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{1, 2}, nil)
 	if result == false {
 		t.Errorf("Expected TeamProjectValidation result to be 'true'")
 	}
@@ -155,7 +199,7 @@ func TestTeamProjectValidationArborist401(t *testing.T) {
 	requestContext.Request.Header = map[string][]string{
 		"Authorization": {"dummy_token_value"},
 	}
-	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{1}, nil)
+	result := teamProjectAuthz.TeamProjectValidation(requestContext, []int{1, 2}, nil)
 	if result == true {
 		t.Errorf("Expected TeamProjectValidation result to be 'false'")
 	}
@@ -183,4 +227,31 @@ func TestTeamProjectValidationNoTeamProjectMatchingAllCohortDefinitions(t *testi
 	if dummyHttpClient.nrCalls > 0 {
 		t.Errorf("Expected dummyHttpClient to NOT have been called")
 	}
+}
+
+func TestHasAccessToTeamProjectAbortOnArboristPrepError(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 200
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	// add empty header to force an error during PrepareNewArboristRequestForResourceAndService:
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {""},
+	}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel),
+		dummyHttpClient)
+
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred:", err)
+			if err != "Error while preparing Arborist request" {
+				t.Errorf("Expected error: 'Error while preparing Arborist request'")
+			}
+		}
+	}()
+	teamProjectAuthz.HasAccessToTeamProject(requestContext, "dummyTeam")
+	t.Errorf("Expected error")
 }

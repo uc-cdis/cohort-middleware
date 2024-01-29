@@ -472,11 +472,31 @@ func TestRetriveStatsBySourceIdAndTeamProjectCheckMandatoryTeamProject(t *testin
 	}
 }
 
+func TestRetriveStatsBySourceIdAndTeamProjectAuthorizationError(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionControllerWithFailingTeamProjectAuthz.RetriveStatsBySourceIdAndTeamProject(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if result.Status() != http.StatusForbidden {
+		t.Errorf("Expected StatusForbidden, got %d", result.Status())
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' in response")
+	}
+}
+
 func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
-	//requestContext.Params = append(requestContext.Params, gin.Param{Key: "teamproject", Value: "dummy-team-project"})
 	requestContext.Request = &http.Request{URL: &url.URL{}}
 	teamProject := "/test/dummyname/dummy-team-project"
 	requestContext.Request.URL.RawQuery = "team-project=" + teamProject

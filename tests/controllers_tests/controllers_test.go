@@ -58,6 +58,7 @@ var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionControlle
 
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
+var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyFailingTeamProjectAuthz))
 
 type dummyCohortDataModel struct{}
 
@@ -482,7 +483,6 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	cohortDefinitionController.RetriveStatsBySourceIdAndTeamProject(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	// expect result with all of the dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
 		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
@@ -510,7 +510,6 @@ func TestRetriveById(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	cohortDefinitionController.RetriveById(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "test 1") {
 		t.Errorf("Expected data in result")
@@ -530,6 +529,26 @@ func TestRetriveByIdModelError(t *testing.T) {
 	}
 }
 
+func TestRetriveByIdAuthorizationError(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "id", Value: "1"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionControllerWithFailingTeamProjectAuthz.RetriveById(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if result.Status() != http.StatusForbidden {
+		t.Errorf("Expected StatusForbidden, got %d", result.Status())
+	}
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' in response")
+	}
+
+}
+
 func TestRetrieveBreakdownStatsBySourceIdAndCohortId(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -540,7 +559,6 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortId(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortId(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
 		t.Errorf("Expected data in result")
@@ -571,7 +589,6 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "persons_in_cohort_with_value") {
 		t.Errorf("Expected data in result")
@@ -616,7 +633,6 @@ func TestRetrieveInfoBySourceIdAndConceptIds(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	conceptController.RetrieveInfoBySourceIdAndConceptIds(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "Concept A") ||
 		!strings.Contains(result.CustomResponseWriterOut, "Concept B") {
@@ -633,7 +649,6 @@ func TestRetrieveInfoBySourceIdAndConceptTypes(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	conceptController.RetrieveInfoBySourceIdAndConceptTypes(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	// expect result with dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "Concept A") ||
 		!strings.Contains(result.CustomResponseWriterOut, "Concept B") {
@@ -652,7 +667,6 @@ func TestRetrieveInfoBySourceIdAndConceptTypesModelError(t *testing.T) {
 	dummyModelReturnError = true
 	conceptController.RetrieveInfoBySourceIdAndConceptTypes(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
@@ -670,7 +684,6 @@ func TestRetrieveInfoBySourceIdAndConceptTypesArgsError(t *testing.T) {
 	dummyModelReturnError = true
 	conceptController.RetrieveInfoBySourceIdAndConceptTypes(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
@@ -688,7 +701,6 @@ func TestRetrieveInfoBySourceIdAndConceptTypesMissingBody(t *testing.T) {
 	dummyModelReturnError = true
 	conceptController.RetrieveInfoBySourceIdAndConceptTypes(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
@@ -990,7 +1002,6 @@ func TestRetrieveAttritionTable(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	conceptController.RetrieveAttritionTable(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	log.Printf("result: %s", result.CustomResponseWriterOut)
 	// check result vs expect result:
 	csvLines := strings.Split(strings.TrimRight(result.CustomResponseWriterOut, "\n"), "\n")
 	expectedLines := []string{

@@ -13,6 +13,7 @@ type TeamProjectAuthzI interface {
 	TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool
 	TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
 	TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool
+	HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool
 }
 
 type HttpClientI interface {
@@ -30,30 +31,40 @@ func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI, httpCli
 		httpClient:            httpClient,
 	}
 }
+
+func (u TeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool {
+	teamProjectAsResourcePath := teamProject
+	teamProjectAccessService := "atlas-argo-wrapper-and-cohort-middleware"
+
+	req, err := PrepareNewArboristRequestForResourceAndService(ctx, teamProjectAsResourcePath, teamProjectAccessService)
+	if err != nil {
+		ctx.AbortWithStatus(500)
+		panic("Error while preparing Arborist request")
+	}
+	// send the request to Arborist:
+	resp, _ := u.httpClient.Do(req)
+	log.Printf("Got response status %d from Arborist...", resp.StatusCode)
+
+	// arborist will return with 200 if the user has been granted access to the cohort-middleware URL in ctx:
+	if resp.StatusCode == 200 {
+		return true
+	} else {
+		// unauthorized or otherwise:
+		log.Printf("Authorization check for team project failed with status %d ...", resp.StatusCode)
+		return false
+	}
+}
+
 func (u TeamProjectAuthz) hasAccessToAtLeastOne(ctx *gin.Context, teamProjects []string) bool {
-
-	// query Arborist and return as soon as one of the teamProjects access check returns 200:
 	for _, teamProject := range teamProjects {
-		teamProjectAsResourcePath := teamProject
-		teamProjectAccessService := "atlas-argo-wrapper-and-cohort-middleware"
-
-		req, err := PrepareNewArboristRequestForResourceAndService(ctx, teamProjectAsResourcePath, teamProjectAccessService)
-		if err != nil {
-			ctx.AbortWithStatus(500)
-			panic("Error while preparing Arborist request")
-		}
-		// send the request to Arborist:
-		resp, _ := u.httpClient.Do(req)
-		log.Printf("Got response status %d from Arborist...", resp.StatusCode)
-
-		// arborist will return with 200 if the user has been granted access to the cohort-middleware URL in ctx:
-		if resp.StatusCode == 200 {
+		if u.HasAccessToTeamProject(ctx, teamProject) {
 			return true
 		} else {
-			// unauthorized or otherwise:
-			log.Printf("Status %d does NOT give access to team project...", resp.StatusCode)
+			// unauthorized:
+			log.Printf("NO access to team project...checking next one (if any)...")
 		}
 	}
+	log.Printf("NO access to any of the team projects queried...")
 	return false
 }
 

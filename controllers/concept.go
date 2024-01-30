@@ -102,7 +102,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}
@@ -135,7 +135,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariabl
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}
@@ -201,7 +201,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
-		c.JSON(http.StatusBadRequest, gin.H{"message": "access denied"})
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}

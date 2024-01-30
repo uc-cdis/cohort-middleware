@@ -145,7 +145,7 @@ func TestTeamProjectValidationForCohort(t *testing.T) {
 	}
 }
 
-func TestTeamProjectValidationForCohortPart2(t *testing.T) {
+func TestTeamProjectValidationForCohortArborist401(t *testing.T) {
 	setUp(t)
 	config.Init("mocktest")
 	arboristAuthzResponseCode := 401

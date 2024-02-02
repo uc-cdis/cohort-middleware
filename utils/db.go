@@ -60,8 +60,8 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 
 // Adds a default timeout to a query
 func AddTimeoutToQuery(query *gorm.DB) (*gorm.DB, context.CancelFunc) {
-	// default timeout of 3 minutes:
-	query, cancel := AddSpecificTimeoutToQuery(query, 180*time.Second)
+	// default timeout of 6 minutes:
+	query, cancel := AddSpecificTimeoutToQuery(query, 360*time.Second)
 	return query, cancel
 }
 

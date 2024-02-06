@@ -566,7 +566,7 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoH
 
 func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testing.T) {
 	setUp(t)
-	cohortDefinitionId := 2
+	cohortDefinitionId := 2 // 'Medium cohort' in test_data_atlas.sql
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
 			CohortDefinitionId1: smallestCohort.Id,
@@ -574,7 +574,27 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testi
 			ProvidedName:        "test"},
 	}
 	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	if len(uniqueCohortDefinitionIdsList) != 3 {
+		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 3")
+	}
 	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+	if len(teamProjects) != 1 || teamProjects[0] != "defaultteamproject" {
+		t.Errorf("Expected to find only defaultteamproject")
+	}
+
+	// Should also hold true if the uniqueCohortDefinitionIdsList is length 2 (which matches teamprojectX's cohort
+	// list length but not in contents):
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
+	}
+	uniqueCohortDefinitionIdsList = utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	if len(uniqueCohortDefinitionIdsList) != 2 {
+		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 2")
+	}
+	teamProjects, _ = cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
 	if len(teamProjects) != 1 || teamProjects[0] != "defaultteamproject" {
 		t.Errorf("Expected to find only defaultteamproject")
 	}
@@ -582,23 +602,32 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testi
 
 func TestGetTeamProjectsThatMatchAllCohortDefinitionIds(t *testing.T) {
 	setUp(t)
-	cohortDefinitionId := 2
+	cohortDefinitionId := 2 // 'Medium cohort' in test_data_atlas.sql
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
 			CohortDefinitionId1: 2,
-			CohortDefinitionId2: 2,
+			CohortDefinitionId2: 32,
 			ProvidedName:        "test"},
 	}
 	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	if len(uniqueCohortDefinitionIdsList) != 2 {
+		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 2")
+	}
 	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
 	if len(teamProjects) != 2 {
 		t.Errorf("Expected to find two 'team projects' matching the cohort list, found %s", teamProjects)
+	}
+	if !utils.ContainsString(teamProjects, "defaultteamproject") {
+		t.Errorf("Expected to find 'defaultteamproject' in the results, found %s", teamProjects)
+	}
+	if !utils.ContainsString(teamProjects, "teamprojectX") {
+		t.Errorf("Expected to find 'teamprojectX' in the results, found %s", teamProjects)
 	}
 }
 
 func TestGetCohortDefinitionIdsForTeamProject(t *testing.T) {
 	setUp(t)
-	testTeamProject := "teamprojectX"
+	testTeamProject := "teamprojectY"
 	allowedCohortDefinitionIds, _ := cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(testTeamProject)
 	if len(allowedCohortDefinitionIds) != 1 {
 		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
@@ -633,7 +662,7 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	}
 
 	// some extra tests to cover also the teamProject option for this method:
-	testTeamProject := "teamprojectX"
+	testTeamProject := "teamprojectY"
 	allowedCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
 	if len(allowedCohortDefinitions) != 1 {
 		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",

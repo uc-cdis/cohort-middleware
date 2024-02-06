@@ -43,6 +43,15 @@ func Pos(value int64, list []int64) int {
 	return -1
 }
 
+func ContainsString(list []string, value string) bool {
+	for _, item := range list {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
 func Contains(list []int, value int) bool {
 	for _, item := range list {
 		if item == value {

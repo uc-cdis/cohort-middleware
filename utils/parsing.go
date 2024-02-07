@@ -43,6 +43,15 @@ func Pos(value int64, list []int64) int {
 	return -1
 }
 
+func ContainsString(list []string, value string) bool {
+	for _, item := range list {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
 func Contains(list []int, value int) bool {
 	for _, item := range list {
 		if item == value {
@@ -289,7 +298,10 @@ func MakeUnique(input []int) []int {
 	return uniqueList
 }
 
-func GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionIds []int, filterCohortPairs []CustomDichotomousVariableDef) []int {
+// Utility function to parse out the cohort definition ids from a specific structure in which
+// they can be found (in this case deep inside CustomDichotomousVariableDef items) and concatenate them
+// with another given list of ids, removing duplicate ids (if any). 
+func GetUniqueCohortDefinitionIdsList(cohortDefinitionIds []int, filterCohortPairs []CustomDichotomousVariableDef) []int {
 	var idsList []int
 	idsList = append(idsList, cohortDefinitionIds...)
 	if len(filterCohortPairs) > 0 {

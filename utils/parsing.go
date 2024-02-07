@@ -298,6 +298,9 @@ func MakeUnique(input []int) []int {
 	return uniqueList
 }
 
+// Utility function to parse out the cohort definition ids from a specific structure in which
+// they can be found (in this case deep inside CustomDichotomousVariableDef items) and concatenate them
+// with another given list of ids, removing duplicate ids (if any). 
 func GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionIds []int, filterCohortPairs []CustomDichotomousVariableDef) []int {
 	var idsList []int
 	idsList = append(idsList, cohortDefinitionIds...)

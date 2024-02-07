@@ -75,7 +75,7 @@ func (u TeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohor
 
 func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
 
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest(cohortDefinitionIds, filterCohortPairs)
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsList(cohortDefinitionIds, filterCohortPairs)
 	return u.TeamProjectValidationForCohortIdsList(ctx, uniqueCohortDefinitionIdsList)
 }
 

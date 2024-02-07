@@ -573,7 +573,7 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testi
 			CohortDefinitionId2: largestCohort.Id,
 			ProvidedName:        "test"},
 	}
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsList([]int{cohortDefinitionId}, filterCohortPairs)
 	if len(uniqueCohortDefinitionIdsList) != 3 {
 		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 3")
 	}
@@ -590,7 +590,7 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testi
 			CohortDefinitionId2: largestCohort.Id,
 			ProvidedName:        "test"},
 	}
-	uniqueCohortDefinitionIdsList = utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	uniqueCohortDefinitionIdsList = utils.GetUniqueCohortDefinitionIdsList([]int{cohortDefinitionId}, filterCohortPairs)
 	if len(uniqueCohortDefinitionIdsList) != 2 {
 		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 2")
 	}
@@ -609,7 +609,7 @@ func TestGetTeamProjectsThatMatchAllCohortDefinitionIds(t *testing.T) {
 			CohortDefinitionId2: 32,
 			ProvidedName:        "test"},
 	}
-	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsListFromRequest([]int{cohortDefinitionId}, filterCohortPairs)
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsList([]int{cohortDefinitionId}, filterCohortPairs)
 	if len(uniqueCohortDefinitionIdsList) != 2 {
 		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 2")
 	}

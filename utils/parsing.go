@@ -43,6 +43,24 @@ func Pos(value int64, list []int64) int {
 	return -1
 }
 
+func ContainsString(list []string, value string) bool {
+	for _, item := range list {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
+func Contains(list []int, value int) bool {
+	for _, item := range list {
+		if item == value {
+			return true
+		}
+	}
+	return false
+}
+
 func ParseInt64(strValue string) int64 {
 	value, error := strconv.ParseInt(strValue, 10, 64)
 	if error != nil {
@@ -52,8 +70,8 @@ func ParseInt64(strValue string) int64 {
 }
 
 func ContainsNonNil(errors []error) bool {
-	for _, v := range errors {
-		if v != nil {
+	for _, item := range errors {
+		if item != nil {
 			return true
 		}
 	}
@@ -85,9 +103,9 @@ type ConceptTypes struct {
 
 // fields that define a custom dichotomous variable:
 type CustomDichotomousVariableDef struct {
-	CohortId1    int
-	CohortId2    int
-	ProvidedName string
+	CohortDefinitionId1 int
+	CohortDefinitionId2 int
+	ProvidedName        string
 }
 
 func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int) string {
@@ -135,9 +153,9 @@ func ParseConceptIdsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface{
 				providedName = variable["provided_name"].(string)
 			}
 			customDichotomousVariableDef := CustomDichotomousVariableDef{
-				CohortId1:    cohortPair[0],
-				CohortId2:    cohortPair[1],
-				ProvidedName: providedName,
+				CohortDefinitionId1: cohortPair[0],
+				CohortDefinitionId2: cohortPair[1],
+				ProvidedName:        providedName,
 			}
 			conceptIdsAndCohortPairs = append(conceptIdsAndCohortPairs, customDichotomousVariableDef)
 		}
@@ -265,4 +283,32 @@ func ParseSourceIdAndCohortIdAndVariablesAsSingleList(c *gin.Context) (int, int,
 		return -1, -1, nil, err
 	}
 	return sourceId, cohortId, conceptIdsAndCohortPairs, nil
+}
+
+func MakeUnique(input []int) []int {
+	uniqueMap := make(map[int]bool)
+	var uniqueList []int
+
+	for _, num := range input {
+		if !uniqueMap[num] {
+			uniqueMap[num] = true
+			uniqueList = append(uniqueList, num)
+		}
+	}
+	return uniqueList
+}
+
+// Utility function to parse out the cohort definition ids from a specific structure in which
+// they can be found (in this case deep inside CustomDichotomousVariableDef items) and concatenate them
+// with another given list of ids, removing duplicate ids (if any). 
+func GetUniqueCohortDefinitionIdsList(cohortDefinitionIds []int, filterCohortPairs []CustomDichotomousVariableDef) []int {
+	var idsList []int
+	idsList = append(idsList, cohortDefinitionIds...)
+	if len(filterCohortPairs) > 0 {
+		for _, filterCohortPair := range filterCohortPairs {
+			idsList = append(idsList, filterCohortPair.CohortDefinitionId1, filterCohortPair.CohortDefinitionId2)
+		}
+	}
+	uniqueIdsList := MakeUnique(idsList)
+	return uniqueIdsList
 }

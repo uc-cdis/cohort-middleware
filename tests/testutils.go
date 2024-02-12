@@ -219,6 +219,7 @@ func Map[T, U any](items []T, f func(T) U) []U {
 // to use when mocking request context (gin.Context) in controller tests:
 type CustomResponseWriter struct {
 	CustomResponseWriterOut string
+	StatusCode              int
 }
 
 func (w *CustomResponseWriter) Header() http.Header {
@@ -234,7 +235,8 @@ func (w *CustomResponseWriter) Write(b []byte) (int, error) {
 }
 
 func (w *CustomResponseWriter) WriteHeader(statusCode int) {
-	// do nothing
+	// Store the status code
+	w.StatusCode = statusCode
 }
 
 func (w *CustomResponseWriter) CloseNotify() <-chan bool {
@@ -254,7 +256,7 @@ func (w *CustomResponseWriter) Pusher() (pusher http.Pusher) {
 }
 
 func (w *CustomResponseWriter) Status() int {
-	return 0
+	return w.StatusCode
 }
 
 func (w *CustomResponseWriter) Size() int {

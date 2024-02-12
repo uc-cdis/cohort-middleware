@@ -27,6 +27,7 @@ var allConceptIds []int64
 var dummyContinuousConceptId = tests.GetTestDummyContinuousConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
+var defaultTeamProject = "defaultteamproject"
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -47,7 +48,7 @@ func setupSuite() {
 
 	// initialize some handy variables to use in tests below:
 	// (see also tests/setup_local_db/test_data_results_and_cdm.sql for these test cohort details)
-	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	allCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	largestCohort = allCohortDefinitions[0]
 	secondLargestCohort = allCohortDefinitions[2]
 	extendedCopyOfSecondLargestCohort = allCohortDefinitions[1]
@@ -248,9 +249,9 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// smallestCohort and largestCohort do not overlap...
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	resultsDataSource := tests.GetResultsDataSource()
 	var subjectIds []*SubjectId
@@ -266,13 +267,13 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// now add a pair that overlaps with largestCohort:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 		{
-			CohortId1:    extendedCopyOfSecondLargestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: extendedCopyOfSecondLargestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	subjectIds = []*SubjectId{}
 	population = largestCohort
@@ -288,13 +289,13 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// order doesn't matter:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    extendedCopyOfSecondLargestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: extendedCopyOfSecondLargestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	subjectIds = []*SubjectId{}
 	population = largestCohort
@@ -310,9 +311,9 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// now test with two other cohorts that overlap:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    secondLargestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: secondLargestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	subjectIds = []*SubjectId{}
 	population = extendedCopyOfSecondLargestCohort
@@ -328,13 +329,13 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// now add in the largestCohort as a pair of extendedCopyOfSecondLargestCohort to the mix above:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    secondLargestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: secondLargestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
 		{
-			CohortId1:    largestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: largestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	subjectIds = []*SubjectId{}
 	population = extendedCopyOfSecondLargestCohort
@@ -375,9 +376,9 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// should return 0:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    largestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: largestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	subjectIds = []*SubjectId{}
 	population = largestCohort
@@ -385,7 +386,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
 		Select("subject_id")
 	_ = query.Scan(&subjectIds)
-	// in this case we expect overlap the size to be 0, since the pair is composed of the same cohort in CohortId1 and CohortId2 and their overlap is excluded:
+	// in this case we expect overlap the size to be 0, since the pair is composed of the same cohort in CohortDefinitionId1 and CohortDefinitionId2 and their overlap is excluded:
 	if len(subjectIds) != 0 {
 		t.Errorf("Expected 0 overlap, found %d", len(subjectIds))
 	}
@@ -393,9 +394,9 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	// should return 0:
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    thirdLargestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: thirdLargestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	subjectIds = []*SubjectId{}
 	population = smallestCohort
@@ -416,9 +417,9 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPai
 	// setting the largest and smallest cohorts here as a pair:
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
@@ -438,13 +439,13 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPai
 	// and because of an overlaping person found in the two cohorts of the new pair.
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 		{
-			CohortId1:    secondLargestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test2"},
+			CohortDefinitionId1: secondLargestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test2"},
 	}
 	stats, _ = conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		populationCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
@@ -463,9 +464,9 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    secondLargestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: secondLargestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
 	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
@@ -498,9 +499,9 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	// setting the same cohort id here (artificial...normally it should be two different ids):
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    largestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
 		secondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
@@ -563,11 +564,90 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResultsWithOnePersonTwoH
 	}
 }
 
+func TestGetTeamProjectsThatMatchAllCohortDefinitionIdsOnlyDefaultMatch(t *testing.T) {
+	setUp(t)
+	cohortDefinitionId := 2 // 'Medium cohort' in test_data_atlas.sql
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
+	}
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsList([]int{cohortDefinitionId}, filterCohortPairs)
+	if len(uniqueCohortDefinitionIdsList) != 3 {
+		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 3")
+	}
+	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+	if len(teamProjects) != 1 || teamProjects[0] != "defaultteamproject" {
+		t.Errorf("Expected to find only defaultteamproject")
+	}
+
+	// Should also hold true if the uniqueCohortDefinitionIdsList is length 2 (which matches teamprojectX's cohort
+	// list length but not in contents):
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test"},
+	}
+	uniqueCohortDefinitionIdsList = utils.GetUniqueCohortDefinitionIdsList([]int{cohortDefinitionId}, filterCohortPairs)
+	if len(uniqueCohortDefinitionIdsList) != 2 {
+		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 2")
+	}
+	teamProjects, _ = cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+	if len(teamProjects) != 1 || teamProjects[0] != "defaultteamproject" {
+		t.Errorf("Expected to find only defaultteamproject")
+	}
+}
+
+func TestGetTeamProjectsThatMatchAllCohortDefinitionIds(t *testing.T) {
+	setUp(t)
+	cohortDefinitionId := 2 // 'Medium cohort' in test_data_atlas.sql
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{
+		{
+			CohortDefinitionId1: 2,
+			CohortDefinitionId2: 32,
+			ProvidedName:        "test"},
+	}
+	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsList([]int{cohortDefinitionId}, filterCohortPairs)
+	if len(uniqueCohortDefinitionIdsList) != 2 {
+		t.Errorf("Expected uniqueCohortDefinitionIdsList length to be 2")
+	}
+	teamProjects, _ := cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+	if len(teamProjects) != 2 {
+		t.Errorf("Expected to find two 'team projects' matching the cohort list, found %s", teamProjects)
+	}
+	if !utils.ContainsString(teamProjects, "defaultteamproject") {
+		t.Errorf("Expected to find 'defaultteamproject' in the results, found %s", teamProjects)
+	}
+	if !utils.ContainsString(teamProjects, "teamprojectX") {
+		t.Errorf("Expected to find 'teamprojectX' in the results, found %s", teamProjects)
+	}
+}
+
+func TestGetCohortDefinitionIdsForTeamProject(t *testing.T) {
+	setUp(t)
+	testTeamProject := "teamprojectY"
+	allowedCohortDefinitionIds, _ := cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(testTeamProject)
+	if len(allowedCohortDefinitionIds) != 1 {
+		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitionIds))
+	}
+	// test data is crafted in such a way that the default "team project" has access to all
+	// the cohorts. Check if this is indeed the case:
+	testTeamProject = defaultTeamProject
+	allowedCohortDefinitionIds, _ = cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(testTeamProject)
+	allCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitions()
+	if len(allCohortDefinitions) != len(allowedCohortDefinitionIds) && len(allCohortDefinitions) > 1 {
+		t.Errorf("Found %d, expected %d", len(allowedCohortDefinitionIds), len(allCohortDefinitions))
+	}
+}
+
 func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	if len(cohortDefinitions) != len(allCohortDefinitions) {
-		t.Errorf("Found %d", len(cohortDefinitions))
+		t.Errorf("Found %d, expected %d", len(cohortDefinitions), len(allCohortDefinitions))
 	}
 	// check if stats fields are filled and if order is as expected:
 	previousSize := 1000000
@@ -580,6 +660,24 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 		}
 		previousSize = cohortDefinition.CohortSize
 	}
+
+	// some extra tests to cover also the teamProject option for this method:
+	testTeamProject := "teamprojectY"
+	allowedCohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 1 {
+		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
+	if len(cohortDefinitions) <= len(allowedCohortDefinitions) {
+		t.Errorf("Expected list of projects for '%s' to be larger than for %s",
+			defaultTeamProject, testTeamProject)
+	}
+	testTeamProject = "teamprojectNonExisting"
+	allowedCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 0 {
+		t.Errorf("Expected teamProject '%s' to have NO cohort, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
 }
 
 // Tests whether the code deals correctly with the (error) situation where
@@ -587,7 +685,7 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 // the situation where a cohort still exists in `cohort` table but not in `cohort_definition`).
 func TestGetAllCohortDefinitionsAndStatsOrderBySizeDescWhenCohortDefinitionIsMissing(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	if len(cohortDefinitions) != len(allCohortDefinitions) {
 		t.Errorf("Found %d", len(cohortDefinitions))
 	}
@@ -596,7 +694,7 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDescWhenCohortDefinitionIsMis
 	firstCohort := cohortDefinitions[0]
 	tests.ExecAtlasSQLString(fmt.Sprintf("delete from %s.cohort_definition where id = %d",
 		db.GetAtlasDB().Schema, firstCohort.Id))
-	cohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	if len(cohortDefinitions) != len(allCohortDefinitions)-1 {
 		t.Errorf("Number of cohor_definition records expected to be %d, found %d",
 			len(allCohortDefinitions)-1, len(cohortDefinitions))
@@ -641,9 +739,9 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 	// now filter on the extendedCopyOfSecondLargestCohort
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
 	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
@@ -685,7 +783,7 @@ func TestQueryFilterByConceptIdsHelper(t *testing.T) {
 
 func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 	var sumNumeric float32 = 0
 	textConcat := ""
 	classIdConcat := ""
@@ -737,7 +835,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
 	// Tests if the method returns an error when query fails.
 
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId)
+	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
 
 	// break something in the Results schema to cause a query failure in the next method:
 	tests.BreakSomething(models.Results, "cohort", "cohort_definition_id")
@@ -771,9 +869,9 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	controlCohortId = largestCohort.Id // to ensure we get largestCohort as initial overlap, just repeat the same here...
 	filterCohortPairs = []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    smallestCohort.Id,
-			CohortId2:    extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName: "test"},
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
 	}
 	// then we expect overlap of 5 for extendedCopyOfSecondLargestCohort and largestCohort:
 	stats, _ = cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(testSourceId, caseCohortId, controlCohortId,

@@ -66,9 +66,9 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 
 	expectedCohortPairs := []utils.CustomDichotomousVariableDef{
 		{
-			CohortId1:    1,
-			CohortId2:    3,
-			ProvidedName: "test"},
+			CohortDefinitionId1: 1,
+			CohortDefinitionId2: 3,
+			ProvidedName:        "test"},
 	}
 
 	for i, cohortPair := range cohortPairs {

@@ -220,7 +220,7 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 	return row
 }
 
-func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(c *gin.Context) {
+func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	errors := make([]error, 4)
 	var sourceId, caseCohortId, controlCohortId int
 	var conceptIds []int64
@@ -235,7 +235,7 @@ func (u CohortDataController) RetrieveCohortOverlapStatsWithoutFilteringOnConcep
 		c.Abort()
 		return
 	}
-	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId, caseCohortId,
+	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId,
 		controlCohortId, conceptIds, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})

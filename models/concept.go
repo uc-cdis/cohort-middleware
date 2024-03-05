@@ -151,7 +151,7 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCoho
 		Where("observation.observation_concept_id = ?", breakdownConceptId).
 		Where(GetConceptValueNotNullCheckBasedOnConceptType("observation", sourceId, breakdownConceptId))
 
-	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "observation")
+	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

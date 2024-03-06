@@ -1014,3 +1014,17 @@ func TestAddTimeoutToQuery(t *testing.T) {
 		t.Errorf("Expected result and NO error")
 	}
 }
+
+func TestPersonConceptAndCountString(t *testing.T) {
+	a := models.PersonConceptAndCount{
+		PersonId:  1,
+		ConceptId: 2,
+		Count:     3,
+	}
+
+	expected := "(person_id=1, concept_id=2, count=3)"
+	if a.String() != expected {
+		t.Errorf("Expected %s, found %s", expected, a.String())
+	}
+
+}

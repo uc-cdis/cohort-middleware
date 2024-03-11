@@ -143,33 +143,25 @@ curl -d '{"variables":[{"variable_type": "custom_dichotomous", "cohort_ids": [1,
 
 # Deployment steps
 
-## Deployment to QA
+## Deployment to Gen3
 
-- Add config .yaml as a secret:
-  - If the config secret does not yet exist, create it [with name expected in this deployment .yaml file](https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml):
-  ```
-  kubectl create secret generic <secret_name_here> \
-    --from-file=./test.yaml \
-  ```
-  where `./test.yaml` follows the general structure of `./config/development.yaml`.
+For deployment in Gen3 simply use [`kube-setup-cohort-middleware`](https://github.com/uc-cdis/cloud-automation/blob/master/gen3/bin/kube-setup-cohort-middleware.sh) script:
 
-  - Check if it worked with:
-  ```
-  kubectl get secrets/<secret_name_here> -o yaml
-  ```
-- PRs to `master` get the docker image built on quay (via github action). See https://quay.io/repository/cdis/cohort-middleware?tab=tags
-  - The following config file determines which branch or tag is used on QA: https://github.com/uc-cdis/gitops-qa/blob/master/qa-mickey.planx-pla.net/manifest.json
-- If testing on QA:
-   - ssh to QA machine
-   - run the steps below:
-    ```bash
-    echo "====== Pull manifest without going into directory ====== "
-    git -C ~/cdis-manifest pull
-    echo "====== Update the manifest configmaps ======"
-    gen3 kube-setup-secrets
-    echo "====== Deploy ======"
-    gen3 roll cohort-middleware
-    ```
+```
+gen3 kube-setup-cohort-middleware
+```
+
+The script will use `ohdsi` database credentials and will result in `cohort-middleware-g3auto` Kubernetes secret.
+
+### Roll cohort-middleware
+
+To roll cohort-middleware (in case of version update), full `kube-setup-cohort-middleware` is not required:
+
+```
+gen3 roll cohort-middleware
+```
+
+This will take care of all the secrets via [`g3auto`](https://github.com/uc-cdis/cloud-automation/blob/master/doc/secrets.md#overview).
 
 ## Test the endpoints on QA
 

@@ -76,7 +76,7 @@ func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConce
 	return cohortData, nil
 }
 
-func (h dummyCohortDataModel) RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(sourceId int, caseCohortId int, controlCohortId int,
+func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
 	otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
 	return zeroOverlap, nil
@@ -335,7 +335,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T
 	}
 }
 
-func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) {
+func TestRetrieveCohortOverlapStats(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
@@ -346,7 +346,7 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"concept\", \"concept_id\": 2000006885}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
-	cohortDataController.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
+	cohortDataController.RetrieveCohortOverlapStats(requestContext)
 	// Params above are correct, so request should NOT abort:
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
@@ -358,7 +358,7 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 
 	// the same request should fail if the teamProject authorization fails:
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
-	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveCohortOverlapStats(requestContext)
 	result = requestContext.Writer.(*tests.CustomResponseWriter)
 	// expect error:
 	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
@@ -369,13 +369,13 @@ func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(t *testing.T) 
 	}
 }
 
-func TestRetrieveCohortOverlapStatsWithoutFilteringOnConceptValueBadRequest(t *testing.T) {
+func TestRetrieveCohortOverlapStatsBadRequest(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 
-	cohortDataController.RetrieveCohortOverlapStatsWithoutFilteringOnConceptValue(requestContext)
+	cohortDataController.RetrieveCohortOverlapStats(requestContext)
 	// Params above are incorrect, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected this request to abort")

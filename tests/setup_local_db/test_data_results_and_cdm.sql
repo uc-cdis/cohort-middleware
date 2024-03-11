@@ -68,6 +68,7 @@ values
 	(nextval('observation_id_seq'), 3,0,'1993-10-24','1993-10-24 00:00:00',38000276,NULL,'M',0,0,0,NULL,81,0,'713197008',0,NULL,NULL,NULL,0,NULL),
 	(nextval('observation_id_seq'), 3,0,'1967-12-02','1967-12-02 00:00:00',38000276,NULL,NULL,0,0,0,NULL,114,0,'53741008',0,NULL,NULL,NULL,0,NULL),
 	(nextval('observation_id_seq'), 4,0,'2012-06-06','2012-06-06 00:00:00',38000276,NULL,NULL,0,0,0,NULL,170,0,'403191005',0,NULL,NULL,NULL,0,NULL),
+    -- person 5 has null in value_as_number here:
 	(nextval('observation_id_seq'), 5,2000006885,'1993-11-17','1993-11-17 00:00:00',38000276,NULL,NULL,0,0,0,NULL,179,0,'162864005',0,NULL,NULL,NULL,0,NULL),
 	(nextval('observation_id_seq'), 5,0,'2014-01-31','2014-01-31 00:00:00',38000276,NULL,NULL,0,0,0,NULL,197,0,'278860009',0,NULL,NULL,NULL,0,NULL),
    	(nextval('observation_id_seq'), 6,2000006885,'2014-01-31','2014-01-31 00:00:00',38000276,5.41,NULL,0,0,0,NULL,197,0,'278860009',0,NULL,NULL,NULL,0,NULL),
@@ -156,6 +157,7 @@ values
     (32,9),
     (32,10),
 -- extra large cohort for testing histogram: (aka "largestCohort" in models_test.go script)
+    (4,5),
     (4,6),
     (4,7),
     (4,8),

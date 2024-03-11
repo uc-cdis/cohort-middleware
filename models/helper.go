@@ -12,13 +12,13 @@ import (
 // * It was added here to make it reusable, given these filters need to be added to many of the queries that take in
 //   a list of filters in the form of concept ids.
 func QueryFilterByConceptIdsHelper(query *gorm.DB, sourceId int, filterConceptIds []int64,
-	omopDataSource *utils.DbAndSchema, resultSchemaName string, mainObservationTableAlias string) *gorm.DB {
+	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string) *gorm.DB {
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
 	for i, filterConceptId := range filterConceptIds {
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+mainObservationTableAlias+".person_id").
+		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
 			Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptId))
 	}

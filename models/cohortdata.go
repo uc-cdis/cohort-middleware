@@ -12,6 +12,7 @@ type CohortDataI interface {
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
+	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*OrdinalGroupData, error)
 }
 
 type CohortData struct{}
@@ -42,6 +43,13 @@ type PersonIdAndCohort struct {
 
 type Person struct {
 	PersonId int64
+}
+
+type OrdinalGroupData struct {
+	name             string
+	personCount      int64
+	valueAsString    string
+	valueAsConceptID int64
 }
 
 // This function returns the subjects that belong to both cohorts (the intersection of both cohorts)
@@ -102,6 +110,25 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 		Where("observation.value_as_number is not null")
 
 	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortData)
+	return cohortData, meta_result.Error
+}
+
+func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*OrdinalGroupData, error) {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+
+	// get the observations for the subjects and the concepts, to build up the data rows to return:
+	var cohortData []*OrdinalGroupData
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
+		Select("c1.CONCEPT_NAME as name, count(distinct person_id) as personCount,observation.value_as_string as valueAsString, value_as_concept_id as valueAsConceptId").
+		Joins("INNER JOIN "+omopDataSource.Schema+".concept as c ON c.concept_id = observation.observation_concept_id").
+		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as c1 ON c1.concept_id = observation.value_as_concept_id").
+		Where("c.CONCEPT_CLASS_ID = ?", "MVP Ordinal").
+		Group("observation.observation_concept_id, observation.value_as_string, observation.value_as_concept_id, c1.CONCEPT_NAME")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

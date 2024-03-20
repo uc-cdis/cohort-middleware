@@ -94,7 +94,6 @@ CREATE TABLE omop.concept
     valid_end_date date NOT NULL DEFAULT DATE('2099-01-01'),
     invalid_reason character varying(1) COLLATE pg_catalog."default"
 );
-GO
 
 CREATE VIEW omop.OBSERVATION_CONTINUOUS AS
 SELECT ob.person_id, ob.observation_concept_id, ob.value_as_string, ob.value_as_number, ob.value_as_concept_id
@@ -102,20 +101,17 @@ FROM omop.observation ob
 INNER JOIN omop.concept concept ON concept.CONCEPT_ID=ob.OBSERVATION_CONCEPT_ID
 WHERE concept.CONCEPT_CLASS_ID='MVP Continuous' or concept.CONCEPT_ID=2000007027;
 
-GO
 
-CREATE VIEW [OMOP].[DATA_DICTIONARY]
-    WITH SCHEMABINDING
-AS
+CREATE VIEW OMOP.DATA_DICTIONARY AS
  SELECT c.vocabulary_id, c.concept_id, c.concept_code, c.concept_class_id, COUNT_BIG(DISTINCT oc.person_id) as number_of_people_with_variable,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN (SELECT COUNT_BIG(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc1 WHERE oc1.observation_concept_id = c.CONCEPT_ID AND oc1.value_as_number IS NOT NULL) ELSE (SELECT COUNT_BIG(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc3 WHERE oc3.observation_concept_id = c.CONCEPT_ID AND (oc3.value_as_concept_id IS NOT NULL and oc3.value_as_concept_id > 0)) END) as number_of_people_where_value_is_filled,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN (SELECT COUNT_BIG(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc2 WHERE oc2.observation_concept_id = c.CONCEPT_ID AND oc2.value_as_number IS NULL) ELSE (SELECT COUNT_BIG(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc4 WHERE oc4.observation_concept_id = c.CONCEPT_ID AND (oc4.value_as_concept_id IS NULL and oc4.value_as_concept_id = 0)) END) as number_of_people_where_value_is_null,
+  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc1 WHERE oc1.observation_concept_id = c.CONCEPT_ID AND oc1.value_as_number IS NOT NULL) ELSE (SELECT COUNT_BIG(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc3 WHERE oc3.observation_concept_id = c.CONCEPT_ID AND (oc3.value_as_concept_id IS NOT NULL and oc3.value_as_concept_id > 0)) END) as number_of_people_where_value_is_filled,
+  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc2 WHERE oc2.observation_concept_id = c.CONCEPT_ID AND oc2.value_as_number IS NULL) ELSE (SELECT COUNT_BIG(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc4 WHERE oc4.observation_concept_id = c.CONCEPT_ID AND (oc4.value_as_concept_id IS NULL and oc4.value_as_concept_id = 0)) END) as number_of_people_where_value_is_null,
   (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN 'Number' ELSE 'Concept Id' END) as value_stored_as,
   (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN MIN(value_as_number) ELSE NULL END) as min_value,
   (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN MAX(value_as_number) ELSE NULL END) as max_value,
   (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN AVG(value_as_number) ELSE NULL END) as mean_value,
   (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN STDEV(value_as_number) ELSE NULL END) as standard_deviation,
   NULL as value_summary
-  FROM [OMOP].[CONCEPT] c
+  FROM omop.concept c
   INNER JOIN omop.OBSERVATION_CONTINUOUS oc on oc.observation_concept_id=c.CONCEPT_ID
   GROUP BY c.vocabulary_id, c.concept_id, c.concept_code, c.concept_class_id;

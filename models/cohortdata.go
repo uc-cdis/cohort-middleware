@@ -125,19 +125,19 @@ func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourc
 	var cohortData []*OrdinalGroupData
 	/*
 			Bar Graph SQL
-		  SELECT c1.CONCEPT_NAME, observation_concept_id, value_as_string, value_as_concept_id, count(distinct person_id)
+		  SELECT c1.concept_name, observation_concept_id, value_as_string, value_as_concept_id, count(distinct person_id)
 		  FROM omop.OBSERVATION_CONTINUOUS oc
-		  Inner JOIN omop.concept c on c.CONCEPT_ID = oc.observation_concept_id
-		  Inner JOIN omop.concept c1 on c1.CONCEPT_ID = oc.value_as_concept_id
-		  WHERE c.CONCEPT_CLASS_ID = 'MVP Ordinal'
-		  GROUP BY observation_concept_id, value_as_string, value_as_concept_id , c1.CONCEPT_NAME
+		  Inner JOIN omop.concept c on c.concept_id = oc.observation_concept_id
+		  Inner JOIN omop.concept c1 on c1.concept_id = oc.value_as_concept_id
+		  WHERE c.concept_class_id = 'MVP Ordinal'
+		  GROUP BY observation_concept_id, value_as_string, value_as_concept_id , c1.concept_name
 	*/
 	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("c1.CONCEPT_NAME as name, count(distinct person_id) as personCount,observation.value_as_string as valueAsString, value_as_concept_id as valueAsConceptId").
+		Select("c1.concept_name as name, count(distinct person_id) as person_count,observation.value_as_string as value_as_string, value_as_concept_id as value_as_concept_id").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as c ON c.concept_id = observation.observation_concept_id").
 		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as c1 ON c1.concept_id = observation.value_as_concept_id").
-		Where("c.CONCEPT_CLASS_ID = ?", "MVP Ordinal").
-		Group("observation.observation_concept_id, observation.value_as_string, observation.value_as_concept_id, c1.CONCEPT_NAME")
+		Where("c.concept_class_id = ?", "MVP Ordinal").
+		Group("observation.observation_concept_id, observation.value_as_string, observation.value_as_concept_id, c1.concept_name")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

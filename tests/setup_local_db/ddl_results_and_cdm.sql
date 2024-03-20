@@ -103,15 +103,15 @@ WHERE concept.CONCEPT_CLASS_ID='MVP Continuous' or concept.CONCEPT_ID=2000007027
 
 CREATE VIEW omop.DATA_DICTIONARY AS
  SELECT c.vocabulary_id, c.concept_id, c.concept_code, c.concept_class_id, COUNT(DISTINCT oc.person_id) as number_of_people_with_variable,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc1 WHERE oc1.observation_concept_id = c.CONCEPT_ID AND oc1.value_as_number IS NOT NULL) ELSE (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc3 WHERE oc3.observation_concept_id = c.CONCEPT_ID AND (oc3.value_as_concept_id IS NOT NULL and oc3.value_as_concept_id > 0)) END) as number_of_people_where_value_is_filled,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc2 WHERE oc2.observation_concept_id = c.CONCEPT_ID AND oc2.value_as_number IS NULL) ELSE (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc4 WHERE oc4.observation_concept_id = c.CONCEPT_ID AND (oc4.value_as_concept_id IS NULL and oc4.value_as_concept_id = 0)) END) as number_of_people_where_value_is_null,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN 'Number' ELSE 'Concept Id' END) as value_stored_as,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN MIN(value_as_number) ELSE NULL END) as min_value,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN MAX(value_as_number) ELSE NULL END) as max_value,
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN AVG(value_as_number) ELSE NULL END) as mean_value,
+  (CASE WHEN c.concept_class_id = 'MVP Continuous' THEN (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc1 WHERE oc1.observation_concept_id = c.concept_id  AND oc1.value_as_number IS NOT NULL) ELSE (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc3 WHERE oc3.observation_concept_id = c.concept_id AND (oc3.value_as_concept_id IS NOT NULL and oc3.value_as_concept_id > 0)) END) as number_of_people_where_value_is_filled,
+  (CASE WHEN c.concept_class_id  = 'MVP Continuous' THEN (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc2 WHERE oc2.observation_concept_id = c.concept_id AND oc2.value_as_number IS NULL) ELSE (SELECT COUNT(DISTINCT person_id) FROM omop.OBSERVATION_CONTINUOUS oc4 WHERE oc4.observation_concept_id = c.concept_id AND (oc4.value_as_concept_id IS NULL and oc4.value_as_concept_id = 0)) END) as number_of_people_where_value_is_null,
+  (CASE WHEN c.concept_class_id  = 'MVP Continuous' THEN 'Number' ELSE 'Concept Id' END) as value_stored_as,
+  (CASE WHEN c.concept_class_id  = 'MVP Continuous' THEN MIN(value_as_number) ELSE NULL END) as min_value,
+  (CASE WHEN c.concept_class_id  = 'MVP Continuous' THEN MAX(value_as_number) ELSE NULL END) as max_value,
+  (CASE WHEN c.concept_class_id  = 'MVP Continuous' THEN AVG(value_as_number) ELSE NULL END) as mean_value,
   -- For sql server deployment, use stdev(value_as_number) instead of stddev(value_as_number)
-  (CASE WHEN c.CONCEPT_CLASS_ID = 'MVP Continuous' THEN stddev(value_as_number) ELSE NULL END) as standard_deviation,
+  (CASE WHEN c.concept_class_id  = 'MVP Continuous' THEN stddev(value_as_number) ELSE NULL END) as standard_deviation,
   NULL as value_summary
   FROM omop.concept c
-  INNER JOIN omop.OBSERVATION_CONTINUOUS oc on oc.observation_concept_id=c.CONCEPT_ID
+  INNER JOIN omop.OBSERVATION_CONTINUOUS oc on oc.observation_concept_id=c.concept_id
   GROUP BY c.vocabulary_id, c.concept_id, c.concept_code, c.concept_class_id;

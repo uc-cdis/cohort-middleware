@@ -123,6 +123,15 @@ func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourc
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*OrdinalGroupData
+	/*
+			Bar Graph SQL
+		  SELECT c1.CONCEPT_NAME, observation_concept_id, value_as_string, value_as_concept_id, count(distinct person_id)
+		  FROM omop.OBSERVATION_CONTINUOUS oc
+		  Inner JOIN omop.concept c on c.CONCEPT_ID = oc.observation_concept_id
+		  Inner JOIN omop.concept c1 on c1.CONCEPT_ID = oc.value_as_concept_id
+		  WHERE c.CONCEPT_CLASS_ID = 'MVP Ordinal'
+		  GROUP BY observation_concept_id, value_as_string, value_as_concept_id , c1.CONCEPT_NAME
+	*/
 	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
 		Select("c1.CONCEPT_NAME as name, count(distinct person_id) as personCount,observation.value_as_string as valueAsString, value_as_concept_id as valueAsConceptId").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as c ON c.concept_id = observation.observation_concept_id").

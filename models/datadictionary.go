@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
 
@@ -38,18 +39,17 @@ type DataDictionaryEntry struct {
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
 
-	//TODO: Get this from some sort of config file later
-	var catchAllCohortId = 404 //qa catch all cohort
+	conf := config.GetConfig()
+	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
 	var source = new(Source)
 	sources, _ := source.GetAllSources()
 
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
-	//resultsDataSource := dataSourceModel.GetDataSource(source.SourceId, Results)
 
 	var dataDictionaryModel DataDictionaryModel
 	var dataDictionaryEntries []*DataDictionaryEntry
-	//var selects = []string{"vocabulary_id", "concept_id", "concept_code", "concept_class_id"}
+	//see ddl_results_and_cdm.sql Data_Dictionary view
 	query := omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary" + omopDataSource.GetViewDirective())
 
 	query, cancel := utils.AddTimeoutToQuery(query)

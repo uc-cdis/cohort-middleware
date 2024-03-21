@@ -21,19 +21,19 @@ type DataDictionaryModel struct {
 	Data  []*DataDictionaryEntry `json:"Data"`
 }
 type DataDictionaryEntry struct {
-	VocabularyID                int64  `json:"vocabularyID"`
-	ConceptID                   int64  `json:"conceptID"`
-	ConceptCode                 string `json:"conceptCode"`
-	ConceptClassId              string `json:"conceptClassId"`
-	NumberOfPeopleWithVariable  int64  `json:"NumberOfPeopleWithVariable"`
-	NumberOfPeopleWithValue     int64  `json:"NumberOfPeopleWithValue"`
-	NumberOfPeopleWithNullValue int64  `json:"NumberOfPeopleWithNullValue"`
-	ValueStoredAs               string `json:"valueStoredAs"`
-	MinValue                    int64  `json:"minValue"`
-	MaxValue                    int64  `json:"maxValue"`
-	MeanValue                   int64  `json:"meanValue"`
-	StandardDeviation           int64  `json:"standardDeviation"`
-	ValueSummary                []byte `json:"valueSummary"`
+	VocabularyID                     string  `json:"vocabularyID"`
+	ConceptID                        int64   `json:"conceptID"`
+	ConceptCode                      string  `json:"conceptCode"`
+	ConceptClassId                   string  `json:"conceptClassId"`
+	NumberOfPeopleWithVariable       int64   `json:"numberOfPeopleWithVariable"`
+	NumberOfPeopleWhereValueIsFilled int64   `json:"numberOfPeopleWhereValueIsFilled"`
+	NumberOfPeopleWhereValueIsNull   int64   `json:"numberOfPeopleWhereValueIsNull"`
+	ValueStoredAs                    string  `json:"valueStoredAs"`
+	MinValue                         float64 `json:"minValue"`
+	MaxValue                         float64 `json:"maxValue"`
+	MeanValue                        float64 `json:"meanValue"`
+	StandardDeviation                float64 `json:"standardDeviation"`
+	ValueSummary                     []byte  `json:"valueSummary"`
 }
 
 // Generate Data Dictionary Json

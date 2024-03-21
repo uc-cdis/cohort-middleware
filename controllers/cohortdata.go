@@ -15,8 +15,9 @@ import (
 )
 
 type CohortDataController struct {
-	cohortDataModel  models.CohortDataI
-	teamProjectAuthz middlewares.TeamProjectAuthzI
+	cohortDataModel     models.CohortDataI
+	dataDictionaryModel models.DataDictionary
+	teamProjectAuthz    middlewares.TeamProjectAuthzI
 }
 
 func NewCohortDataController(cohortDataModel models.CohortDataI, teamProjectAuthz middlewares.TeamProjectAuthzI) CohortDataController {
@@ -170,13 +171,17 @@ func GenerateCompleteCSV(partialCSV [][]string, personIdToCSVValues map[int64]ma
 // for this person in the subsequent columns. The transformation is necessary
 // since the cohortData list contains one row per person-concept combination.
 // E.g. the following (simplified version of the) data:
-//   {PersonId:1, ConceptId:1, ConceptValue: "A value with, comma!"},
-//   {PersonId:1, ConceptId:2, ConceptValue: B},
-//   {PersonId:2, ConceptId:1, ConceptValue: C},
+//
+//	{PersonId:1, ConceptId:1, ConceptValue: "A value with, comma!"},
+//	{PersonId:1, ConceptId:2, ConceptValue: B},
+//	{PersonId:2, ConceptId:1, ConceptValue: C},
+//
 // will be transformed to a CSV table like:
-//   sample.id,ID_concept_id1,ID_concept_id2
-//   1,"A value with, comma!",B
-//   2,Simple value,NA
+//
+//	sample.id,ID_concept_id1,ID_concept_id2
+//	1,"A value with, comma!",B
+//	2,Simple value,NA
+//
 // where "NA" means that the person did not have a data element for that concept
 // or that the data element had a NULL/empty value.
 func GeneratePartialCSV(sourceId int, cohortData []*models.PersonConceptAndValue, conceptIds []int64) [][]string {
@@ -351,4 +356,11 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 	}
 
 	return personIdToCSVValues, nil
+}
+
+func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
+
+	var dataDictionary, _ = u.dataDictionaryModel.GenerateDataDictionary()
+
+	c.JSON(http.StatusOK, dataDictionary)
 }

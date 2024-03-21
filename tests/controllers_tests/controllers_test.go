@@ -76,6 +76,11 @@ func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConce
 	return cohortData, nil
 }
 
+func (h dummyCohortDataModel) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*models.OrdinalGroupData, error) {
+	cohortData := []*models.OrdinalGroupData{}
+	return cohortData, nil
+}
+
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
 	otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats

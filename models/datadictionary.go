@@ -13,7 +13,7 @@ type DataDictionaryI interface {
 }
 
 type DataDictionary struct {
-	cohortDataModel CohortDataI
+	CohortDataModel CohortDataI
 }
 
 type DataDictionaryModel struct {
@@ -21,19 +21,19 @@ type DataDictionaryModel struct {
 	Data  []*DataDictionaryEntry `json:"Data"`
 }
 type DataDictionaryEntry struct {
-	VocabularyID                     string  `json:"vocabularyID"`
-	ConceptID                        int64   `json:"conceptID"`
-	ConceptCode                      string  `json:"conceptCode"`
-	ConceptClassId                   string  `json:"conceptClassId"`
-	NumberOfPeopleWithVariable       int64   `json:"numberOfPeopleWithVariable"`
-	NumberOfPeopleWhereValueIsFilled int64   `json:"numberOfPeopleWhereValueIsFilled"`
-	NumberOfPeopleWhereValueIsNull   int64   `json:"numberOfPeopleWhereValueIsNull"`
-	ValueStoredAs                    string  `json:"valueStoredAs"`
-	MinValue                         float64 `json:"minValue"`
-	MaxValue                         float64 `json:"maxValue"`
-	MeanValue                        float64 `json:"meanValue"`
-	StandardDeviation                float64 `json:"standardDeviation"`
-	ValueSummary                     []byte  `json:"valueSummary"`
+	VocabularyID                     string          `json:"vocabularyID"`
+	ConceptID                        int64           `json:"conceptID"`
+	ConceptCode                      string          `json:"conceptCode"`
+	ConceptClassId                   string          `json:"conceptClassId"`
+	NumberOfPeopleWithVariable       int64           `json:"numberOfPeopleWithVariable"`
+	NumberOfPeopleWhereValueIsFilled int64           `json:"numberOfPeopleWhereValueIsFilled"`
+	NumberOfPeopleWhereValueIsNull   int64           `json:"numberOfPeopleWhereValueIsNull"`
+	ValueStoredAs                    string          `json:"valueStoredAs"`
+	MinValue                         float64         `json:"minValue"`
+	MaxValue                         float64         `json:"maxValue"`
+	MeanValue                        float64         `json:"meanValue"`
+	StandardDeviation                float64         `json:"standardDeviation"`
+	ValueSummary                     json.RawMessage `json:"valueSummary"`
 }
 
 // Generate Data Dictionary Json
@@ -63,6 +63,15 @@ func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
 		log.Printf("INFO: Data dictionary entries found.")
 	}
 
+	//Get total number of concept ids
+	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
+		Select("count(distinct observation.observation_concept_id) as total, NULL as data")
+
+	query, cancel = utils.AddTimeoutToQuery(query)
+	defer cancel()
+	_ = query.Scan(&dataDictionaryModel)
+
+	//Get histogram/bar graph data
 	for _, data := range dataDictionaryEntries {
 		if data.ConceptClassId == "MVP Continuous" {
 			// MVP Continuous #similar to bin items below call cohort-middleware
@@ -74,7 +83,9 @@ func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
 				personCount: number
 				},]
 			*/
-			cohortData, _ := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, []int64{}, []utils.CustomDichotomousVariableDef{})
+			var filterConceptIds = []int64{}
+			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
+			cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
 
 			conceptValues := []float64{}
 			for _, personData := range cohortData {
@@ -92,18 +103,12 @@ func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
 			    valueAsString: number
 			    valueAsConceptID: number
 			}*/
-			ordinalValueData, _ := u.cohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
+			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
 
 			data.ValueSummary, _ = json.Marshal(ordinalValueData)
 		}
 	}
 
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("count(distinct observation.observation_concept_id) as total, NULL as data")
-
-	query, cancel = utils.AddTimeoutToQuery(query)
-	defer cancel()
-	_ = query.Scan(&dataDictionaryModel)
 	dataDictionaryModel.Data = dataDictionaryEntries
 	return dataDictionaryModel, nil
 }

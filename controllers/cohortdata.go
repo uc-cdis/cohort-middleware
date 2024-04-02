@@ -16,14 +16,15 @@ import (
 
 type CohortDataController struct {
 	cohortDataModel     models.CohortDataI
-	dataDictionaryModel models.DataDictionary
+	dataDictionaryModel models.DataDictionaryI
 	teamProjectAuthz    middlewares.TeamProjectAuthzI
 }
 
-func NewCohortDataController(cohortDataModel models.CohortDataI, teamProjectAuthz middlewares.TeamProjectAuthzI) CohortDataController {
+func NewCohortDataController(cohortDataModel models.CohortDataI, dataDictionaryModel models.DataDictionaryI, teamProjectAuthz middlewares.TeamProjectAuthzI) CohortDataController {
 	return CohortDataController{
-		cohortDataModel:  cohortDataModel,
-		teamProjectAuthz: teamProjectAuthz,
+		cohortDataModel:     cohortDataModel,
+		dataDictionaryModel: dataDictionaryModel,
+		teamProjectAuthz:    teamProjectAuthz,
 	}
 }
 

@@ -9,7 +9,7 @@ import (
 )
 
 type DataDictionaryI interface {
-	GenerateDataDictionary(observationConceptIdsToCheck []int64) ([]*PersonConceptAndValue, error)
+	GenerateDataDictionary() (*DataDictionaryModel, error)
 }
 
 type DataDictionary struct {
@@ -37,7 +37,7 @@ type DataDictionaryEntry struct {
 }
 
 // Generate Data Dictionary Json
-func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
+func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
@@ -56,7 +56,7 @@ func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
 	defer cancel()
 	meta_result := query.Scan(&dataDictionaryEntries)
 	if meta_result.Error != nil {
-		return dataDictionaryModel, meta_result.Error
+		return &dataDictionaryModel, meta_result.Error
 	} else if len(dataDictionaryEntries) == 0 {
 		log.Printf("INFO: no data dictionary entry found")
 	} else {
@@ -110,5 +110,5 @@ func (u DataDictionary) GenerateDataDictionary() (DataDictionaryModel, error) {
 	}
 
 	dataDictionaryModel.Data = dataDictionaryEntries
-	return dataDictionaryModel, nil
+	return &dataDictionaryModel, nil
 }

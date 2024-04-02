@@ -98,6 +98,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			log.Printf("catch all cohort id is %v", catchAllCohortId)
 			if u.CohortDataModel == nil {
 				log.Printf("CohortDataModel Object is nil")
+				u.CohortDataModel = new(CohortData)
 			}
 			cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
 			log.Printf("Retreieve histogram data Succesful")

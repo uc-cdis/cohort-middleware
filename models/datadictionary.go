@@ -50,7 +50,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	var dataDictionaryModel DataDictionaryModel
 	var dataDictionaryEntries []*DataDictionaryEntry
 	//see ddl_results_and_cdm.sql Data_Dictionary view
-	query := omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary" + omopDataSource.GetViewDirective())
+	query := omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

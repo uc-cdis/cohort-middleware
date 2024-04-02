@@ -3,6 +3,7 @@ package models
 import (
 	"encoding/json"
 	"log"
+	"time"
 
 	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/utils"
@@ -52,7 +53,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	//see ddl_results_and_cdm.sql Data_Dictionary view
 	query := omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary")
 
-	query, cancel := utils.AddTimeoutToQuery(query)
+	query, cancel := utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 	defer cancel()
 	meta_result := query.Scan(&dataDictionaryEntries)
 	if meta_result.Error != nil {
@@ -67,48 +68,56 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
 		Select("count(distinct observation.observation_concept_id) as total, NULL as data")
 
-	query, cancel = utils.AddTimeoutToQuery(query)
+	query, cancel = utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 	defer cancel()
-	_ = query.Scan(&dataDictionaryModel)
+	meta_result = query.Scan(&dataDictionaryModel)
 
-	//Get histogram/bar graph data
-	for _, data := range dataDictionaryEntries {
-		if data.ConceptClassId == "MVP Continuous" {
-			// MVP Continuous #similar to bin items below call cohort-middleware
-			// Example call, parameter for cohort definition and source id https://qa-mickey.planx-pla.net/cohort-middleware/histogram/by-source-id/2/by-cohort-definition-id/404/by-histogram-concept-id/2000006886
-			/*
-				[{
-				start: number
-				end: number
-				personCount: number
-				},]
-			*/
-			var filterConceptIds = []int64{}
-			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-			cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
+	if meta_result.Error != nil {
+		log.Printf("INFO: Got total number of concepts from observation view.")
 
-			conceptValues := []float64{}
-			for _, personData := range cohortData {
-				conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
+		//Get histogram/bar graph data
+		for _, data := range dataDictionaryEntries {
+			if data.ConceptClassId == "MVP Continuous" {
+				// MVP Continuous #similar to bin items below call cohort-middleware
+				// Example call, parameter for cohort definition and source id https://qa-mickey.planx-pla.net/cohort-middleware/histogram/by-source-id/2/by-cohort-definition-id/404/by-histogram-concept-id/2000006886
+				/*
+					[{
+					start: number
+					end: number
+					personCount: number
+					},]
+				*/
+				var filterConceptIds = []int64{}
+				var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
+				cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
+
+				conceptValues := []float64{}
+				for _, personData := range cohortData {
+					conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
+				}
+
+				histogramData := utils.GenerateHistogramData(conceptValues)
+				data.ValueSummary, _ = json.Marshal(histogramData)
+				log.Printf("INFO: Got histogram data for continuous concept.")
+			} else {
+				//Get Value Summary from bar graph method
+				// MVP ordinal use this structure , bin people based on value_as_concept_id and get the count
+				/*{
+					name: string
+					personCount: number
+					valueAsString: number
+					valueAsConceptID: number
+				}*/
+				ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
+
+				data.ValueSummary, _ = json.Marshal(ordinalValueData)
+				log.Printf("INFO: Got histogram data for ordinal concept.")
 			}
-
-			histogramData := utils.GenerateHistogramData(conceptValues)
-			data.ValueSummary, _ = json.Marshal(histogramData)
-		} else {
-			//Get Value Summary from bar graph method
-			// MVP ordinal use this structure , bin people based on value_as_concept_id and get the count
-			/*{
-			    name: string
-			    personCount: number
-			    valueAsString: number
-			    valueAsConceptID: number
-			}*/
-			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
-
-			data.ValueSummary, _ = json.Marshal(ordinalValueData)
 		}
+		log.Printf("INFO: Data dictionary generation complete")
+		dataDictionaryModel.Data = dataDictionaryEntries
+	} else {
+		log.Printf("ERROR: Failed to get number of concepts")
 	}
-
-	dataDictionaryModel.Data = dataDictionaryEntries
 	return &dataDictionaryModel, nil
 }

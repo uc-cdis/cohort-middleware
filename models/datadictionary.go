@@ -79,7 +79,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 		log.Printf("INFO: Got total number of concepts from observation view.")
 	}
 
-	log.Printf("Get histogram/bar graph data")
+	log.Printf("Get all histogram/bar graph data")
 
 	for _, data := range dataDictionaryEntries {
 		if data.ConceptClassId == "MVP Continuous" {
@@ -94,14 +94,17 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			*/
 			var filterConceptIds = []int64{}
 			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
+			log.Printf("Retreieve histogram data...")
 			cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
-
+			log.Printf("Retreieve histogram data Succesful")
 			conceptValues := []float64{}
 			for _, personData := range cohortData {
 				conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 			}
 
+			log.Printf("Generate histogram from data...")
 			histogramData := utils.GenerateHistogramData(conceptValues)
+			log.Printf("Histogram generated")
 			data.ValueSummary, _ = json.Marshal(histogramData)
 			log.Printf("INFO: Got histogram data for continuous concept.")
 		} else {
@@ -113,8 +116,9 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 				valueAsString: number
 				valueAsConceptID: number
 			}*/
+			log.Printf("Retreieve bar graph data...")
 			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
-
+			log.Printf("Retreieve bar graph data Succesful")
 			data.ValueSummary, _ = json.Marshal(ordinalValueData)
 			log.Printf("INFO: Got histogram data for ordinal concept.")
 		}

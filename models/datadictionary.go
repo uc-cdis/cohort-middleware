@@ -19,8 +19,9 @@ type DataDictionary struct {
 
 type DataDictionaryModel struct {
 	Total int64                  `json:"total"`
-	Data  []*DataDictionaryEntry `json:"Data"`
+	Data  []*DataDictionaryEntry `json:"data"`
 }
+
 type DataDictionaryEntry struct {
 	VocabularyID                     string          `json:"vocabularyID"`
 	ConceptID                        int64           `json:"conceptID"`
@@ -66,7 +67,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 
 	//Get total number of concept ids
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("count(distinct observation.observation_concept_id) as total, NULL as data")
+		Select("count(distinct observation.observation_concept_id) as total")
 
 	query, cancel = utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 	defer cancel()

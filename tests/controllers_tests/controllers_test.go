@@ -260,7 +260,7 @@ func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictiona
 	valueSummary2, _ := json.Marshal("[{\"Name\":\"non-Hispanic Black\",\"PersonCount\":4,\"ValueAsString\":\"AFR\",\"ValueAsConceptID\":2000007030},{\"Name\":\"non-Hispanic Asian\",\"PersonCount\":3,\"ValueAsString\":\"ASN\",\"ValueAsConceptID\":2000007029},{\"Name\":\"non-Hispanic White\",\"PersonCount\":2,\"ValueAsString\":\"EUR\",\"ValueAsConceptID\":2000007031},{\"Name\":\"Hispanic\",\"PersonCount\":2,\"ValueAsString\":\"HIS\",\"ValueAsConceptID\":2000007028},{\"Name\":\"\",\"PersonCount\":1,\"ValueAsString\":\"\",\"ValueAsConceptID\":0}]")
 	entries[0].ValueSummary = valueSummary1
 	entries[1].ValueSummary = valueSummary2
-	data.Data = append(data.Data, entries...)
+	data.Data, _ = json.Marshal(entries)
 	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
 	}

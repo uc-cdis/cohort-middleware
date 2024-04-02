@@ -18,8 +18,8 @@ type DataDictionary struct {
 }
 
 type DataDictionaryModel struct {
-	Total int64                  `json:"total"`
-	Data  []*DataDictionaryEntry `json:"data"`
+	Total int64           `json:"total"`
+	Data  json.RawMessage `json:"data"`
 }
 
 type DataDictionaryEntry struct {
@@ -116,7 +116,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			}
 		}
 		log.Printf("INFO: Data dictionary generation complete")
-		dataDictionaryModel.Data = dataDictionaryEntries
+		dataDictionaryModel.Data, _ = json.Marshal(dataDictionaryEntries)
 	} else {
 		log.Printf("ERROR: Failed to get number of concepts")
 	}

@@ -1043,7 +1043,7 @@ func TestGetDataDictioanry(t *testing.T) {
 	setUp(t)
 	dataDictionaryModel.CohortDataModel = cohortDataModel
 	data, _ := dataDictionaryModel.GenerateDataDictionary()
-	if data.Total != 0 {
+	if data.Total != 3 {
 		t.Errorf("Data Dictionary Generation Failed.")
 	}
 }

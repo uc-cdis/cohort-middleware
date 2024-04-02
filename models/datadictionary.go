@@ -96,6 +96,9 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 			log.Printf("Retreieve histogram data...")
 			log.Printf("catch all cohort id is %v", catchAllCohortId)
+			if u.CohortDataModel == nil {
+				log.Printf("CohortDataModel Object is nil")
+			}
 			cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
 			log.Printf("Retreieve histogram data Succesful")
 			conceptValues := []float64{}

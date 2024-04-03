@@ -46,10 +46,10 @@ type Person struct {
 }
 
 type OrdinalGroupData struct {
-	Name             string
-	PersonCount      int64
-	ValueAsString    string
-	ValueAsConceptID int64
+	Name             string `json:"name"`
+	PersonCount      int64  `json:"personCount"`
+	ValueAsString    string `json:"valueAsString"`
+	ValueAsConceptID int64  `json:"valueAsConceptID"`
 }
 
 // This function returns the subjects that belong to both cohorts (the intersection of both cohorts)

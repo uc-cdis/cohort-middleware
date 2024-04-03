@@ -27,7 +27,7 @@ type DataDictionaryEntry struct {
 	ConceptID                        int64           `json:"conceptID"`
 	ConceptCode                      string          `json:"conceptCode"`
 	ConceptName                      string          `json:"conceptName"`
-	ConceptClassId                   string          `json:"conceptClassId"`
+	ConceptClassId                   string          `json:"conceptClassID"`
 	NumberOfPeopleWithVariable       int64           `json:"numberOfPeopleWithVariable"`
 	NumberOfPeopleWhereValueIsFilled int64           `json:"numberOfPeopleWhereValueIsFilled"`
 	NumberOfPeopleWhereValueIsNull   int64           `json:"numberOfPeopleWhereValueIsNull"`

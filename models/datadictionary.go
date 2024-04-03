@@ -55,7 +55,11 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	log.Printf("catch all cohort id is %v", catchAllCohortId)
 	var source = new(Source)
 	sources, _ := source.GetAllSources()
-
+	if len(sources) < 1 {
+		panic("Error: No data source found")
+	} else if len(sources) > 1 {
+		panic("More than one data source! Exiting")
+	}
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
 

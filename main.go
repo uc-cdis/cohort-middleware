@@ -25,7 +25,11 @@ func runDataDictionaryGeneration() {
 	var cohortDataModel = new(models.CohortData)
 	var dataDictionaryModel = new(models.DataDictionary)
 	dataDictionaryModel.CohortDataModel = cohortDataModel
-	dataDictionaryModel.GenerateDataDictionary()
+	log.Printf("Generating Data Dictionary...")
+	_, error := dataDictionaryModel.GenerateDataDictionary()
+	if error != nil {
+		log.Printf("WARNING: found %d data issues!", error)
+	}
 }
 
 func main() {
@@ -34,6 +38,6 @@ func main() {
 	config.Init(*environment)
 	db.Init()
 	runDataValidation()
-	runDataDictionaryGeneration()
+	go runDataDictionaryGeneration()
 	server.Init()
 }

@@ -26,6 +26,7 @@ type DataDictionaryEntry struct {
 	VocabularyID                     string          `json:"vocabularyID"`
 	ConceptID                        int64           `json:"conceptID"`
 	ConceptCode                      string          `json:"conceptCode"`
+	ConceptName                      string          `json:"conceptName"`
 	ConceptClassId                   string          `json:"conceptClassId"`
 	NumberOfPeopleWithVariable       int64           `json:"numberOfPeopleWithVariable"`
 	NumberOfPeopleWhereValueIsFilled int64           `json:"numberOfPeopleWhereValueIsFilled"`
@@ -40,9 +41,10 @@ type DataDictionaryEntry struct {
 
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
-
+	log.Printf("Generating Data Dictionary...")
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
+	log.Printf("catch all cohort id is %v", catchAllCohortId)
 	var source = new(Source)
 	sources, _ := source.GetAllSources()
 
@@ -94,24 +96,17 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			*/
 			var filterConceptIds = []int64{}
 			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-			log.Printf("Retreieve histogram data...")
-			log.Printf("catch all cohort id is %v", catchAllCohortId)
 			if u.CohortDataModel == nil {
-				log.Printf("CohortDataModel Object is nil")
 				u.CohortDataModel = new(CohortData)
 			}
 			cohortData, _ := u.CohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sources[0].SourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
-			log.Printf("Retreieve histogram data Succesful")
 			conceptValues := []float64{}
 			for _, personData := range cohortData {
 				conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 			}
 
-			log.Printf("Generate histogram from data...")
 			histogramData := utils.GenerateHistogramData(conceptValues)
-			log.Printf("Histogram generated")
 			data.ValueSummary, _ = json.Marshal(histogramData)
-			log.Printf("INFO: Got histogram data for continuous concept.")
 		} else {
 			//Get Value Summary from bar graph method
 			// MVP ordinal use this structure , bin people based on value_as_concept_id and get the count
@@ -121,13 +116,11 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 				valueAsString: number
 				valueAsConceptID: number
 			}*/
-			log.Printf("Retreieve bar graph data...")
 			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
-			log.Printf("Retreieve bar graph data Succesful")
 			data.ValueSummary, _ = json.Marshal(ordinalValueData)
-			log.Printf("INFO: Got histogram data for ordinal concept.")
 		}
 	}
+
 	log.Printf("INFO: Data dictionary generation complete")
 	dataDictionaryModel.Data, _ = json.Marshal(dataDictionaryEntries)
 

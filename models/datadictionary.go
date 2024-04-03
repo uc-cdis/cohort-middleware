@@ -39,8 +39,16 @@ type DataDictionaryEntry struct {
 	ValueSummary                     json.RawMessage `json:"valueSummary"`
 }
 
+var dataDictionaryResult *DataDictionaryModel = nil
+
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
+
+	//Read from cache first
+	if dataDictionaryResult != nil {
+		return dataDictionaryResult, nil
+	}
+
 	log.Printf("Generating Data Dictionary...")
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
@@ -123,6 +131,6 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 
 	log.Printf("INFO: Data dictionary generation complete")
 	dataDictionaryModel.Data, _ = json.Marshal(dataDictionaryEntries)
-
+	dataDictionaryResult = &dataDictionaryModel
 	return &dataDictionaryModel, nil
 }

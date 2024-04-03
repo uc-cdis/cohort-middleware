@@ -21,11 +21,19 @@ func runDataValidation() {
 	}
 }
 
+func runDataDictionaryGeneration() {
+	var cohortDataModel = new(models.CohortData)
+	var dataDictionaryModel = new(models.DataDictionary)
+	dataDictionaryModel.CohortDataModel = cohortDataModel
+	dataDictionaryModel.GenerateDataDictionary()
+}
+
 func main() {
 	environment := flag.String("e", "development", "Environment/prefix of config file name")
 	flag.Parse()
 	config.Init(*environment)
 	db.Init()
 	runDataValidation()
+	runDataDictionaryGeneration()
 	server.Init()
 }

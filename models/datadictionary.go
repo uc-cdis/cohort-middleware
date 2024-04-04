@@ -81,7 +81,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 
 	//Get total number of concept ids
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("count(distinct observation.observation_concept_id) as total, null as data")
+		Select("count(distinct observation.person_id) as total, null as data")
 
 	query, cancel = utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 	defer cancel()

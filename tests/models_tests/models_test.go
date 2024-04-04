@@ -1039,11 +1039,11 @@ func TestPersonConceptAndCountString(t *testing.T) {
 
 }
 
-func TestGetDataDictioanry(t *testing.T) {
+func TestGetDataDictionary(t *testing.T) {
 	setUp(t)
 	dataDictionaryModel.CohortDataModel = cohortDataModel
 	data, _ := dataDictionaryModel.GenerateDataDictionary()
-	if data.Total != 3 {
+	if data.Total != 18 {
 		t.Errorf("Data Dictionary Generation Failed.")
 	}
 }

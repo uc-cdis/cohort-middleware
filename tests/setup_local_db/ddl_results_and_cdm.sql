@@ -103,17 +103,11 @@ WHERE concept.CONCEPT_CLASS_ID='MVP Continuous' or concept.CONCEPT_ID=2000007027
 
 CREATE VIEW omop.DATA_DICTIONARY AS
 WITH cte_counts AS (SELECT observation_concept_id,
-                           COUNT_BIG(DISTINCT person_id)                                                AS number_of_people_with_variable,
-                           COUNT_BIG(DISTINCT CASE
-                                                  WHEN value_as_number IS NOT NULL
-                                                      THEN person_id END)                               AS number_of_people_where_value_is_filled_number,
-                           COUNT_BIG(DISTINCT CASE
-                                                  WHEN value_as_concept_id IS NOT NULL AND value_as_concept_id > 0
-                                                      THEN person_id END)                               AS number_of_people_where_value_is_filled_concept,
-                           COUNT_BIG(DISTINCT CASE WHEN value_as_number IS NULL THEN person_id END)     AS number_of_people_where_value_is_null_number,
-                           COUNT_BIG(DISTINCT CASE
-                                                  WHEN value_as_concept_id IS NULL OR value_as_concept_id = 0
-                                                      THEN person_id END)                               AS number_of_people_where_value_is_null_concept
+                           COUNT_BIG(DISTINCT person_id) AS number_of_people_with_variable,
+                           COUNT_BIG(DISTINCT CASE WHEN value_as_number IS NOT NULL THEN person_id END) AS number_of_people_where_value_is_filled_number,
+                           COUNT_BIG(DISTINCT CASE WHEN value_as_concept_id IS NOT NULL AND value_as_concept_id > 0 THEN person_id END) AS number_of_people_where_value_is_filled_concept,
+                           COUNT_BIG(DISTINCT CASE WHEN value_as_number IS NULL THEN person_id END) AS number_of_people_where_value_is_null_number,
+                           COUNT_BIG(DISTINCT CASE WHEN value_as_concept_id IS NULL OR value_as_concept_id = 0 THEN person_id END) AS number_of_people_where_value_is_null_concept
                     FROM omop.OBSERVATION_CONTINUOUS (NOEXPAND)
                     GROUP BY observation_concept_id)
 SELECT c.vocabulary_id,
@@ -124,17 +118,17 @@ SELECT c.vocabulary_id,
        cc.number_of_people_with_variable,
        CASE
            WHEN c.concept_class_id = 'MVP Continuous' THEN cc.number_of_people_where_value_is_filled_number
-           ELSE cc.number_of_people_where_value_is_filled_concept END                      AS number_of_people_where_value_is_filled,
+           ELSE cc.number_of_people_where_value_is_filled_concept END AS number_of_people_where_value_is_filled,
        CASE
            WHEN c.concept_class_id = 'MVP Continuous' THEN cc.number_of_people_where_value_is_null_number
-           ELSE cc.number_of_people_where_value_is_null_concept END                        AS number_of_people_where_value_is_null,
+           ELSE cc.number_of_people_where_value_is_null_concept END  AS number_of_people_where_value_is_null,
        CASE WHEN c.concept_class_id = 'MVP Continuous' THEN 'Number' ELSE 'Concept Id' END AS value_stored_as,
-       MIN(oc.value_as_number)                                                             AS min_value,
-       MAX(oc.value_as_number)                                                             AS max_value,
-       AVG(oc.value_as_number)                                                             AS mean_value,
+       MIN(oc.value_as_number) AS min_value,
+       MAX(oc.value_as_number) AS max_value,
+       AVG(oc.value_as_number) AS mean_value,
 -- For sql server deployment, use stdev(value_as_number) instead of stddev(value_as_number)
-       STDDEV(oc.value_as_number)                                                           AS standard_deviation,
-       NULL                                                                                AS value_summary
+       STDDEV(oc.value_as_number) AS standard_deviation,
+       NULL AS value_summary
 FROM omop.CONCEPT c
          JOIN omop.OBSERVATION_CONTINUOUS oc (NOEXPAND) ON oc.observation_concept_id = c.concept_id
          JOIN cte_counts cc ON cc.observation_concept_id = c.concept_id

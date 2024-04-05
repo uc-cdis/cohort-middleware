@@ -28,7 +28,7 @@ func runDataDictionaryGeneration() {
 	log.Printf("Generating Data Dictionary...")
 	_, error := dataDictionaryModel.GenerateDataDictionary()
 	if error != nil {
-		log.Printf("WARNING: found %d data issues!", error)
+		log.Printf("Error: Data Dictionary Generation Failed! Gorm error %v", error)
 	}
 }
 

@@ -2,6 +2,7 @@ package models
 
 import (
 	"encoding/json"
+	"errors"
 	"log"
 	"time"
 
@@ -11,6 +12,7 @@ import (
 
 type DataDictionaryI interface {
 	GenerateDataDictionary() (*DataDictionaryModel, error)
+	GetDataDictionary() (*DataDictionaryModel, error)
 }
 
 type DataDictionary struct {
@@ -41,14 +43,17 @@ type DataDictionaryEntry struct {
 
 var dataDictionaryResult *DataDictionaryModel = nil
 
-// Generate Data Dictionary Json
-func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
-
-	//Read from cache first
+func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
+	//Read from cache
 	if dataDictionaryResult != nil {
 		return dataDictionaryResult, nil
+	} else {
+		return nil, errors.New("data dictionary is not available yet")
 	}
+}
 
+// Generate Data Dictionary Json
+func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	log.Printf("Generating Data Dictionary...")
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
@@ -72,7 +77,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	defer cancel()
 	meta_result := query.Scan(&dataDictionaryEntries)
 	if meta_result.Error != nil {
-		return &dataDictionaryModel, meta_result.Error
+		return nil, meta_result.Error
 	} else if len(dataDictionaryEntries) == 0 {
 		log.Printf("INFO: no data dictionary entry found")
 	} else {
@@ -98,14 +103,6 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	for _, data := range dataDictionaryEntries {
 		if data.ConceptClassId == "MVP Continuous" {
 			// MVP Continuous #similar to bin items below call cohort-middleware
-			// Example call, parameter for cohort definition and source id https://qa-mickey.planx-pla.net/cohort-middleware/histogram/by-source-id/2/by-cohort-definition-id/404/by-histogram-concept-id/2000006886
-			/*
-				[{
-				start: number
-				end: number
-				personCount: number
-				},]
-			*/
 			var filterConceptIds = []int64{}
 			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 			if u.CohortDataModel == nil {
@@ -121,13 +118,6 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			data.ValueSummary, _ = json.Marshal(histogramData)
 		} else {
 			//Get Value Summary from bar graph method
-			// MVP ordinal use this structure , bin people based on value_as_concept_id and get the count
-			/*{
-				name: string
-				personCount: number
-				valueAsString: number
-				valueAsConceptID: number
-			}*/
 			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
 			data.ValueSummary, _ = json.Marshal(ordinalValueData)
 		}

@@ -249,7 +249,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 
 type dummyDataDictionaryModel struct{}
 
-func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
+func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
 	data := new(models.DataDictionaryModel)
 	data.Total = 2
 	entries := []*models.DataDictionaryEntry{
@@ -261,11 +261,14 @@ func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictiona
 	entries[0].ValueSummary = valueSummary1
 	entries[1].ValueSummary = valueSummary2
 	data.Data, _ = json.Marshal(entries)
-	if dummyModelReturnError {
-		return nil, fmt.Errorf("error!")
-	}
+
 	return data, nil
 }
+
+func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
+	return nil, nil
+}
+
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)

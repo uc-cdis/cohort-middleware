@@ -116,26 +116,19 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 	return cohortData, meta_result.Error
 }
 
-func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*OrdinalGroupData, error) {
+func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptId int64) ([]*OrdinalGroupData, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*OrdinalGroupData
-	/*
-			Bar Graph SQL
-		  SELECT c1.concept_name, observation_concept_id, value_as_string, value_as_concept_id, count(distinct person_id)
-		  FROM omop.OBSERVATION_CONTINUOUS oc
-		  Inner JOIN omop.concept c on c.concept_id = oc.observation_concept_id
-		  Inner JOIN omop.concept c1 on c1.concept_id = oc.value_as_concept_id
-		  WHERE c.concept_class_id = 'MVP Ordinal'
-		  GROUP BY observation_concept_id, value_as_string, value_as_concept_id , c1.concept_name
-	*/
+
 	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
 		Select("c1.concept_name as name, count(distinct person_id) as person_count,observation.value_as_string as value_as_string, value_as_concept_id as value_as_concept_id").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as c ON c.concept_id = observation.observation_concept_id").
 		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as c1 ON c1.concept_id = observation.value_as_concept_id").
 		Where("c.concept_class_id = ?", "MVP Ordinal").
+		Where("c.concept_id = ?", conceptId).
 		Group("observation.observation_concept_id, observation.value_as_string, observation.value_as_concept_id, c1.concept_name")
 
 	query, cancel := utils.AddTimeoutToQuery(query)

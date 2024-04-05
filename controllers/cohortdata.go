@@ -361,7 +361,12 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 
 func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
 
-	var dataDictionary, _ = u.dataDictionaryModel.GenerateDataDictionary()
+	var dataDictionary, error = u.dataDictionaryModel.GetDataDictionary()
 
-	c.JSON(http.StatusOK, dataDictionary)
+	if dataDictionary == nil {
+		c.JSON(http.StatusServiceUnavailable, error)
+	} else {
+		c.JSON(http.StatusOK, dataDictionary)
+	}
+
 }

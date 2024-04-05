@@ -2,6 +2,7 @@ package controllers_tests
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -53,6 +54,7 @@ func tearDown() {
 
 var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyTeamProjectAuthz))
 var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDataControllerWithFailingDataDictionary = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingDataDictionaryModel), *new(dummyTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
 var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition), *new(dummyTeamProjectAuthz))
@@ -269,6 +271,15 @@ func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictiona
 	return nil, nil
 }
 
+type dummyFailingDataDictionaryModel struct{}
+
+func (h dummyFailingDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+	return nil, errors.New("data dictionary is not available yet")
+}
+
+func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
+	return nil, nil
+}
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -1092,6 +1103,21 @@ func TestRetrieveDataDictionary(t *testing.T) {
 
 	if result.StatusCode != 200 {
 		t.Errorf("Expected request to succeed")
+	}
+
+}
+
+func TestFailingRetrieveDataDictionary(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	cohortDataControllerWithFailingDataDictionary.RetrieveDataDictionary(requestContext)
+
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+
+	if result.StatusCode != 503 {
+		t.Errorf("Expected request to Fail with 503")
 	}
 
 }

@@ -25,13 +25,13 @@ connected OHDSI/CMD/Atlas databases via SQL queries.
     - [DB schemas](#db-schemas)
       - [Setting up databases for local development](#setting-up-databases-for-local-development)
 - [Deployment steps](#deployment-steps)
-  - [Deployment to QA](#deployment-to-qa)
-  - [Test the endpoints on QA](#test-the-endpoints-on-qa)
-    - [Troubleshooting on QA](#troubleshooting-on-qa)
+  - [Deployment to Gen3](#deployment-to-gen3)
+  - [Test the endpoints](#test-the-endpoints)
+    - [Troubleshooting](#troubleshooting)
       - [How to make curl with Auth](#how-to-make-curl-with-auth)
       - [How to see the logs](#how-to-see-the-logs)
       - [In case of infra / network issues:](#in-case-of-infra--network-issues)
-      - [Updating dependencies](#updating-dependencies)
+      - [Updating the Docker base image](#updating-the-docker-base-image)
 
 ## API Documentation
 
@@ -163,27 +163,29 @@ gen3 roll cohort-middleware
 
 This will take care of all the secrets via [`g3auto`](https://github.com/uc-cdis/cloud-automation/blob/master/doc/secrets.md#overview).
 
-## Test the endpoints on QA
+## Test the endpoints
 
 Example:
 ```
-curl -H "Content-Type: application/json" -H "$(cat auth.txt)" https://<qa-url-here>/sources | python -m json.tool
+curl -H "Content-Type: application/json" -H "$(cat auth.txt)" https://<server-url-here>/sources | python -m json.tool
 ```
 
-**Note that** the `<qa-url-here>` in these examples above needs to be replaced, and the ids used (`by-source-id/2`, `by-cohort-definition-id/3`) need
-to be replaced with real values from the QA environment. The main addition in these `curl` commands is the presence of `https` and the
+**Note that** the `<server-url-here>` in these examples above needs to be replaced, and the ids used (`by-source-id/2`, `by-cohort-definition-id/3`) need
+to be replaced with real values from your environment. The main addition in these `curl` commands is the presence of `https` and the
 extra `-H "$(cat auth.txt)"`. More explained in the subsections below.
 
-### Troubleshooting on QA
+### Troubleshooting
 
-   - check `/home/<qa-machine-name>/cdis-manifest/<qa-machine-name>/manifest.json` to make sure the desired image name and tag for cohort-middleware
-   are present. Do _not_ edit this file directly on the server, but  make a PR with changes if needed.
-   - regarding `gen3 roll`, see also https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml,
+Troubleshooting steps when using manifest.json based deployment:
+
+   - check `/home/<your-machine-name>/cdis-manifest/<your-machine-name>/manifest.json` to make sure the desired image name and tag for cohort-middleware
+   are present. Do _not_ edit this file directly on the server, but make a PR with changes if needed.
+   - regarding `gen3 roll cohort-middleware`, see also https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml,
    which is used directly by the `gen3 roll` command (see https://github.com/uc-cdis/cloud-automation/blob/master/gen3/bin/roll.sh).
 
 #### How to make curl with Auth
 
-Go to https://<qa-url-here> and then to "Login"->"Profile"->"Create API key". Download the JSON to your local computer.
+Go to https://<server-url-here> and then to "Login"->"Profile"->"Create API key". Download the JSON to your local computer.
 
 Run (e.g. if the downloaded JSON file is called `credentials.json`):
 ```bash
@@ -235,9 +237,9 @@ If proxy changes are necessary:
 Other config related to network policies:
 - https://github.com/uc-cdis/cloud-automation/blob/master/kube/services/cohort-middleware/cohort-middleware-deploy.yaml
 
-#### Updating dependencies
+#### Updating the Docker base image
 
-To push a new **generic** dockerhub image to Quay (like a specific version of Golang), use something like in slack:
+To push a new **generic** dockerhub image to Quay (like a specific version of Golang), use something like this in slack:
 
 ```
 @qa-bot run-jenkins-job gen3-self-service-push-dockerhub-img-to-quay jenkins {"SOURCE":"python:3.10-alpine","TARGET":"quay.io/cdis/python:3.10-alpine-master"}

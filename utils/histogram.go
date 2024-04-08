@@ -11,7 +11,7 @@ import (
 type HistogramColumn struct {
 	Start          float64 `json:"start"`
 	End            float64 `json:"end"`
-	NumberOfPeople int     `json:"nr_persons"`
+	NumberOfPeople int     `json:"personCount"`
 }
 
 func GenerateHistogramData(conceptValues []float64) []HistogramColumn {

@@ -85,6 +85,7 @@ var cohortDataModel = new(models.CohortData)
 
 var versionModel = new(models.Version)
 var sourceModel = new(models.Source)
+var dataDictionaryModel = new(models.DataDictionary)
 
 func TestGetConceptId(t *testing.T) {
 	setUp(t)
@@ -1036,4 +1037,25 @@ func TestPersonConceptAndCountString(t *testing.T) {
 		t.Errorf("Expected %s, found %s", expected, a.String())
 	}
 
+}
+
+func TestGenerateDataDictionary(t *testing.T) {
+	setUp(t)
+	dataDictionaryModel.CohortDataModel = cohortDataModel
+
+	data, _ := dataDictionaryModel.GetDataDictionary()
+	//Pre generation cache should be empty
+	if data != nil {
+		t.Errorf("Get Data Dictionary should have failed.")
+	}
+
+	generatedData, _ := dataDictionaryModel.GenerateDataDictionary()
+	if generatedData.Total != 18 {
+		t.Errorf("Data Dictionary Generation Failed.")
+	}
+
+	data, _ = dataDictionaryModel.GetDataDictionary()
+	if data.Total != 18 {
+		t.Errorf("Data Dictionary Generation Failed.")
+	}
 }

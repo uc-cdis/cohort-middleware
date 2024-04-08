@@ -1,6 +1,8 @@
 package controllers_tests
 
 import (
+	"encoding/json"
+	"errors"
 	"fmt"
 	"io"
 	"log"
@@ -50,8 +52,9 @@ func tearDown() {
 	log.Println("teardown for test")
 }
 
-var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyTeamProjectAuthz))
-var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyTeamProjectAuthz))
+var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDataControllerWithFailingDataDictionary = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingDataDictionaryModel), *new(dummyTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
 var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition), *new(dummyTeamProjectAuthz))
@@ -73,6 +76,11 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
 
 	cohortData := []*models.PersonConceptAndValue{}
+	return cohortData, nil
+}
+
+func (h dummyCohortDataModel) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*models.OrdinalGroupData, error) {
+	cohortData := []*models.OrdinalGroupData{}
 	return cohortData, nil
 }
 
@@ -241,6 +249,37 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 	return conceptBreakdown, nil
 }
 
+type dummyDataDictionaryModel struct{}
+
+func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+	data := new(models.DataDictionaryModel)
+	data.Total = 2
+	entries := []*models.DataDictionaryEntry{
+		{VocabularyID: "Measurement", ConceptID: 2000006885, ConceptCode: "F", ConceptClassId: "MVP Continuous", NumberOfPeopleWithVariable: 16, NumberOfPeopleWhereValueIsFilled: 15, NumberOfPeopleWhereValueIsNull: 1, ValueStoredAs: "Number", MinValue: 1.16, MaxValue: 9.52, MeanValue: 5.9425, StandardDeviation: 2.3093216897320015, ValueSummary: nil},
+		{VocabularyID: "Person", ConceptID: 2000007027, ConceptCode: "HARE_CODE", ConceptClassId: "MVP Ordinal", NumberOfPeopleWithVariable: 11, NumberOfPeopleWhereValueIsFilled: 10, NumberOfPeopleWhereValueIsNull: 1, ValueStoredAs: "Concept Id", MinValue: 0, MaxValue: 0, MeanValue: 0, StandardDeviation: 0, ValueSummary: nil},
+	}
+	valueSummary1, _ := json.Marshal("[{\"start\":1.159999966621399,\"end\":4.723933216866351,\"personCount\":4},{\"start\":4.723933216866351,\"end\":8.287866467111304,\"personCount\":7},{\"start\":8.287866467111304,\"end\":11.851799717356256,\"personCount\":2}]")
+	valueSummary2, _ := json.Marshal("[{\"Name\":\"non-Hispanic Black\",\"PersonCount\":4,\"ValueAsString\":\"AFR\",\"ValueAsConceptID\":2000007030},{\"Name\":\"non-Hispanic Asian\",\"PersonCount\":3,\"ValueAsString\":\"ASN\",\"ValueAsConceptID\":2000007029},{\"Name\":\"non-Hispanic White\",\"PersonCount\":2,\"ValueAsString\":\"EUR\",\"ValueAsConceptID\":2000007031},{\"Name\":\"Hispanic\",\"PersonCount\":2,\"ValueAsString\":\"HIS\",\"ValueAsConceptID\":2000007028},{\"Name\":\"\",\"PersonCount\":1,\"ValueAsString\":\"\",\"ValueAsConceptID\":0}]")
+	entries[0].ValueSummary = valueSummary1
+	entries[1].ValueSummary = valueSummary2
+	data.Data, _ = json.Marshal(entries)
+
+	return data, nil
+}
+
+func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
+	return nil, nil
+}
+
+type dummyFailingDataDictionaryModel struct{}
+
+func (h dummyFailingDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+	return nil, errors.New("data dictionary is not available yet")
+}
+
+func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
+	return nil, nil
+}
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -1051,4 +1090,34 @@ func TestRetrieveAttritionTable(t *testing.T) {
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected request to be aborted")
 	}
+}
+
+func TestRetrieveDataDictionary(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	cohortDataController.RetrieveDataDictionary(requestContext)
+
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+
+	if result.StatusCode != 200 {
+		t.Errorf("Expected request to succeed")
+	}
+
+}
+
+func TestFailingRetrieveDataDictionary(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	cohortDataControllerWithFailingDataDictionary.RetrieveDataDictionary(requestContext)
+
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+
+	if result.StatusCode != 503 {
+		t.Errorf("Expected request to Fail with 503")
+	}
+
 }

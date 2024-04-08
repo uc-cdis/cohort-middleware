@@ -46,7 +46,7 @@ func NewRouter() *gin.Engine {
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid/csv", concepts.RetrieveAttritionTable)
 
 		// cohort stats and checks:
-		cohortData := controllers.NewCohortDataController(*new(models.CohortData), middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
+		cohortData := controllers.NewCohortDataController(*new(models.CohortData), *new(models.DataDictionary), middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
 		// :casecohortid/:controlcohortid are just labels here and have no special meaning. Could also just be :cohortAId/:cohortBId here:
 		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStats)
 
@@ -55,6 +55,10 @@ func NewRouter() *gin.Engine {
 
 		// histogram endpoint
 		authorized.POST("/histogram/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/by-histogram-concept-id/:histogramid", cohortData.RetrieveHistogramForCohortIdAndConceptId)
+
+		// Data Dictionary endpoint
+		authorized.GET("/data-dictionary/Retrieve", cohortData.RetrieveDataDictionary)
+
 	}
 
 	return r

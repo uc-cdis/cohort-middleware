@@ -134,7 +134,7 @@ func TestFreedmanDiaconis(t *testing.T) {
 
 func TestGenerateHistogramData(t *testing.T) {
 	setUp(t)
-	expectedresult := `[{"start":6,"end":31.18008152926611,"nr_persons":3},{"start":31.18008152926611,"end":56.36016305853222,"nr_persons":8}]`
+	expectedresult := `[{"start":6,"end":31.18008152926611,"personCount":3},{"start":31.18008152926611,"end":56.36016305853222,"personCount":8}]`
 	resultArray := utils.GenerateHistogramData(testData)
 	resultJson, _ := json.Marshal(resultArray)
 	resultString := string(resultJson)
@@ -147,7 +147,7 @@ func TestGenerateHistogramData(t *testing.T) {
 func TestGenerateHistogramDataSingleBin(t *testing.T) {
 	// Tests whether we get a single bin that includes all persons if data has no variation in Q1 Q3
 	setUp(t)
-	expectedresult := `[{"start":1,"end":11,"nr_persons":15}]`
+	expectedresult := `[{"start":1,"end":11,"personCount":15}]`
 	resultArray := utils.GenerateHistogramData(testData2)
 	resultJson, _ := json.Marshal(resultArray)
 	resultString := string(resultJson)

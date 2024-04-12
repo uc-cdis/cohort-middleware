@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
@@ -41,6 +42,7 @@ func tearDownSuite() {
 func setUp(t *testing.T) {
 	log.Println("setup for test")
 	dummyModelReturnError = false
+	config.Init("mocktest")
 
 	// ensure tearDown is called when test "t" is done:
 	t.Cleanup(func() {
@@ -120,12 +122,22 @@ func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, err
 }
 
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*models.CohortDefinitionStats, error) {
-	cohortDefinitionStats := []*models.CohortDefinitionStats{
-		{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
-		{Id: 2, CohortSize: 22, Name: "name2_" + teamProject},
-		{Id: 3, CohortSize: 33, Name: "name3_" + teamProject},
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	if teamProject == globalReaderRole {
+		cohortDefinitionStats := []*models.CohortDefinitionStats{
+			{Id: 4, CohortSize: 44, Name: "name4_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+			{Id: 5, CohortSize: 55, Name: "name5_" + teamProject},
+		}
+		return cohortDefinitionStats, nil
+	} else {
+		cohortDefinitionStats := []*models.CohortDefinitionStats{
+			{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+			{Id: 2, CohortSize: 22, Name: "name2_" + teamProject},
+			{Id: 3, CohortSize: 33, Name: "name3_" + teamProject},
+		}
+		return cohortDefinitionStats, nil
 	}
-	return cohortDefinitionStats, nil
 }
 func (h dummyCohortDefinitionDataModel) GetCohortDefinitionById(id int) (*models.CohortDefinition, error) {
 	cohortDefinition := models.CohortDefinition{
@@ -534,6 +546,9 @@ func TestRetriveStatsBySourceIdAndTeamProjectAuthorizationError(t *testing.T) {
 
 func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	setUp(t)
+
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Request = &http.Request{URL: &url.URL{}}
@@ -545,8 +560,10 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	// expect result with all of the dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
 		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
-		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
-		t.Errorf("Expected 3 rows in result")
+		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name4_"+globalReaderRole) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
+		t.Errorf("Expected 5 specific rows in result, found %v", result.CustomResponseWriterOut)
 	}
 }
 

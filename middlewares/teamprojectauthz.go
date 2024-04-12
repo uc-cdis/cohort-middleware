@@ -5,6 +5,7 @@ import (
 	"net/http"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -80,11 +81,29 @@ func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefiniti
 }
 
 // "team project" related checks:
-// (1) check if all cohorts belong to the same "team project"
-// (2) check if the user has permission in the "team project"
-// Returns true if both checks above pass, false otherwise.
+// (1) check if any cohorts belong to the "global reader role"
+//    (1.1) if yes, check if user has permission for the "global reader role"
+// (2) check if all cohorts (except the ones from (1) above) belong to the same "team project"
+// (3) check if the user has permission in the "team project"
+// Returns true if all checks above pass, false otherwise.
 func (u TeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
-	teamProjects, _ := u.cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList)
+
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	globalCohortDefinitionIds, _ := u.cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(globalReaderRole)
+	overlapWithGlobal := utils.Intersect(uniqueCohortDefinitionIdsList, globalCohortDefinitionIds)
+	if len(overlapWithGlobal) > 0 {
+		// one or more cohortDefinitionIds are part of globalReaderRole. Check if user has been granted this role:
+		if !u.HasAccessToTeamProject(ctx, globalReaderRole) {
+			// unauthorized:
+			log.Printf("Invalid request error: NO access to 'global reader role'!")
+			return false
+		}
+	}
+	// for the following checks, filter out the cohorts associated with 'global reader role':
+	cohortDefinitionIdsToCheck := utils.Subtract(uniqueCohortDefinitionIdsList, globalCohortDefinitionIds)
+	// proceed with the checks on the remaining list of cohortDefinitionIds:
+	teamProjects, _ := u.cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(cohortDefinitionIdsToCheck)
 	if len(teamProjects) == 0 {
 		log.Printf("Invalid request error: could not find a 'team project' that is associated to ALL the cohorts present in this request")
 		return false

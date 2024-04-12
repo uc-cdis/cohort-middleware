@@ -678,6 +678,12 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDesc(t *testing.T) {
 		t.Errorf("Expected teamProject '%s' to have one cohort, but found %d",
 			testTeamProject, len(allowedCohortDefinitions))
 	}
+	testTeamProject = "teamprojectX"
+	allowedCohortDefinitions, _ = cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, testTeamProject)
+	if len(allowedCohortDefinitions) != 2 {
+		t.Errorf("Expected teamProject '%s' to have 2 cohorts, but found %d",
+			testTeamProject, len(allowedCohortDefinitions))
+	}
 	if len(cohortDefinitions) <= len(allowedCohortDefinitions) {
 		t.Errorf("Expected list of projects for '%s' to be larger than for %s",
 			defaultTeamProject, testTeamProject)

@@ -1,4 +1,5 @@
 arborist_endpoint: 'NONE'
+global_reader_role: 'dummyGlobalReaderRole'
 # see tests/setup_cdm/README.md
 atlas_db:
   host: localhost

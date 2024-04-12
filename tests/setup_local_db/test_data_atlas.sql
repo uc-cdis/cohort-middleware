@@ -34,7 +34,8 @@ values
     (1005,'teamprojectX',false),
     (1009,'teamprojectY',false),
     (3000,'someotherrole',false),
-    (4000,'defaultteamproject',false)
+    (4000,'defaultteamproject',false),
+    (5000,'dummyGlobalReaderRole',false)
 ;
 
 insert into atlas.sec_permission
@@ -93,5 +94,9 @@ values
     (4467, 4000, 1194),
     (4468, 4000, 2193),
     (4469, 4000, 3193),
-    (4470, 4000, 4193) -- 4000 defaultteamproject has access to all cohorts
+    (4470, 4000, 4193), -- 4000 a "default" teamproject that has access to all cohorts - not really used in practice...but a possible kind of scenario.
+    (5464, 5000, 1191),
+    (5465, 5000, 1192),
+    (5466, 5000, 1193),
+    (5467, 5000, 1194) -- 5000 dummyGlobalReaderRole has READ ONLY access to cohort 4
 ;

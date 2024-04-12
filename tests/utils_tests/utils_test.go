@@ -174,3 +174,138 @@ func TestSliceAtoi(t *testing.T) {
 		t.Errorf("Expected an error")
 	}
 }
+
+func TestIntersect(t *testing.T) {
+	setUp(t)
+	var expectedResult = []int{
+		1234,
+		5678,
+	}
+	var list1 = []int{
+		567,
+		1234,
+		444,
+		5678,
+		29999999978,
+		5678,
+	}
+	var list2 = []int{
+		111,
+		1234,
+		2222,
+		5678,
+		2999999997,
+	}
+	result := utils.Intersect(list1, list2)
+	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
+
+	list1 = []int{
+		567,
+		1234,
+	}
+	list2 = []int{
+		111,
+		222,
+	}
+	result = utils.Intersect(list1, list2)
+	if len(result) > 0 {
+		t.Errorf("Expected [] but found %v", result)
+	}
+
+	list1 = []int{}
+	list2 = []int{
+		111,
+		222,
+	}
+	result = utils.Intersect(list1, list2)
+	if len(result) > 0 {
+		t.Errorf("Expected [] but found %v", result)
+	}
+
+	list1 = []int{
+		111,
+		222,
+	}
+	list2 = []int{}
+	result = utils.Intersect(list1, list2)
+	if len(result) > 0 {
+		t.Errorf("Expected [] but found %v", result)
+	}
+
+	list1 = []int{}
+	list2 = []int{}
+	result = utils.Intersect(list1, list2)
+	if len(result) > 0 {
+		t.Errorf("Expected [] but found %v", result)
+	}
+}
+
+func TestSubtract(t *testing.T) {
+	setUp(t)
+	var expectedResult = []int{
+		567,
+		444,
+		29999999978,
+	}
+	var list1 = []int{
+		567,
+		1234,
+		444,
+		5678,
+		29999999978,
+		5678,
+	}
+	var list2 = []int{
+		111,
+		1234,
+		2222,
+		5678,
+		2999999997,
+	}
+	result := utils.Subtract(list1, list2)
+	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
+
+	list1 = []int{
+		567,
+		1234,
+	}
+	list2 = []int{
+		111,
+		222,
+	}
+	result = utils.Subtract(list1, list2)
+	if !reflect.DeepEqual(list1, result) {
+		t.Errorf("Expected %v but found %v", list1, result)
+	}
+
+	list1 = []int{}
+	list2 = []int{
+		111,
+		222,
+	}
+	result = utils.Subtract(list1, list2)
+	if len(result) > 0 {
+		t.Errorf("Expected [] but found %v", result)
+	}
+
+	list1 = []int{
+		111,
+		222,
+	}
+	list2 = []int{}
+	result = utils.Subtract(list1, list2)
+	if !reflect.DeepEqual(list1, result) {
+		t.Errorf("Expected %v but found %v", list1, result)
+	}
+
+	list1 = []int{}
+	list2 = []int{}
+	result = utils.Subtract(list1, list2)
+	if len(result) > 0 {
+		t.Errorf("Expected [] but found %v", result)
+	}
+}

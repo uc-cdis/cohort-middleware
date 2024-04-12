@@ -322,7 +322,7 @@ func Intersect(list1 []int, list2 []int) []int {
 			}
 		}
 	}
-	return result
+	return MakeUnique(result)
 }
 
 // subtract list2 from list1

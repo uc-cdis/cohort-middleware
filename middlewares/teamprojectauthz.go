@@ -88,10 +88,18 @@ func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefiniti
 // Returns true if all checks above pass, false otherwise.
 func (u TeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
 
+	// validate input:
+	if len(uniqueCohortDefinitionIdsList) == 0 {
+		log.Printf("Invalid request error: NO cohort ids in list to check")
+		return false
+	}
 	conf := config.GetConfig()
 	globalReaderRole := conf.GetString("global_reader_role")
 	globalCohortDefinitionIds, _ := u.cohortDefinitionModel.GetCohortDefinitionIdsForTeamProject(globalReaderRole)
+	// check overlap:
 	overlapWithGlobal := utils.Intersect(uniqueCohortDefinitionIdsList, globalCohortDefinitionIds)
+	// and for the following checks, filter out the cohorts associated with 'global reader role':
+	cohortDefinitionIdsToCheck := utils.Subtract(uniqueCohortDefinitionIdsList, globalCohortDefinitionIds)
 	if len(overlapWithGlobal) > 0 {
 		// one or more cohortDefinitionIds are part of globalReaderRole. Check if user has been granted this role:
 		if !u.HasAccessToTeamProject(ctx, globalReaderRole) {
@@ -99,9 +107,12 @@ func (u TeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context
 			log.Printf("Invalid request error: NO access to 'global reader role'!")
 			return false
 		}
+		if len(cohortDefinitionIdsToCheck) == 0 {
+			// all cohortDefinitionIds are global, and user passed the access to global role test above,
+			// so return true:
+			return true
+		}
 	}
-	// for the following checks, filter out the cohorts associated with 'global reader role':
-	cohortDefinitionIdsToCheck := utils.Subtract(uniqueCohortDefinitionIdsList, globalCohortDefinitionIds)
 	// proceed with the checks on the remaining list of cohortDefinitionIds:
 	teamProjects, _ := u.cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(cohortDefinitionIdsToCheck)
 	if len(teamProjects) == 0 {

@@ -54,7 +54,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
-	log.Printf("Generating Data Dictionary...")
+	log.Printf("Generating Data Dictionary now...")
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
 	log.Printf("catch all cohort id is %v", catchAllCohortId)
@@ -103,7 +103,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	for _, data := range dataDictionaryEntries {
 		if data.ConceptClassId == "MVP Continuous" {
 			// MVP Continuous #similar to bin items below call cohort-middleware
-			log.Print("Get Contiuous Data")
+			log.Print("Get Continuous Data")
 			var filterConceptIds = []int64{}
 			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 			if u.CohortDataModel == nil {

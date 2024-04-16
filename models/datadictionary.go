@@ -121,6 +121,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 
 			//TODO REMOVE
 			if len(histogramData) > 0 {
+				log.Printf("Histogram data has %v entries", len(histogramData))
 				log.Printf("First Histogram data is %v", histogramData[0].NumberOfPeople)
 			} else {
 				log.Print("Histogram data is empty")
@@ -133,6 +134,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
 			//TODO REMOVE
 			if len(ordinalValueData) > 0 {
+				log.Printf("BarGraph data has %v entries", len(ordinalValueData))
 				log.Printf("First BarGraph data is %v", ordinalValueData[0].PersonCount)
 			} else {
 				log.Print("BarGraph data is empty")

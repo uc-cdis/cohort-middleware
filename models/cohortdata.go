@@ -96,11 +96,13 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 }
 
 func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
+	log.Printf("Retrieving Histogram")
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	log.Printf("Got All data sources")
+
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
 	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
@@ -110,9 +112,18 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 		Where("observation.value_as_number is not null")
 
 	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
+	PrintGormQuery(query)
+
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&cohortData)
+	if len(cohortData) > 0 {
+		log.Print("Got Cohort Data")
+		log.Printf("Concept Id is %v and value is %v", cohortData[0].ConceptId, cohortData[0].ConceptValueAsNumber)
+	} else {
+		log.Print("No Cohort Data found")
+	}
+
 	return cohortData, meta_result.Error
 }
 

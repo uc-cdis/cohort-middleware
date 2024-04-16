@@ -103,6 +103,7 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 	for _, data := range dataDictionaryEntries {
 		if data.ConceptClassId == "MVP Continuous" {
 			// MVP Continuous #similar to bin items below call cohort-middleware
+			log.Print("Get Contiuous Data")
 			var filterConceptIds = []int64{}
 			var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 			if u.CohortDataModel == nil {
@@ -114,11 +115,29 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 				conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 			}
 
+			log.Print("Generating Histogram from database values")
+
 			histogramData := utils.GenerateHistogramData(conceptValues)
+
+			//TODO REMOVE
+			if len(histogramData) > 0 {
+				log.Printf("First Histogram data is %v", histogramData[0].NumberOfPeople)
+			} else {
+				log.Print("Histogram data is empty")
+			}
+
 			data.ValueSummary, _ = json.Marshal(histogramData)
 		} else {
+			log.Print("Get Ordinal Data")
 			//Get Value Summary from bar graph method
 			ordinalValueData, _ := u.CohortDataModel.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sources[0].SourceId, catchAllCohortId, data.ConceptID)
+			//TODO REMOVE
+			if len(ordinalValueData) > 0 {
+				log.Printf("First BarGraph data is %v", ordinalValueData[0].PersonCount)
+			} else {
+				log.Print("BarGraph data is empty")
+			}
+
 			data.ValueSummary, _ = json.Marshal(ordinalValueData)
 		}
 	}

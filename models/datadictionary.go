@@ -54,7 +54,6 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
-	log.Printf("Generating Data Dictionary now...")
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
 	log.Printf("catch all cohort id is %v", catchAllCohortId)
@@ -115,14 +114,11 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 				conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 			}
 
-			log.Print("Generating Histogram from database values")
-
 			histogramData := utils.GenerateHistogramData(conceptValues)
 
 			//TODO REMOVE
 			if len(histogramData) > 0 {
 				log.Printf("Histogram data has %v entries", len(histogramData))
-				log.Printf("First Histogram data is %v", histogramData[0].NumberOfPeople)
 			} else {
 				log.Print("Histogram data is empty")
 			}
@@ -135,7 +131,6 @@ func (u DataDictionary) GenerateDataDictionary() (*DataDictionaryModel, error) {
 			//TODO REMOVE
 			if len(ordinalValueData) > 0 {
 				log.Printf("BarGraph data has %v entries", len(ordinalValueData))
-				log.Printf("First BarGraph data is %v", ordinalValueData[0].PersonCount)
 			} else {
 				log.Print("BarGraph data is empty")
 			}

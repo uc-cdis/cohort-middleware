@@ -96,12 +96,11 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 }
 
 func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
-	log.Printf("Retrieving Histogram")
+	log.Printf("Retrieving Histogram Data")
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-	log.Printf("Got All data sources")
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
@@ -112,7 +111,6 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 		Where("observation.value_as_number is not null")
 
 	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
-	PrintGormQuery(query)
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

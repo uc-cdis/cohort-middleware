@@ -370,3 +370,19 @@ func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
 	}
 
 }
+
+func (u CohortDataController) GenerateDataDictionary(c *gin.Context) {
+	go runDataDictionaryGeneration()
+	c.JSON(http.StatusOK, "Data Dictionary Kicked Off")
+}
+
+func runDataDictionaryGeneration() {
+	var cohortDataModel = new(models.CohortData)
+	var dataDictionaryModel = new(models.DataDictionary)
+	dataDictionaryModel.CohortDataModel = cohortDataModel
+	log.Printf("Generating Data Dictionary...")
+	_, error := dataDictionaryModel.GenerateDataDictionary()
+	if error != nil {
+		log.Printf("Error: Data Dictionary Generation Failed! Gorm error %v", error)
+	}
+}

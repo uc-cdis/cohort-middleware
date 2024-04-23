@@ -55,7 +55,7 @@ func tearDown() {
 }
 
 var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyTeamProjectAuthz))
-var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
 var cohortDataControllerWithFailingDataDictionary = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingDataDictionaryModel), *new(dummyTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
@@ -63,7 +63,8 @@ var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionControlle
 
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
-var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
+var cohortDefinitionControllerWithNoTeamProjectAuthzForGlobalReaderRole = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: true})
 
 type dummyCohortDataModel struct{}
 
@@ -176,7 +177,9 @@ func (h dummyTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProj
 	return true
 }
 
-type dummyFailingTeamProjectAuthz struct{}
+type dummyFailingTeamProjectAuthz struct {
+	failForGlobalOnly bool
+}
 
 func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
 	return false
@@ -191,7 +194,17 @@ func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx 
 }
 
 func (h dummyFailingTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool {
-	return false
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	if h.failForGlobalOnly {
+		if teamProject == globalReaderRole {
+			return false
+		} else {
+			return true
+		}
+	} else {
+		return false
+	}
 }
 
 var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
@@ -565,6 +578,32 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 		!strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
 		t.Errorf("Expected 5 specific rows in result, found %v", result.CustomResponseWriterOut)
 	}
+}
+
+func TestRetriveStatsBySourceIdAndTeamProjectWithNoTeamProjectAuthzForGlobalReaderRole(t *testing.T) {
+	setUp(t)
+
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionControllerWithNoTeamProjectAuthzForGlobalReaderRole.RetriveStatsBySourceIdAndTeamProject(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect result with all of the dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
+		t.Errorf("Expected 3 specific rows in result, found %v", result.CustomResponseWriterOut)
+	}
+	if strings.Contains(result.CustomResponseWriterOut, "name4_"+globalReaderRole) ||
+		strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
+		t.Errorf("Did not expect to find global roles in result, but found %v", result.CustomResponseWriterOut)
+	}
+
 }
 
 func TestRetriveByIdWrongParam(t *testing.T) {

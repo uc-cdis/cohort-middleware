@@ -3,6 +3,7 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
@@ -88,7 +89,12 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 				c.Abort()
 				return
 			}
-			combinedTeamAndGlobalCohorts := append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...)
+			// remove overlaps (if any):
+			combinedTeamAndGlobalCohorts := MakeUniqueListOfCohortStats(append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...))
+			// sort by CohortSize desc:
+			sort.Slice(combinedTeamAndGlobalCohorts, func(i, j int) bool {
+				return combinedTeamAndGlobalCohorts[i].CohortSize > combinedTeamAndGlobalCohorts[j].CohortSize
+			})
 			c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": combinedTeamAndGlobalCohorts})
 			return
 		} else {
@@ -98,4 +104,17 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
 	c.Abort()
+}
+
+func MakeUniqueListOfCohortStats(input []*models.CohortDefinitionStats) []*models.CohortDefinitionStats {
+	uniqueMap := make(map[int]bool)
+	var uniqueList []*models.CohortDefinitionStats
+
+	for _, item := range input {
+		if !uniqueMap[item.Id] {
+			uniqueMap[item.Id] = true
+			uniqueList = append(uniqueList, item)
+		}
+	}
+	return uniqueList
 }

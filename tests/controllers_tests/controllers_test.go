@@ -127,19 +127,20 @@ func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySi
 	globalReaderRole := conf.GetString("global_reader_role")
 	if teamProject == globalReaderRole {
 		cohortDefinitionStats := []*models.CohortDefinitionStats{
-			{Id: 4, CohortSize: 44, Name: "name4_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+			{Id: 4, CohortSize: 4, Name: "name4_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
 			{Id: 5, CohortSize: 55, Name: "name5_" + teamProject},
 		}
 		return cohortDefinitionStats, nil
 	} else {
 		cohortDefinitionStats := []*models.CohortDefinitionStats{
 			{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
-			{Id: 2, CohortSize: 22, Name: "name2_" + teamProject},
-			{Id: 3, CohortSize: 33, Name: "name3_" + teamProject},
+			{Id: 2, CohortSize: 32, Name: "name2_" + teamProject},
+			{Id: 3, CohortSize: 23, Name: "name3_" + teamProject},
 		}
 		return cohortDefinitionStats, nil
-	}
+	} // when ordered by size descending, we get cohorts 5, 2, 3, 1, 4 (used in TestRetriveStatsBySourceIdAndTeamProject later on)
 }
+
 func (h dummyCohortDefinitionDataModel) GetCohortDefinitionById(id int) (*models.CohortDefinition, error) {
 	cohortDefinition := models.CohortDefinition{
 		Id:             1,
@@ -577,6 +578,37 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 		!strings.Contains(result.CustomResponseWriterOut, "name4_"+globalReaderRole) ||
 		!strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
 		t.Errorf("Expected 5 specific rows in result, found %v", result.CustomResponseWriterOut)
+	}
+	// check if sorted descending. The name5_ (CohortSize=55) should be first, name4_ (CohortSize=4) last:
+	index1 := strings.Index(result.CustomResponseWriterOut, "name1_"+teamProject)
+	index2 := strings.Index(result.CustomResponseWriterOut, "name2_"+teamProject)
+	index3 := strings.Index(result.CustomResponseWriterOut, "name3_"+teamProject)
+	index4 := strings.Index(result.CustomResponseWriterOut, "name4_"+globalReaderRole)
+	index5 := strings.Index(result.CustomResponseWriterOut, "name5_"+globalReaderRole)
+	// we expect index5 < index2 < index3 < index1 < index4:
+	if !(index5 < index2 && index2 < index3 && index3 < index1 && index1 < index4) {
+		t.Errorf("Items in result are not sorted correctly: %v", result.CustomResponseWriterOut)
+	}
+}
+
+func TestMakeUniqueListOfCohortStats(t *testing.T) {
+	setUp(t)
+	testInput := []*models.CohortDefinitionStats{}
+	testInput = controllers.MakeUniqueListOfCohortStats(testInput)
+	if len(testInput) > 0 {
+		t.Errorf("Expected empty result")
+	}
+	testInput = []*models.CohortDefinitionStats{
+		{Id: 123, Name: "a1", CohortSize: 123},
+		{Id: 123, Name: "a1", CohortSize: 123},
+		{Id: 456, Name: "a1", CohortSize: 123},
+	}
+	testInput = controllers.MakeUniqueListOfCohortStats(testInput)
+	if len(testInput) != 2 {
+		t.Errorf("Expected result of size 2")
+	}
+	if testInput[0].Id != 123 || testInput[1].Id != 456 {
+		t.Errorf("Unexpected result")
 	}
 }
 

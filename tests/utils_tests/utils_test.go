@@ -200,6 +200,10 @@ func TestIntersect(t *testing.T) {
 	if !reflect.DeepEqual(expectedResult, result) {
 		t.Errorf("Expected %v but found %v", expectedResult, result)
 	}
+	result = utils.Intersect(list2, list1)
+	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
 
 	list1 = []int{
 		567,

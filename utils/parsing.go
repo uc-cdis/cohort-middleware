@@ -314,15 +314,28 @@ func GetUniqueCohortDefinitionIdsList(cohortDefinitionIds []int, filterCohortPai
 }
 
 func Intersect(list1 []int, list2 []int) []int {
-	result := []int{}
+	results := map[int]bool{}
+	list2Map := map[int]bool{}
+
+	// add each list2 item to a map, deduplicating any copies:
+	for _, list2Item := range list2 {
+		list2Map[list2Item] = true
+	}
+
+	// check list1 item against list2Map, add to result map if it is found in list2Map,
+	// again deduplicating any copies in list1:
 	for _, list1Item := range list1 {
-		for _, list2Item := range list2 {
-			if list1Item == list2Item {
-				result = append(result, list1Item)
-			}
+		if _, found := list2Map[list1Item]; found {
+			results[list1Item] = true
 		}
 	}
-	return MakeUnique(result)
+
+	// collect results into a []int list:
+	intersectItems := []int{}
+	for resultItem := range results {
+		intersectItems = append(intersectItems, resultItem)
+	}
+	return intersectItems
 }
 
 // subtract list2 from list1

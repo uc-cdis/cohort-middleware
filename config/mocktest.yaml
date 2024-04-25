@@ -1,1 +1,2 @@
 arborist_endpoint: 'https://arboristdummyurl'
+global_reader_role: 'dummyGlobalReaderRole'

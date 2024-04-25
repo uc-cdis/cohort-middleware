@@ -300,7 +300,7 @@ func MakeUnique(input []int) []int {
 
 // Utility function to parse out the cohort definition ids from a specific structure in which
 // they can be found (in this case deep inside CustomDichotomousVariableDef items) and concatenate them
-// with another given list of ids, removing duplicate ids (if any). 
+// with another given list of ids, removing duplicate ids (if any).
 func GetUniqueCohortDefinitionIdsList(cohortDefinitionIds []int, filterCohortPairs []CustomDichotomousVariableDef) []int {
 	var idsList []int
 	idsList = append(idsList, cohortDefinitionIds...)
@@ -311,4 +311,40 @@ func GetUniqueCohortDefinitionIdsList(cohortDefinitionIds []int, filterCohortPai
 	}
 	uniqueIdsList := MakeUnique(idsList)
 	return uniqueIdsList
+}
+
+func Intersect(list1 []int, list2 []int) []int {
+	results := map[int]bool{}
+	list2Map := map[int]bool{}
+
+	// add each list2 item to a map, deduplicating any copies:
+	for _, list2Item := range list2 {
+		list2Map[list2Item] = true
+	}
+
+	// check list1 item against list2Map, add to result map if it is found in list2Map,
+	// again deduplicating any copies in list1:
+	for _, list1Item := range list1 {
+		if _, found := list2Map[list1Item]; found {
+			results[list1Item] = true
+		}
+	}
+
+	// collect results into a []int list:
+	intersectItems := []int{}
+	for resultItem := range results {
+		intersectItems = append(intersectItems, resultItem)
+	}
+	return intersectItems
+}
+
+// subtract list2 from list1
+func Subtract(list1 []int, list2 []int) []int {
+	result := []int{}
+	for _, list1Item := range list1 {
+		if !Contains(list2, list1Item) {
+			result = append(result, list1Item)
+		}
+	}
+	return result
 }

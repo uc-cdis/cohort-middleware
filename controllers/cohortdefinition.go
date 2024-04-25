@@ -3,9 +3,11 @@ package controllers
 import (
 	"log"
 	"net/http"
+	"sort"
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
@@ -50,7 +52,8 @@ func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 }
 
 func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.Context) {
-	// This method returns ALL cohortdefinition entries with cohort size statistics (for a given source)
+	// This method returns ALL cohortdefinition entries for a teamProject with cohort size statistics (for a given source).
+	// If the user has access to the default global reader role, the cohorts that are part of that role are also returned.
 	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
 	teamProject := c.Query("team-project")
 	if teamProject == "" {
@@ -70,13 +73,48 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 	if err1 == nil {
 		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
 		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition", "error": err.Error()})
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinitions for 'team project' role", "error": err.Error()})
 			c.Abort()
 			return
 		}
-		c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": cohortDefinitionsAndStats})
-		return
+		// if the user has access to default global role (functions as a global "read only team project"),
+		// then also include cohorts from there:
+		conf := config.GetConfig()
+		globalReaderRole := conf.GetString("global_reader_role")
+		hasAccessToGlobalReaderRole := u.teamProjectAuthz.HasAccessToTeamProject(c, globalReaderRole)
+		if hasAccessToGlobalReaderRole {
+			globalCohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, globalReaderRole)
+			if err != nil {
+				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition for 'global reader' role", "error": err.Error()})
+				c.Abort()
+				return
+			}
+			// remove overlaps (if any):
+			combinedTeamAndGlobalCohorts := MakeUniqueListOfCohortStats(append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...))
+			// sort by CohortSize desc:
+			sort.Slice(combinedTeamAndGlobalCohorts, func(i, j int) bool {
+				return combinedTeamAndGlobalCohorts[i].CohortSize > combinedTeamAndGlobalCohorts[j].CohortSize
+			})
+			c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": combinedTeamAndGlobalCohorts})
+			return
+		} else {
+			c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": cohortDefinitionsAndStats})
+			return
+		}
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
 	c.Abort()
+}
+
+func MakeUniqueListOfCohortStats(input []*models.CohortDefinitionStats) []*models.CohortDefinitionStats {
+	uniqueMap := make(map[int]bool)
+	var uniqueList []*models.CohortDefinitionStats
+
+	for _, item := range input {
+		if !uniqueMap[item.Id] {
+			uniqueMap[item.Id] = true
+			uniqueList = append(uniqueList, item)
+		}
+	}
+	return uniqueList
 }

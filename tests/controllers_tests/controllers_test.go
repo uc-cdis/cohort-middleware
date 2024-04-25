@@ -15,6 +15,7 @@ import (
 	"testing"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/controllers"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
@@ -41,6 +42,7 @@ func tearDownSuite() {
 func setUp(t *testing.T) {
 	log.Println("setup for test")
 	dummyModelReturnError = false
+	config.Init("mocktest")
 
 	// ensure tearDown is called when test "t" is done:
 	t.Cleanup(func() {
@@ -53,7 +55,7 @@ func tearDown() {
 }
 
 var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyTeamProjectAuthz))
-var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
 var cohortDataControllerWithFailingDataDictionary = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingDataDictionaryModel), *new(dummyTeamProjectAuthz))
 
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
@@ -61,7 +63,8 @@ var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionControlle
 
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
-var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyFailingTeamProjectAuthz))
+var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
+var cohortDefinitionControllerWithNoTeamProjectAuthzForGlobalReaderRole = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: true})
 
 type dummyCohortDataModel struct{}
 
@@ -120,13 +123,24 @@ func (h dummyCohortDefinitionDataModel) GetCohortName(cohortId int) (string, err
 }
 
 func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*models.CohortDefinitionStats, error) {
-	cohortDefinitionStats := []*models.CohortDefinitionStats{
-		{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
-		{Id: 2, CohortSize: 22, Name: "name2_" + teamProject},
-		{Id: 3, CohortSize: 33, Name: "name3_" + teamProject},
-	}
-	return cohortDefinitionStats, nil
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	if teamProject == globalReaderRole {
+		cohortDefinitionStats := []*models.CohortDefinitionStats{
+			{Id: 4, CohortSize: 4, Name: "name4_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+			{Id: 5, CohortSize: 55, Name: "name5_" + teamProject},
+		}
+		return cohortDefinitionStats, nil
+	} else {
+		cohortDefinitionStats := []*models.CohortDefinitionStats{
+			{Id: 1, CohortSize: 10, Name: "name1_" + teamProject}, // just concatenate teamProject here, so we can assert on it in a later test... teamprojects are otherwise not really part of cohort names
+			{Id: 2, CohortSize: 32, Name: "name2_" + teamProject},
+			{Id: 3, CohortSize: 23, Name: "name3_" + teamProject},
+		}
+		return cohortDefinitionStats, nil
+	} // when ordered by size descending, we get cohorts 5, 2, 3, 1, 4 (used in TestRetriveStatsBySourceIdAndTeamProject later on)
 }
+
 func (h dummyCohortDefinitionDataModel) GetCohortDefinitionById(id int) (*models.CohortDefinition, error) {
 	cohortDefinition := models.CohortDefinition{
 		Id:             1,
@@ -164,7 +178,9 @@ func (h dummyTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProj
 	return true
 }
 
-type dummyFailingTeamProjectAuthz struct{}
+type dummyFailingTeamProjectAuthz struct {
+	failForGlobalOnly bool
+}
 
 func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
 	return false
@@ -179,7 +195,17 @@ func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx 
 }
 
 func (h dummyFailingTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool {
-	return false
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	if h.failForGlobalOnly {
+		if teamProject == globalReaderRole {
+			return false
+		} else {
+			return true
+		}
+	} else {
+		return false
+	}
 }
 
 var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
@@ -534,6 +560,9 @@ func TestRetriveStatsBySourceIdAndTeamProjectAuthorizationError(t *testing.T) {
 
 func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	setUp(t)
+
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Request = &http.Request{URL: &url.URL{}}
@@ -545,9 +574,68 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	// expect result with all of the dummy data:
 	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
 		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
-		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
-		t.Errorf("Expected 3 rows in result")
+		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name4_"+globalReaderRole) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
+		t.Errorf("Expected 5 specific rows in result, found %v", result.CustomResponseWriterOut)
 	}
+	// check if sorted descending. The name5_ (CohortSize=55) should be first, name4_ (CohortSize=4) last:
+	index1 := strings.Index(result.CustomResponseWriterOut, "name1_"+teamProject)
+	index2 := strings.Index(result.CustomResponseWriterOut, "name2_"+teamProject)
+	index3 := strings.Index(result.CustomResponseWriterOut, "name3_"+teamProject)
+	index4 := strings.Index(result.CustomResponseWriterOut, "name4_"+globalReaderRole)
+	index5 := strings.Index(result.CustomResponseWriterOut, "name5_"+globalReaderRole)
+	// we expect index5 < index2 < index3 < index1 < index4:
+	if !(index5 < index2 && index2 < index3 && index3 < index1 && index1 < index4) {
+		t.Errorf("Items in result are not sorted correctly: %v", result.CustomResponseWriterOut)
+	}
+}
+
+func TestMakeUniqueListOfCohortStats(t *testing.T) {
+	setUp(t)
+	testInput := []*models.CohortDefinitionStats{}
+	testInput = controllers.MakeUniqueListOfCohortStats(testInput)
+	if len(testInput) > 0 {
+		t.Errorf("Expected empty result")
+	}
+	testInput = []*models.CohortDefinitionStats{
+		{Id: 123, Name: "a1", CohortSize: 123},
+		{Id: 123, Name: "a1", CohortSize: 123},
+		{Id: 456, Name: "a1", CohortSize: 123},
+	}
+	testInput = controllers.MakeUniqueListOfCohortStats(testInput)
+	if len(testInput) != 2 {
+		t.Errorf("Expected result of size 2")
+	}
+	if testInput[0].Id != 123 || testInput[1].Id != 456 {
+		t.Errorf("Unexpected result")
+	}
+}
+
+func TestRetriveStatsBySourceIdAndTeamProjectWithNoTeamProjectAuthzForGlobalReaderRole(t *testing.T) {
+	setUp(t)
+
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionControllerWithNoTeamProjectAuthzForGlobalReaderRole.RetriveStatsBySourceIdAndTeamProject(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect result with all of the dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
+		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
+		t.Errorf("Expected 3 specific rows in result, found %v", result.CustomResponseWriterOut)
+	}
+	if strings.Contains(result.CustomResponseWriterOut, "name4_"+globalReaderRole) ||
+		strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
+		t.Errorf("Did not expect to find global roles in result, but found %v", result.CustomResponseWriterOut)
+	}
+
 }
 
 func TestRetriveByIdWrongParam(t *testing.T) {

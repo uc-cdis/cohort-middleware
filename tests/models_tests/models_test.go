@@ -1041,7 +1041,6 @@ func TestPersonConceptAndCountString(t *testing.T) {
 
 func TestGenerateDataDictionary(t *testing.T) {
 	setUp(t)
-	dataDictionaryModel.CohortDataModel = cohortDataModel
 
 	data, _ := dataDictionaryModel.GetDataDictionary()
 	//Pre generation cache should be empty
@@ -1049,13 +1048,10 @@ func TestGenerateDataDictionary(t *testing.T) {
 		t.Errorf("Get Data Dictionary should have failed.")
 	}
 
-	generatedData, _ := dataDictionaryModel.GenerateDataDictionary()
-	if generatedData.Total != 18 {
-		t.Errorf("Data Dictionary Generation Failed.")
-	}
-
+	_ = dataDictionaryModel.GenerateDataDictionary()
+	//Update this with read
 	data, _ = dataDictionaryModel.GetDataDictionary()
-	if data.Total != 18 {
-		t.Errorf("Data Dictionary Generation Failed.")
+	if data == nil || data.Total != 18 || data.Data == nil {
+		t.Errorf("Get Data Dictionary should have succeeded.")
 	}
 }

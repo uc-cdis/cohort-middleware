@@ -22,11 +22,9 @@ func runDataValidation() {
 }
 
 func runDataDictionaryGeneration() {
-	var cohortDataModel = new(models.CohortData)
 	var dataDictionaryModel = new(models.DataDictionary)
-	dataDictionaryModel.CohortDataModel = cohortDataModel
 	log.Printf("Generating Data Dictionary...")
-	_, error := dataDictionaryModel.GenerateDataDictionary()
+	error := dataDictionaryModel.GenerateDataDictionary()
 	if error != nil {
 		log.Printf("Error: Data Dictionary Generation Failed! Gorm error %v", error)
 	}

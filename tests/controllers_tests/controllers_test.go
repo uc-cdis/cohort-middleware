@@ -267,8 +267,8 @@ func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryMod
 	return data, nil
 }
 
-func (h dummyDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
-	return nil, nil
+func (h dummyDataDictionaryModel) GenerateDataDictionary() error {
+	return nil
 }
 
 type dummyFailingDataDictionaryModel struct{}
@@ -277,8 +277,8 @@ func (h dummyFailingDataDictionaryModel) GetDataDictionary() (*models.DataDictio
 	return nil, errors.New("data dictionary is not available yet")
 }
 
-func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() (*models.DataDictionaryModel, error) {
-	return nil, nil
+func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() error {
+	return nil
 }
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
@@ -1118,6 +1118,21 @@ func TestFailingRetrieveDataDictionary(t *testing.T) {
 
 	if result.StatusCode != 503 {
 		t.Errorf("Expected request to Fail with 503")
+	}
+
+}
+
+func TestGenerateDataDictionary(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	cohortDataController.GenerateDataDictionary(requestContext)
+
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+
+	if result.StatusCode != 200 {
+		t.Errorf("Expected request to succeed")
 	}
 
 }

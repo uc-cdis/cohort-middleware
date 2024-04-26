@@ -13,3 +13,4 @@ validate:
     # HARE concept id:
     - '2000007027'
 catch_all_cohort_id: 4
+worker_pool_size: 5

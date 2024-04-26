@@ -59,6 +59,9 @@ func NewRouter() *gin.Engine {
 		// Data Dictionary endpoint
 		authorized.GET("/data-dictionary/Retrieve", cohortData.RetrieveDataDictionary)
 
+		// Data Dictionary endpoint
+		authorized.GET("/data-dictionary/Generate", cohortData.GenerateDataDictionary)
+
 	}
 
 	return r

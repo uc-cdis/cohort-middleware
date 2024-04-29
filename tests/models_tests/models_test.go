@@ -1048,7 +1048,7 @@ func TestGenerateDataDictionary(t *testing.T) {
 		t.Errorf("Get Data Dictionary should have failed.")
 	}
 
-	_ = dataDictionaryModel.GenerateDataDictionary()
+	dataDictionaryModel.GenerateDataDictionary()
 	//Update this with read
 	data, _ = dataDictionaryModel.GetDataDictionary()
 	if data == nil || data.Total != 18 || data.Data == nil {

@@ -267,9 +267,7 @@ func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryMod
 	return data, nil
 }
 
-func (h dummyDataDictionaryModel) GenerateDataDictionary() error {
-	return nil
-}
+func (h dummyDataDictionaryModel) GenerateDataDictionary() {}
 
 type dummyFailingDataDictionaryModel struct{}
 
@@ -277,9 +275,8 @@ func (h dummyFailingDataDictionaryModel) GetDataDictionary() (*models.DataDictio
 	return nil, errors.New("data dictionary is not available yet")
 }
 
-func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() error {
-	return nil
-}
+func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() {}
+
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)

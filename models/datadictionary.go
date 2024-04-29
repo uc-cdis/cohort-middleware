@@ -12,7 +12,7 @@ import (
 )
 
 type DataDictionaryI interface {
-	GenerateDataDictionary() error
+	GenerateDataDictionary()
 	GetDataDictionary() (*DataDictionaryModel, error)
 }
 
@@ -118,7 +118,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 }
 
 // Generate Data Dictionary Json
-func (u DataDictionary) GenerateDataDictionary() error {
+func (u DataDictionary) GenerateDataDictionary() {
 	conf := config.GetConfig()
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
 	log.Printf("catch all cohort id is %v", catchAllCohortId)
@@ -139,7 +139,7 @@ func (u DataDictionary) GenerateDataDictionary() error {
 
 	if CheckIfDataDictionaryIsFilled(omopDataSource) {
 		log.Print("Data Dictionary Result already filled. Skipping generation.")
-		return nil
+		return
 	} else {
 		var dataDictionaryEntries []*DataDictionaryEntry
 		//see ddl_results_and_cdm.sql Data_Dictionary view
@@ -149,7 +149,8 @@ func (u DataDictionary) GenerateDataDictionary() error {
 		defer cancel()
 		meta_result := query.Scan(&dataDictionaryEntries)
 		if meta_result.Error != nil {
-			return meta_result.Error
+			log.Printf("Error: db read error: %v", meta_result.Error)
+			return
 		} else if len(dataDictionaryEntries) == 0 {
 			log.Printf("INFO: no data dictionary view entry found")
 		} else {
@@ -190,7 +191,7 @@ func (u DataDictionary) GenerateDataDictionary() error {
 		}
 
 		log.Printf("INFO: Data dictionary generation complete")
-		return nil
+		return
 	}
 }
 

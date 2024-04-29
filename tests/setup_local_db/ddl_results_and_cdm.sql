@@ -98,7 +98,7 @@ CREATE TABLE omop.concept
 CREATE TABLE omop.DATA_DICTIONARY_RESULT
 (
     vocabulary_id character varying(20),
-    concept_id integer,
+    concept_id integer not null,
     concept_code character varying(50),
     concept_name character varying(255),
     concept_class_id character varying(20),
@@ -110,7 +110,7 @@ CREATE TABLE omop.DATA_DICTIONARY_RESULT
     max_value numeric,
     mean_value numeric,
     standard_deviation numeric,
-    value_summary JSON
+    value_summary JSON --For sql server use varchar(max)
 );
 ALTER TABLE omop.DATA_DICTIONARY_RESULT  ADD CONSTRAINT xpk_DATA_DICTIONARY_RESULT PRIMARY KEY ( concept_id ) ;
 

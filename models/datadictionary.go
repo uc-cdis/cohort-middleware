@@ -91,7 +91,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 				log.Printf("ERROR: Failed to get number of person_ids")
 				return nil, errors.New("data dictionary is not available yet")
 			} else {
-				log.Printf("INFO: Got total number of person_ids from observation view.")
+				log.Printf("INFO: Total number of person_ids from observation view is %v.", newDataDictionary.Total)
 			}
 
 			//get data dictionary entires saved in table
@@ -123,6 +123,8 @@ func (u DataDictionary) GenerateDataDictionary() error {
 	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
 	log.Printf("catch all cohort id is %v", catchAllCohortId)
 	var maxWorkerSize int = conf.GetInt("worker_pool_size")
+	log.Printf("maxWorkerSize is %v", maxWorkerSize)
+
 	entryCh := make(chan *DataDictionaryResult, maxWorkerSize)
 
 	var source = new(Source)
@@ -177,6 +179,7 @@ func (u DataDictionary) GenerateDataDictionary() error {
 			wg.Wait()
 			resultDataList = append(resultDataList, partialResultList...)
 			if len(resultDataList) >= 500 {
+				log.Printf("500 row of results reached, flush to db.")
 				WriteResultToDB(omopDataSource, resultDataList)
 				resultDataList = []*DataDictionaryResult{}
 			}
@@ -226,6 +229,7 @@ func WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictiona
 		log.Printf("ERROR: Failed to insert data into table")
 		panic("")
 	}
+	log.Printf("Write to DB succeeded.")
 }
 
 func CheckIfDataDictionaryIsFilled(dbSource *utils.DbAndSchema) bool {

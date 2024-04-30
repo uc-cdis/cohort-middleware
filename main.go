@@ -21,21 +21,11 @@ func runDataValidation() {
 	}
 }
 
-/*func runDataDictionaryGeneration() {
-	var dataDictionaryModel = new(models.DataDictionary)
-	log.Printf("Generating Data Dictionary...")
-	error := dataDictionaryModel.GenerateDataDictionary()
-	if error != nil {
-		log.Printf("Error: Data Dictionary Generation Failed! Gorm error %v", error)
-	}
-}*/
-
 func main() {
 	environment := flag.String("e", "development", "Environment/prefix of config file name")
 	flag.Parse()
 	config.Init(*environment)
 	db.Init()
 	runDataValidation()
-	//go runDataDictionaryGeneration()
 	server.Init()
 }

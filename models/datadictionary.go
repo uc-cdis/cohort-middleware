@@ -58,12 +58,12 @@ type DataDictionaryResult struct {
 	ValueSummary                     json.RawMessage `json:"valueSummary"`
 }
 
-var dataDictionaryResult *DataDictionaryModel = nil
+var ResultCache *DataDictionaryModel = nil
 
 func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 	//Read from cache
-	if dataDictionaryResult != nil {
-		return dataDictionaryResult, nil
+	if ResultCache != nil {
+		return ResultCache, nil
 	} else {
 		//Read from DB
 		var source = new(Source)
@@ -76,7 +76,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 		var dataSourceModel = new(Source)
 		omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
 
-		if CheckIfDataDictionaryIsFilled(omopDataSource) {
+		if u.CheckIfDataDictionaryIsFilled(omopDataSource) {
 			var newDataDictionary DataDictionaryModel
 			var dataDictionaryEntries []*DataDictionaryResult
 			//Get total number of person ids
@@ -109,8 +109,8 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 
 			newDataDictionary.Data, _ = json.Marshal(dataDictionaryEntries)
 			//set in cache
-			dataDictionaryResult = &newDataDictionary
-			return dataDictionaryResult, nil
+			ResultCache = &newDataDictionary
+			return ResultCache, nil
 		} else {
 			return nil, errors.New("data dictionary is not available yet")
 		}
@@ -137,7 +137,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
 
-	if CheckIfDataDictionaryIsFilled(omopDataSource) {
+	if u.CheckIfDataDictionaryIsFilled(omopDataSource) {
 		log.Print("Data Dictionary Result already filled. Skipping generation.")
 		return
 	} else {
@@ -181,13 +181,13 @@ func (u DataDictionary) GenerateDataDictionary() {
 			resultDataList = append(resultDataList, partialResultList...)
 			if len(resultDataList) >= 500 {
 				log.Printf("500 row of results reached, flush to db.")
-				WriteResultToDB(omopDataSource, resultDataList)
+				u.WriteResultToDB(omopDataSource, resultDataList)
 				resultDataList = []*DataDictionaryResult{}
 			}
 		}
 
 		if len(resultDataList) > 0 {
-			WriteResultToDB(omopDataSource, resultDataList)
+			u.WriteResultToDB(omopDataSource, resultDataList)
 		}
 
 		log.Printf("INFO: Data dictionary generation complete")
@@ -224,16 +224,17 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 	wg.Done()
 }
 
-func WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictionaryResult) {
+func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictionaryResult) bool {
 	result := dbSource.Db.Create(resultDataList)
 	if result.Error != nil {
 		log.Printf("ERROR: Failed to insert data into table")
 		panic("")
 	}
 	log.Printf("Write to DB succeeded.")
+	return true
 }
 
-func CheckIfDataDictionaryIsFilled(dbSource *utils.DbAndSchema) bool {
+func (u DataDictionary) CheckIfDataDictionaryIsFilled(dbSource *utils.DbAndSchema) bool {
 	var dataDictionaryResult []*DataDictionaryResult
 	query := dbSource.Db.Table(dbSource.Schema + ".data_dictionary_result")
 

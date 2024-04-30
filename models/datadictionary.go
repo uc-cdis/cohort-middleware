@@ -124,6 +124,8 @@ func (u DataDictionary) GenerateDataDictionary() {
 	log.Printf("catch all cohort id is %v", catchAllCohortId)
 	var maxWorkerSize int = conf.GetInt("worker_pool_size")
 	log.Printf("maxWorkerSize is %v", maxWorkerSize)
+	var batchSize int = conf.GetInt("batch_size")
+	log.Printf("Batch Size is %v", maxWorkerSize)
 
 	entryCh := make(chan *DataDictionaryResult, maxWorkerSize)
 
@@ -179,8 +181,8 @@ func (u DataDictionary) GenerateDataDictionary() {
 			}
 			wg.Wait()
 			resultDataList = append(resultDataList, partialResultList...)
-			if len(resultDataList) >= 500 {
-				log.Printf("500 row of results reached, flush to db.")
+			if len(resultDataList) >= batchSize {
+				log.Printf("%v row of results reached, flush to db.", batchSize)
 				u.WriteResultToDB(omopDataSource, resultDataList)
 				resultDataList = []*DataDictionaryResult{}
 			}

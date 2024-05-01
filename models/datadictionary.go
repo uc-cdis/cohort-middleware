@@ -209,7 +209,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		for _, personData := range cohortData {
 			conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 		}
-
+		log.Printf("INFO: concept id is %v", data.ConceptID)
 		histogramData := utils.GenerateHistogramData(conceptValues)
 
 		data.ValueSummary, _ = json.Marshal(histogramData)

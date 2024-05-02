@@ -14,7 +14,7 @@ type HistogramColumn struct {
 	NumberOfPeople int     `json:"personCount"`
 }
 
-const MAX_NUM_BINS = 100
+const MAX_NUM_BINS = 50
 
 func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 

@@ -14,12 +14,14 @@ type HistogramColumn struct {
 	NumberOfPeople int     `json:"personCount"`
 }
 
+const MAX_NUM_BINS = 1000
+
 func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 
 	if len(conceptValues) == 0 {
 		return nil
 	}
-	numBins, width := GetBinsAndWidthUsingFreedmanDiaconisAndSortValues(conceptValues) //conceptValues will get sorted as a side-effect, which is useful in this case
+	numBins, width := GetBinsAndWidthAndSortValues(conceptValues) //conceptValues will get sorted as a side-effect, which is useful in this case
 	startValue := conceptValues[0]
 	binIndexToHistogramColumn := make(map[int]HistogramColumn)
 
@@ -50,7 +52,7 @@ func GenerateHistogramData(conceptValues []float64) []HistogramColumn {
 }
 
 // Sorts the given values, and returns the number of bins, the width of the bins using FreedmanDiaconis
-func GetBinsAndWidthUsingFreedmanDiaconisAndSortValues(values []float64) (int, float64) {
+func GetBinsAndWidthAndSortValues(values []float64) (int, float64) {
 
 	width := FreedmanDiaconis(values) // values will get sorted as a side-effect, which is useful in this case
 	startValue := values[0]
@@ -62,6 +64,11 @@ func GetBinsAndWidthUsingFreedmanDiaconisAndSortValues(values []float64) (int, f
 	} else {
 		numBins = 1
 		width = endValue + 1 - startValue
+	}
+	// check if numBins is acceptable:
+	if numBins > MAX_NUM_BINS {
+		numBins = MAX_NUM_BINS
+		width = (endValue - startValue) / MAX_NUM_BINS
 	}
 	log.Printf("num bins %v", numBins)
 

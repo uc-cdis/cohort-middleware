@@ -67,6 +67,7 @@ func GetBinsAndWidthAndSortValues(values []float64) (int, float64) {
 	}
 	// check if numBins is acceptable:
 	if numBins > MAX_NUM_BINS {
+		log.Printf("%v number exceeded MAX_NUM_BINS. Use %v bins instead", numBins, MAX_NUM_BINS)
 		numBins = MAX_NUM_BINS
 		width = (endValue - startValue) / MAX_NUM_BINS
 	}

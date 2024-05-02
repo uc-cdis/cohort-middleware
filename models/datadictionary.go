@@ -125,7 +125,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 	var maxWorkerSize int = conf.GetInt("worker_pool_size")
 	log.Printf("maxWorkerSize is %v", maxWorkerSize)
 	var batchSize int = conf.GetInt("batch_size")
-	log.Printf("Batch Size is %v", maxWorkerSize)
+	log.Printf("Batch Size is %v", batchSize)
 
 	entryCh := make(chan *DataDictionaryResult, maxWorkerSize)
 

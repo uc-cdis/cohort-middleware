@@ -14,7 +14,8 @@ values
     (1,1,0, 'OMOP', 1),
     (2,1,1, 'OMOP', 1),
     (3,1,2, 'RESULTS', 1),
-    (4,1,5, 'TEMP', 1)
+    (4,1,5, 'TEMP', 1),
+    (5,1,6, 'MISC', 1)
 ;
 
 insert into atlas.cohort_definition

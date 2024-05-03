@@ -75,8 +75,9 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 		}
 		var dataSourceModel = new(Source)
 		omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
+		miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
 
-		if u.CheckIfDataDictionaryIsFilled(omopDataSource) {
+		if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
 			var newDataDictionary DataDictionaryModel
 			var dataDictionaryEntries []*DataDictionaryResult
 			//Get total number of person ids
@@ -95,7 +96,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 			}
 
 			//get data dictionary entires saved in table
-			query = omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary_result")
+			query = miscDataSource.Db.Table(miscDataSource.Schema + ".data_dictionary_result")
 			query, cancel = utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 			defer cancel()
 			meta_result = query.Scan(&dataDictionaryEntries)
@@ -110,7 +111,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 			newDataDictionary.Data, _ = json.Marshal(dataDictionaryEntries)
 			//set in cache
 			ResultCache = &newDataDictionary
-			return ResultCache, nil
+			return &newDataDictionary, nil
 		} else {
 			return nil, errors.New("data dictionary is not available yet")
 		}
@@ -138,8 +139,9 @@ func (u DataDictionary) GenerateDataDictionary() {
 	}
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
+	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
 
-	if u.CheckIfDataDictionaryIsFilled(omopDataSource) {
+	if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
 		log.Print("Data Dictionary Result already filled. Skipping generation.")
 		return
 	} else {
@@ -183,13 +185,13 @@ func (u DataDictionary) GenerateDataDictionary() {
 			resultDataList = append(resultDataList, partialResultList...)
 			if len(resultDataList) >= batchSize {
 				log.Printf("%v row of results reached, flush to db.", batchSize)
-				u.WriteResultToDB(omopDataSource, resultDataList)
+				u.WriteResultToDB(miscDataSource, resultDataList)
 				resultDataList = []*DataDictionaryResult{}
 			}
 		}
 
 		if len(resultDataList) > 0 {
-			u.WriteResultToDB(omopDataSource, resultDataList)
+			u.WriteResultToDB(miscDataSource, resultDataList)
 		}
 
 		log.Printf("INFO: Data dictionary generation complete")

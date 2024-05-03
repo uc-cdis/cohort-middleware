@@ -370,3 +370,9 @@ func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
 	}
 
 }
+
+func (u CohortDataController) GenerateDataDictionary(c *gin.Context) {
+	log.Printf("Generating Data Dictionary...")
+	go u.dataDictionaryModel.GenerateDataDictionary()
+	c.JSON(http.StatusOK, "Data Dictionary Kicked Off")
+}

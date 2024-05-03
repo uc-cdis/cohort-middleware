@@ -95,6 +95,25 @@ CREATE TABLE omop.concept
     invalid_reason character varying(1) COLLATE pg_catalog."default"
 );
 
+CREATE TABLE omop.DATA_DICTIONARY_RESULT
+(
+    vocabulary_id character varying(20),
+    concept_id integer not null,
+    concept_code character varying(50),
+    concept_name character varying(255),
+    concept_class_id character varying(20),
+    number_of_people_with_variable integer,
+    number_of_people_where_value_is_filled integer,
+    number_of_people_where_value_is_null integer,
+    value_stored_as character varying(20),
+    min_value numeric,
+    max_value numeric,
+    mean_value numeric,
+    standard_deviation numeric,
+    value_summary JSON --For sql server use varchar(max)
+);
+ALTER TABLE omop.DATA_DICTIONARY_RESULT  ADD CONSTRAINT xpk_DATA_DICTIONARY_RESULT PRIMARY KEY ( concept_id ) ;
+
 CREATE VIEW omop.OBSERVATION_CONTINUOUS AS
 SELECT ob.person_id, ob.observation_concept_id, ob.value_as_string, ob.value_as_number, ob.value_as_concept_id
 FROM omop.observation ob

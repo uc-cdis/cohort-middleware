@@ -1045,23 +1045,55 @@ func TestPersonConceptAndCountString(t *testing.T) {
 
 }
 
-func TestGenerateDataDictionary(t *testing.T) {
+func TestGetDataDictionary(t *testing.T) {
 	setUp(t)
-	dataDictionaryModel.CohortDataModel = cohortDataModel
 
 	data, _ := dataDictionaryModel.GetDataDictionary()
 	//Pre generation cache should be empty
 	if data != nil {
 		t.Errorf("Get Data Dictionary should have failed.")
 	}
+}
 
-	generatedData, _ := dataDictionaryModel.GenerateDataDictionary()
-	if generatedData.Total != 18 {
-		t.Errorf("Data Dictionary Generation Failed.")
+func TestCheckIfDataDictionaryIsFilled(t *testing.T) {
+	setUp(t)
+	var source = new(models.Source)
+	sources, _ := source.GetAllSources()
+	var dataSourceModel = new(models.Source)
+	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, models.Omop)
+
+	filled := dataDictionaryModel.CheckIfDataDictionaryIsFilled(omopDataSource)
+	if filled != false {
+		t.Errorf("Flag should be false")
 	}
+	dataDictionaryModel.GenerateDataDictionary()
+	filled = dataDictionaryModel.CheckIfDataDictionaryIsFilled(omopDataSource)
+	if filled != true {
+		t.Errorf("Flag should be true")
+	}
+}
 
-	data, _ = dataDictionaryModel.GetDataDictionary()
-	if data.Total != 18 {
-		t.Errorf("Data Dictionary Generation Failed.")
+func TestGenerateDataDictionary(t *testing.T) {
+	setUp(t)
+	dataDictionaryModel.GenerateDataDictionary()
+	//Update this with read
+	data, _ := dataDictionaryModel.GetDataDictionary()
+	if data == nil || data.Total != 18 || data.Data == nil {
+		t.Errorf("Get Data Dictionary should have succeeded.")
+	}
+}
+
+func TestWriteToDB(t *testing.T) {
+	setUp(t)
+	var source = new(models.Source)
+	sources, _ := source.GetAllSources()
+	var dataSourceModel = new(models.Source)
+	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, models.Omop)
+
+	resultList := append([]*models.DataDictionaryResult{}, &models.DataDictionaryResult{ConceptID: 123})
+	success := dataDictionaryModel.WriteResultToDB(omopDataSource, resultList)
+	//Write succeeded without panicking
+	if success != true {
+		t.Errorf("Write failed")
 	}
 }

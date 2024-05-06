@@ -63,6 +63,7 @@ const (
 	Omop    SourceType = 0 //TODO - we might have to split up into OmopData and OmopVocab in future...
 	Results SourceType = 2
 	Temp    SourceType = 5
+	Misc    SourceType = 6
 )
 
 // Get the data source details for given source id and source type.

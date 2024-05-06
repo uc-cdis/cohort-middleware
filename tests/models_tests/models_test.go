@@ -1045,7 +1045,7 @@ func TestPersonConceptAndCountString(t *testing.T) {
 
 }
 
-func TestGetDataDictionary(t *testing.T) {
+func TestGetDataDictionaryFail(t *testing.T) {
 	setUp(t)
 
 	data, _ := dataDictionaryModel.GetDataDictionary()
@@ -1060,14 +1060,14 @@ func TestCheckIfDataDictionaryIsFilled(t *testing.T) {
 	var source = new(models.Source)
 	sources, _ := source.GetAllSources()
 	var dataSourceModel = new(models.Source)
-	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, models.Omop)
+	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, models.Misc)
 
-	filled := dataDictionaryModel.CheckIfDataDictionaryIsFilled(omopDataSource)
+	filled := dataDictionaryModel.CheckIfDataDictionaryIsFilled(miscDataSource)
 	if filled != false {
 		t.Errorf("Flag should be false")
 	}
 	dataDictionaryModel.GenerateDataDictionary()
-	filled = dataDictionaryModel.CheckIfDataDictionaryIsFilled(omopDataSource)
+	filled = dataDictionaryModel.CheckIfDataDictionaryIsFilled(miscDataSource)
 	if filled != true {
 		t.Errorf("Flag should be true")
 	}
@@ -1088,10 +1088,10 @@ func TestWriteToDB(t *testing.T) {
 	var source = new(models.Source)
 	sources, _ := source.GetAllSources()
 	var dataSourceModel = new(models.Source)
-	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, models.Omop)
+	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, models.Misc)
 
 	resultList := append([]*models.DataDictionaryResult{}, &models.DataDictionaryResult{ConceptID: 123})
-	success := dataDictionaryModel.WriteResultToDB(omopDataSource, resultList)
+	success := dataDictionaryModel.WriteResultToDB(miscDataSource, resultList)
 	//Write succeeded without panicking
 	if success != true {
 		t.Errorf("Write failed")

@@ -43,6 +43,12 @@ type SourceSchema struct {
 }
 
 func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType SourceType) (*SourceSchema, error) {
+	// special handling of sourceType "Misc", as it is not stored in source_daimon table
+	if sourceType == Misc {
+		return &SourceSchema{SchemaName: "MISC"}, nil
+	}
+
+	// otherwise, get the schema name from source_daimon table
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db
 	var sourceSchema *SourceSchema

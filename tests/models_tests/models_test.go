@@ -825,7 +825,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 			} else {
 				foundConceptValueAsNumberAsNil = true
 			}
-			textConcat += cohortDatum.ConceptValueAsString
+			textConcat += cohortDatum.ConceptName
 			classIdConcat += cohortDatum.ConceptClassId
 		}
 	}

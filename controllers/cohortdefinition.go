@@ -77,30 +77,25 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 			c.Abort()
 			return
 		}
-		// if the user has access to default global role (functions as a global "read only team project"),
-		// then also include cohorts from there:
+		// all users should be allowed to see the cohorts shared with the default global role,
+		// so also include cohorts from there:
 		conf := config.GetConfig()
 		globalReaderRole := conf.GetString("global_reader_role")
-		hasAccessToGlobalReaderRole := u.teamProjectAuthz.HasAccessToTeamProject(c, globalReaderRole)
-		if hasAccessToGlobalReaderRole {
-			globalCohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, globalReaderRole)
-			if err != nil {
-				c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition for 'global reader' role", "error": err.Error()})
-				c.Abort()
-				return
-			}
-			// remove overlaps (if any):
-			combinedTeamAndGlobalCohorts := MakeUniqueListOfCohortStats(append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...))
-			// sort by CohortSize desc:
-			sort.Slice(combinedTeamAndGlobalCohorts, func(i, j int) bool {
-				return combinedTeamAndGlobalCohorts[i].CohortSize > combinedTeamAndGlobalCohorts[j].CohortSize
-			})
-			c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": combinedTeamAndGlobalCohorts})
-			return
-		} else {
-			c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": cohortDefinitionsAndStats})
+		globalCohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, globalReaderRole)
+		if err != nil {
+			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition for 'global reader' role", "error": err.Error()})
+			c.Abort()
 			return
 		}
+		// remove overlaps (if any):
+		combinedTeamAndGlobalCohorts := MakeUniqueListOfCohortStats(append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...))
+		// sort by CohortSize desc:
+		sort.Slice(combinedTeamAndGlobalCohorts, func(i, j int) bool {
+			return combinedTeamAndGlobalCohorts[i].CohortSize > combinedTeamAndGlobalCohorts[j].CohortSize
+		})
+		c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": combinedTeamAndGlobalCohorts})
+		return
+
 	}
 	c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
 	c.Abort()

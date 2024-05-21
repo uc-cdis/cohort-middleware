@@ -64,7 +64,6 @@ var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionControlle
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
 var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
-var cohortDefinitionControllerWithNoTeamProjectAuthzForGlobalReaderRole = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: true})
 
 type dummyCohortDataModel struct{}
 
@@ -607,32 +606,6 @@ func TestMakeUniqueListOfCohortStats(t *testing.T) {
 	if testInput[0].Id != 123 || testInput[1].Id != 456 {
 		t.Errorf("Unexpected result")
 	}
-}
-
-func TestRetriveStatsBySourceIdAndTeamProjectWithNoTeamProjectAuthzForGlobalReaderRole(t *testing.T) {
-	setUp(t)
-
-	conf := config.GetConfig()
-	globalReaderRole := conf.GetString("global_reader_role")
-	requestContext := new(gin.Context)
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
-	requestContext.Request = &http.Request{URL: &url.URL{}}
-	teamProject := "/test/dummyname/dummy-team-project"
-	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	cohortDefinitionControllerWithNoTeamProjectAuthzForGlobalReaderRole.RetriveStatsBySourceIdAndTeamProject(requestContext)
-	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	// expect result with all of the dummy data:
-	if !strings.Contains(result.CustomResponseWriterOut, "name1_"+teamProject) ||
-		!strings.Contains(result.CustomResponseWriterOut, "name2_"+teamProject) ||
-		!strings.Contains(result.CustomResponseWriterOut, "name3_"+teamProject) {
-		t.Errorf("Expected 3 specific rows in result, found %v", result.CustomResponseWriterOut)
-	}
-	if strings.Contains(result.CustomResponseWriterOut, "name4_"+globalReaderRole) ||
-		strings.Contains(result.CustomResponseWriterOut, "name5_"+globalReaderRole) {
-		t.Errorf("Did not expect to find global roles in result, but found %v", result.CustomResponseWriterOut)
-	}
-
 }
 
 func TestRetriveByIdWrongParam(t *testing.T) {

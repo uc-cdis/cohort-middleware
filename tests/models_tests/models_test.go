@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"log"
 	"os"
-	"slices"
 	"strings"
 	"testing"
 	"time"
@@ -815,7 +814,8 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 			t.Errorf("Expected some cohort data")
 		}
 		var previousPersonId int64 = -1
-		defaultHareValue := []string{"", "non-Hispanic Asian", "non-Hispanic Black", "non-Hispanic White", "Hispanic"}
+		defaultHareValue := map[string]bool{"": true, "non-Hispanic Asian": true, "non-Hispanic Black": true, "non-Hispanic White": true, "Hispanic": true}
+
 		for _, cohortDatum := range cohortData {
 			// check for order: person_id is not smaller than previous person_id
 			if cohortDatum.PersonId < previousPersonId {
@@ -823,7 +823,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 			}
 
 			if cohortDatum.ConceptId == 2000007027 {
-				if !slices.Contains(defaultHareValue, cohortDatum.ConceptValueName) {
+				if !defaultHareValue[cohortDatum.ConceptValueName] {
 					t.Errorf("Did not get concept value name correctly!")
 				}
 			}

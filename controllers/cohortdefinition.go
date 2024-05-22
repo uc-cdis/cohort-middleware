@@ -81,6 +81,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 		// so also include cohorts from there:
 		conf := config.GetConfig()
 		globalReaderRole := conf.GetString("global_reader_role")
+		log.Printf("INFO: found %s as global_reader_role", globalReaderRole)
 		globalCohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, globalReaderRole)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition for 'global reader' role", "error": err.Error()})

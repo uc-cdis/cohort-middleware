@@ -153,6 +153,13 @@ gen3 kube-setup-cohort-middleware
 
 The script will use `ohdsi` database credentials and will result in `cohort-middleware-g3auto` Kubernetes secret.
 
+If any changes need to be made to the settings, find the .yaml config file:
+
+```
+find ~ -type f -path '*/g3auto/cohort-middleware/*.yaml'
+```
+and **remove** that first before running the `gen3 kube-setup` command above.
+
 ### Roll cohort-middleware
 
 To roll cohort-middleware (in case of version update), full `kube-setup-cohort-middleware` is not required:

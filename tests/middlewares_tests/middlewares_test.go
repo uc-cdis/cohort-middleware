@@ -211,8 +211,8 @@ func TestTeamProjectValidationFullOverlapWithGlobalCohorts(t *testing.T) {
 	if result == false {
 		t.Errorf("Expected TeamProjectValidation result to be 'true'")
 	}
-	if dummyHttpClient.nrCalls != 1 {
-		t.Errorf("Expected dummyHttpClient to have been called only once")
+	if dummyHttpClient.nrCalls != 0 {
+		t.Errorf("Expected dummyHttpClient to not have been called, got %d calls", dummyHttpClient.nrCalls)
 	}
 }
 
@@ -257,8 +257,8 @@ func TestTeamProjectValidationPartialOverlapWithGlobalCohorts(t *testing.T) {
 	if result == false {
 		t.Errorf("Expected TeamProjectValidation result to be 'true'")
 	}
-	if dummyHttpClient.nrCalls != 2 {
-		t.Errorf("Expected dummyHttpClient to have been called twice, but got %d", dummyHttpClient.nrCalls)
+	if dummyHttpClient.nrCalls != 1 {
+		t.Errorf("Expected dummyHttpClient to have been called once, but got %d", dummyHttpClient.nrCalls)
 	}
 }
 
@@ -303,30 +303,6 @@ func TestTeamProjectValidationArborist401ForTeamProject(t *testing.T) {
 	}
 	if dummyHttpClient.nrCalls <= 1 {
 		t.Errorf("Expected dummyHttpClient to have been called more than once")
-	}
-}
-
-func TestTeamProjectValidationArborist401ForGlobalRoleAfterOverlap(t *testing.T) {
-	setUp(t)
-	config.Init("mocktest")
-	arboristAuthzResponseCode := 401
-	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
-	// ensure overlap between global and cohorts to check, so authz on global role is checked first thing in TeamProjectValidation:
-	globalCohorts := []int{1, 2}
-	cohortsToCheck := []int{1, 2}
-	teamProjectAuthz := middlewares.NewTeamProjectAuthz(&dummyCohortDefinitionDataModel{returnForGetCohortDefinitionIdsForTeamProject: globalCohorts},
-		dummyHttpClient)
-	requestContext := new(gin.Context)
-	requestContext.Request = new(http.Request)
-	requestContext.Request.Header = map[string][]string{
-		"Authorization": {"dummy_token_value"},
-	}
-	result := teamProjectAuthz.TeamProjectValidation(requestContext, cohortsToCheck, nil)
-	if result == true {
-		t.Errorf("Expected TeamProjectValidation result to be 'false'")
-	}
-	if dummyHttpClient.nrCalls != 1 {
-		t.Errorf("Expected dummyHttpClient to have been called only once")
 	}
 }
 

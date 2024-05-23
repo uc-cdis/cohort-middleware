@@ -814,8 +814,8 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 			t.Errorf("Expected some cohort data")
 		}
 		var previousPersonId int64 = -1
-		defaultHareValue := map[string]bool{"": true, "non-Hispanic Asian": true, "non-Hispanic Black": true, "non-Hispanic White": true, "Hispanic": true}
-
+		defaultHareValue := map[string]bool{"non-Hispanic Asian": true, "non-Hispanic Black": true, "non-Hispanic White": true, "Hispanic": true}
+		emptyDataCounter := 0
 		for _, cohortDatum := range cohortData {
 			// check for order: person_id is not smaller than previous person_id
 			if cohortDatum.PersonId < previousPersonId {
@@ -823,8 +823,13 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 			}
 
 			if cohortDatum.ConceptId == 2000007027 {
-				if !defaultHareValue[cohortDatum.ConceptValueName] {
-					t.Errorf("Did not get concept value name correctly!")
+				//Only one row has empty data
+				if !defaultHareValue[cohortDatum.ObservationValueAsConceptName] {
+					if emptyDataCounter == 0 && cohortDatum.ObservationValueAsConceptName == "" {
+						emptyDataCounter++
+					} else {
+						t.Errorf("Did not get concept value name correctly!")
+					}
 				}
 			}
 
@@ -834,7 +839,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 			} else {
 				foundConceptValueAsNumberAsNil = true
 			}
-			textConcat += cohortDatum.ConceptValueName
+			textConcat += cohortDatum.ObservationValueAsConceptName
 			classIdConcat += cohortDatum.ConceptClassId
 		}
 	}

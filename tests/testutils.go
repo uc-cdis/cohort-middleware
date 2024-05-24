@@ -86,6 +86,13 @@ func GetCount(dataSource *utils.DbAndSchema, tableName string) int64 {
 	return count
 }
 
+func GetCountWhere(dataSource *utils.DbAndSchema, tableName string, whereClause string) int64 {
+	var count int64
+	result := dataSource.Db.Table(fmt.Sprintf("%s.%s where %s", dataSource.Schema, tableName, whereClause))
+	result.Count(&count)
+	return count
+}
+
 func EmptyTable(dataSource *utils.DbAndSchema, tableName string) {
 	dataSource.Db.Model(models.Source{}).Exec(
 		fmt.Sprintf("Delete from %s.%s", dataSource.Schema, tableName))

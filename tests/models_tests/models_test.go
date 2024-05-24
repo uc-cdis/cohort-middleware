@@ -813,6 +813,12 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 		if len(cohortData) <= 0 {
 			t.Errorf("Expected some cohort data")
 		}
+		// 2- check data size. Max size, if all persons have data for each concept, is cohort size x len(allConceptIds):
+		if len(cohortData) > cohortDefinition.CohortSize*len(allConceptIds) {
+			t.Errorf("Cohort data size does not match expectation. Expected < %d, got %d",
+				cohortDefinition.CohortSize*len(allConceptIds), len(cohortData))
+		}
+
 		var previousPersonId int64 = -1
 		defaultHareValue := map[string]bool{"non-Hispanic Asian": true, "non-Hispanic Black": true, "non-Hispanic White": true, "Hispanic": true}
 		emptyDataCounter := 0

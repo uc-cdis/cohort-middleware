@@ -9,8 +9,8 @@ import (
 )
 
 // Helper function that adds extra filter clauses to the query, joining on the right set of tables.
-// * It was added here to make it reusable, given these filters need to be added to many of the queries that take in
-//   a list of filters in the form of concept ids.
+//   - It was added here to make it reusable, given these filters need to be added to many of the queries that take in
+//     a list of filters in the form of concept ids.
 func QueryFilterByConceptIdsHelper(query *gorm.DB, sourceId int, filterConceptIds []int64,
 	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string) *gorm.DB {
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
@@ -73,7 +73,7 @@ func GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias string,
 		panic("error while trying to get information for conceptId, or conceptId not found")
 	} else if conceptInfo.ConceptType == "MVP Continuous" {
 		return observationTableAlias + ".value_as_number is not null"
-	} else if conceptInfo.ConceptType == "MVP Ordinal" {
+	} else if conceptInfo.ConceptType == "MVP Nominal" {
 		return observationTableAlias + ".value_as_concept_id is not null and " + observationTableAlias + ".value_as_concept_id != 0"
 	} else {
 		panic(fmt.Sprintf("error: concept type not supported [%s]", conceptInfo.ConceptType))

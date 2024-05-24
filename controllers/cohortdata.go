@@ -238,9 +238,9 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 				row[conceptIdxInRow] = strconv.FormatFloat(float64(*cohortItem.ConceptValueAsNumber), 'f', 2, 64)
 			}
 		} else {
-			// default to the value as string for now:
-			if cohortItem.ConceptValueAsString != "" {
-				row[conceptIdxInRow] = cohortItem.ConceptValueAsString
+			// default to the ObservationValueAsConceptName for now:
+			if cohortItem.ObservationValueAsConceptName != "" {
+				row[conceptIdxInRow] = cohortItem.ObservationValueAsConceptName
 			}
 		}
 	}

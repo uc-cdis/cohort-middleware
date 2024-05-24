@@ -70,7 +70,7 @@ type dummyCohortDataModel struct{}
 func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.PersonConceptAndValue, error) {
 	value := float32(0.0)
 	cohortData := []*models.PersonConceptAndValue{
-		{PersonId: 1, ConceptId: 10, ConceptClassId: "something", ConceptValueAsString: "abc", ConceptValueAsNumber: &value},
+		{PersonId: 1, ConceptId: 10, ConceptClassId: "something", ObservationValueAsConceptName: "abc", ConceptValueAsNumber: &value},
 	}
 	return cohortData, nil
 }
@@ -449,13 +449,13 @@ func TestGenerateCSV(t *testing.T) {
 	value2 := float32(1.5)
 
 	cohortData := []*models.PersonConceptAndValue{
-		{PersonId: 1, ConceptId: 10, ConceptClassId: "something else", ConceptValueAsString: "abc", ConceptValueAsNumber: &value1},
-		{PersonId: 1, ConceptId: 22, ConceptClassId: "MVP Continuous", ConceptValueAsString: ">1", ConceptValueAsNumber: &value2},
-		{PersonId: 2789580123456, ConceptId: 10, ConceptValueAsString: "A value with, comma!", ConceptValueAsNumber: &value1},
-		{PersonId: 344567, ConceptId: tests.GetTestHareConceptId(), ConceptClassId: "MVP Ordinal", ConceptValueAsString: "HIS", ConceptValueAsConceptId: 2000007028, ConceptValueAsNumber: &value1},
-		{PersonId: 344567, ConceptId: 22, ConceptClassId: "MVP Continuous", ConceptValueAsString: "", ConceptValueAsNumber: &value1},
+		{PersonId: 1, ConceptId: 10, ConceptClassId: "something else", ObservationValueAsConceptName: "abc", ConceptValueAsNumber: &value1},
+		{PersonId: 1, ConceptId: 22, ConceptClassId: "MVP Continuous", ObservationValueAsConceptName: ">1", ConceptValueAsNumber: &value2},
+		{PersonId: 2789580123456, ConceptId: 10, ObservationValueAsConceptName: "A value with, comma!", ConceptValueAsNumber: &value1},
+		{PersonId: 344567, ConceptId: tests.GetTestHareConceptId(), ConceptClassId: "MVP Ordinal", ObservationValueAsConceptName: "HIS", ConceptValueAsConceptId: 2000007028, ConceptValueAsNumber: &value1},
+		{PersonId: 344567, ConceptId: 22, ConceptClassId: "MVP Continuous", ObservationValueAsConceptName: "", ConceptValueAsNumber: &value1},
 		{PersonId: 789567, ConceptId: 22, ConceptClassId: "MVP Continuous"},
-		{PersonId: 789567, ConceptId: 10, ConceptClassId: "something else", ConceptValueAsString: ""},
+		{PersonId: 789567, ConceptId: 10, ConceptClassId: "something else", ObservationValueAsConceptName: ""},
 	}
 	conceptIds := []int64{10, 22, tests.GetTestHareConceptId()}
 

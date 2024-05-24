@@ -809,23 +809,53 @@ func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *test
 		cohortData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
 			testSourceId, cohortDefinition.Id, allConceptIds)
 
-		// 1- cohortData items > 0, assuming each cohort has a person wit at least one observation
+		// count nr observation records for cohort through an independent simpler query:
+		totalObservationsCohort := tests.GetCountWhere(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "observation",
+			fmt.Sprintf("observation_concept_id > 0 and person_id in (Select b.subject_id from %s.cohort b where b.cohort_definition_id = %d)",
+				tests.GetResultsDataSource().Schema, cohortDefinition.Id))
+
+		// 1- the number of items in cohortsData and totalObservationsCohort should match:
+		if int64(len(cohortData)) != totalObservationsCohort {
+			t.Errorf("Expected %d observations, found %d", totalObservationsCohort, len(cohortData))
+		}
+
+		// 2- cohortData items > 0, assuming each cohort has a person wit at least one observation
 		if len(cohortData) <= 0 {
 			t.Errorf("Expected some cohort data")
 		}
+		// 3- check data size. Max size, if all persons have data for each concept, is cohort size x len(allConceptIds):
+		if len(cohortData) > cohortDefinition.CohortSize*len(allConceptIds) {
+			t.Errorf("Cohort data size larger than expected. Expected < %d, got %d",
+				cohortDefinition.CohortSize*len(allConceptIds), len(cohortData))
+		}
+
 		var previousPersonId int64 = -1
+		defaultHareValue := map[string]bool{"non-Hispanic Asian": true, "non-Hispanic Black": true, "non-Hispanic White": true, "Hispanic": true}
+		emptyDataCounter := 0
 		for _, cohortDatum := range cohortData {
 			// check for order: person_id is not smaller than previous person_id
 			if cohortDatum.PersonId < previousPersonId {
 				t.Errorf("Data not ordered by person_id!")
 			}
+
+			if cohortDatum.ConceptId == 2000007027 {
+				//Only one row has empty data
+				if !defaultHareValue[cohortDatum.ObservationValueAsConceptName] {
+					if emptyDataCounter == 0 && cohortDatum.ObservationValueAsConceptName == "" {
+						emptyDataCounter++
+					} else {
+						t.Errorf("Did not get concept value name correctly!")
+					}
+				}
+			}
+
 			previousPersonId = cohortDatum.PersonId
 			if cohortDatum.ConceptValueAsNumber != nil {
 				sumNumeric += *cohortDatum.ConceptValueAsNumber
 			} else {
 				foundConceptValueAsNumberAsNil = true
 			}
-			textConcat += cohortDatum.ConceptValueAsString
+			textConcat += cohortDatum.ObservationValueAsConceptName
 			classIdConcat += cohortDatum.ConceptClassId
 		}
 	}

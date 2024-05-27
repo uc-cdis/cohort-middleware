@@ -18,12 +18,12 @@ type CohortDataI interface {
 type CohortData struct{}
 
 type PersonConceptAndValue struct {
-	PersonId                int64
-	ConceptId               int64
-	ConceptClassId          string
-	ConceptValueAsString    string
-	ConceptValueAsNumber    *float32
-	ConceptValueAsConceptId int64
+	PersonId                      int64
+	ConceptId                     int64
+	ConceptClassId                string
+	ObservationValueAsConceptName string
+	ConceptValueAsNumber          *float32
+	ConceptValueAsConceptId       int64
 }
 
 type PersonConceptAndCount struct {
@@ -83,9 +83,10 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
 	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("observation.person_id, observation.observation_concept_id as concept_id, concept.concept_class_id, observation.value_as_string as concept_value_as_string, observation.value_as_number as concept_value_as_number, observation.value_as_concept_id as concept_value_as_concept_id").
+		Select("observation.person_id, observation.observation_concept_id as concept_id, concept.concept_class_id, value_as_concept.concept_name as observation_value_as_concept_name, observation.value_as_number as concept_value_as_number, observation.value_as_concept_id as concept_value_as_concept_id").
 		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as concept ON concept.concept_id = observation.observation_concept_id").
+		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as value_as_concept ON value_as_concept.concept_id = observation.value_as_concept_id").
 		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
 		Where("observation.observation_concept_id in (?)", conceptIds).
 		Order("observation.person_id asc") // this order is important!

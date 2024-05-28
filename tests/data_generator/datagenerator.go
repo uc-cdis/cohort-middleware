@@ -208,7 +208,7 @@ func AddConceptAndMaybeAddObservations(nextConceptId int64, concept Concept) {
 		conceptId = utils.ParseInt64(concept.PossibleValues[0])
 	}
 	if concept.ValueType == "concept" {
-		conceptClassId = "MVP Ordinal"
+		conceptClassId = "MVP Nominal"
 	}
 	// If still empty, generate a name:
 	if conceptName == "" {

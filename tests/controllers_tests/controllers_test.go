@@ -452,7 +452,7 @@ func TestGenerateCSV(t *testing.T) {
 		{PersonId: 1, ConceptId: 10, ConceptClassId: "something else", ObservationValueAsConceptName: "abc", ConceptValueAsNumber: &value1},
 		{PersonId: 1, ConceptId: 22, ConceptClassId: "MVP Continuous", ObservationValueAsConceptName: ">1", ConceptValueAsNumber: &value2},
 		{PersonId: 2789580123456, ConceptId: 10, ObservationValueAsConceptName: "A value with, comma!", ConceptValueAsNumber: &value1},
-		{PersonId: 344567, ConceptId: tests.GetTestHareConceptId(), ConceptClassId: "MVP Ordinal", ObservationValueAsConceptName: "HIS", ConceptValueAsConceptId: 2000007028, ConceptValueAsNumber: &value1},
+		{PersonId: 344567, ConceptId: tests.GetTestHareConceptId(), ConceptClassId: "MVP Nominal", ObservationValueAsConceptName: "HIS", ConceptValueAsConceptId: 2000007028, ConceptValueAsNumber: &value1},
 		{PersonId: 344567, ConceptId: 22, ConceptClassId: "MVP Continuous", ObservationValueAsConceptName: "", ConceptValueAsNumber: &value1},
 		{PersonId: 789567, ConceptId: 22, ConceptClassId: "MVP Continuous"},
 		{PersonId: 789567, ConceptId: 10, ConceptClassId: "something else", ObservationValueAsConceptName: ""},

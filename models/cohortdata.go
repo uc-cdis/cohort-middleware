@@ -12,7 +12,7 @@ type CohortDataI interface {
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
-	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*OrdinalGroupData, error)
+	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*NominalGroupData, error)
 }
 
 type CohortData struct{}
@@ -45,7 +45,7 @@ type Person struct {
 	PersonId int64
 }
 
-type OrdinalGroupData struct {
+type NominalGroupData struct {
 	Name             string `json:"name"`
 	PersonCount      int64  `json:"personCount"`
 	ValueAsString    string `json:"valueAsString"`
@@ -116,18 +116,37 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 	return cohortData, meta_result.Error
 }
 
-func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptId int64) ([]*OrdinalGroupData, error) {
+func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	// get the observations for the subjects and the concepts, to build up the data rows to return:
+	var cohortData []*PersonConceptAndValue
+	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
+		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
+		Joins("INNER JOIN "+omopDataSource.Schema+".observation_data_dictionary as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
+		Where("observation.observation_concept_id = ?", histogramConceptId).
+		Where("observation.value_as_number is not null")
+
+	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortData)
+	return cohortData, meta_result.Error
+}
+
+func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptId int64) ([]*NominalGroupData, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
-	var cohortData []*OrdinalGroupData
+	var cohortData []*NominalGroupData
 
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_data_dictionary as observation"+omopDataSource.GetViewDirective()).
 		Select("c1.concept_name as name, count(distinct person_id) as person_count,observation.value_as_string as value_as_string, value_as_concept_id as value_as_concept_id").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as c ON c.concept_id = observation.observation_concept_id").
 		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as c1 ON c1.concept_id = observation.value_as_concept_id").
-		Where("c.concept_class_id = ?", "MVP Ordinal").
 		Where("c.concept_id = ?", conceptId).
 		Group("observation.observation_concept_id, observation.value_as_string, observation.value_as_concept_id, c1.concept_name")
 

@@ -81,7 +81,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 			var newDataDictionary DataDictionaryModel
 			var dataDictionaryEntries []*DataDictionaryResult
 			//Get total number of person ids
-			query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
+			query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_data_dictionary as observation" + omopDataSource.GetViewDirective()).
 				Select("count(distinct observation.person_id) as total, null as data")
 
 			query, cancel := utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
@@ -202,11 +202,18 @@ func (u DataDictionary) GenerateDataDictionary() {
 func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int, wg *sync.WaitGroup, ch chan *DataDictionaryResult) {
 	var c = new(CohortData)
 
-	if data.ConceptClassId == "MVP Continuous" {
-		// MVP Continuous #similar to bin items below call cohort-middleware
+	if data.ValueStoredAs == "Number" {
+		//If histogram concept classes
+		log.Print("Generate histogram for Concept id %v.", data.ConceptClassId)
 		var filterConceptIds = []int64{}
 		var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-		cohortData, _ := c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
+		var cohortData []*PersonConceptAndValue
+		if data.ConceptClassId == "MVP Continuous" {
+			cohortData, _ = c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
+		} else {
+			cohortData, _ = c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
+		}
+
 		conceptValues := []float64{}
 		for _, personData := range cohortData {
 			conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
@@ -215,12 +222,14 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		histogramData := utils.GenerateHistogramData(conceptValues)
 
 		data.ValueSummary, _ = json.Marshal(histogramData)
+	} else if data.ValueStoredAs == "Concept Id" {
+		//If bar graph concept classes
+		log.Print("Generate bar graph for Concept id %v.", data.ConceptClassId)
+		nominalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, catchAllCohortId, data.ConceptID)
+		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	} else {
-		log.Print("Get Ordinal Data")
-		//Get Value Summary from bar graph method
-		ordinalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, catchAllCohortId, data.ConceptID)
-
-		data.ValueSummary, _ = json.Marshal(ordinalValueData)
+		log.Print("Concept id %v not part of histogram or bar graph classes. Set Default Empty Object", data.ConceptClassId)
+		data.ValueSummary, _ = json.Marshal([]*NominalGroupData{})
 	}
 	result := DataDictionaryResult(*data)
 	//send result to channel

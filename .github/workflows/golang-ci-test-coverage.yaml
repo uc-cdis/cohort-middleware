@@ -32,6 +32,7 @@ jobs:
         uses: uc-cdis/.github/.github/actions/golang-ci@master
         with:
           COVERAGE_PROFILE_OUTPUT_LOCATION: ${{ env.COVERAGE_PROFILE_OUTPUT_LOCATION }}
+          GO_VERSION: 1.22
       - name: Send coverage to coveralls using goveralls
         env:
           COVERALLS_TOKEN: ${{ secrets.GITHUB_TOKEN }}

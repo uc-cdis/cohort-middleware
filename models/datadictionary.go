@@ -234,7 +234,7 @@ func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataL
 		log.Printf("ERROR: Failed to insert data into table")
 		panic("")
 	}
-	log.Printf("Write to DB succeeded.")
+	log.Printf("Write to DB succeeded!")
 	return true
 }
 

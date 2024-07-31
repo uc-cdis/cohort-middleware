@@ -204,7 +204,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 
 	if data.ValueStoredAs == "Number" {
 		//If histogram concept classes
-		log.Print("Generate histogram for Concept id %v.", data.ConceptClassId)
+		log.Printf("Generate histogram for Concept id %v.", data.ConceptClassId)
 		var filterConceptIds = []int64{}
 		var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 		var cohortData []*PersonConceptAndValue
@@ -224,11 +224,11 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		data.ValueSummary, _ = json.Marshal(histogramData)
 	} else if data.ValueStoredAs == "Concept Id" {
 		//If bar graph concept classes
-		log.Print("Generate bar graph for Concept id %v.", data.ConceptClassId)
+		log.Printf("Generate bar graph for Concept id %v.", data.ConceptClassId)
 		nominalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, catchAllCohortId, data.ConceptID)
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	} else {
-		log.Print("Concept id %v not part of histogram or bar graph classes. Set Default Empty Object", data.ConceptClassId)
+		log.Printf("Concept id %v not part of histogram or bar graph classes. Set Default Empty Object", data.ConceptClassId)
 		data.ValueSummary, _ = json.Marshal([]*NominalGroupData{})
 	}
 	result := DataDictionaryResult(*data)

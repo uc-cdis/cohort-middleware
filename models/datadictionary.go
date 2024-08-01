@@ -227,9 +227,6 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		log.Printf("Generate bar graph for Concept id %v.", data.ConceptClassId)
 		nominalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, catchAllCohortId, data.ConceptID)
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
-	} else {
-		log.Printf("Concept id %v not part of histogram or bar graph classes. Set Default Empty Object", data.ConceptClassId)
-		data.ValueSummary, _ = json.Marshal([]*NominalGroupData{})
 	}
 	result := DataDictionaryResult(*data)
 	//send result to channel

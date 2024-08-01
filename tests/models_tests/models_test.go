@@ -767,6 +767,31 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 
 }
 
+func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(t *testing.T) {
+	setUp(t)
+	filterConceptIds := []int64{}
+	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
+	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	// everyone in the largestCohort has the histogramConceptId, but one person has NULL in the value_as_number:
+	if len(data) != largestCohort.CohortSize-1 {
+		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize, len(data))
+	}
+
+	// now filter on the extendedCopyOfSecondLargestCohort
+	filterCohortPairs = []utils.CustomDichotomousVariableDef{
+		{
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test"},
+	}
+	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	if len(data) != 5 {
+		t.Errorf("expected 5 histogram data but got %d", len(data))
+	}
+
+}
+
 func TestQueryFilterByConceptIdsHelper(t *testing.T) {
 	// This test checks whether the query succeeds when the mainObservationTableAlias
 	// argument passed to QueryFilterByConceptIdsHelper (last argument)

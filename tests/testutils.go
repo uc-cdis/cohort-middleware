@@ -3,11 +3,11 @@ package tests
 import (
 	"bufio"
 	"fmt"
-	"io/ioutil"
 	"log"
 	"math/rand"
 	"net"
 	"net/http"
+	"os"
 	"path/filepath"
 	"reflect"
 	"time"
@@ -45,7 +45,7 @@ func ExecSQLScript(sqlFilePath string, sourceId int) {
 	if err != nil {
 		panic(err)
 	}
-	fileContents, err2 := ioutil.ReadFile(path)
+	fileContents, err2 := os.ReadFile(path)
 	if err2 != nil {
 		panic(err)
 	}
@@ -188,7 +188,7 @@ func GetRandomSubset(values []int64, subsetSize int) []int64 {
 	copyValues := make([]int64, len(values))
 	copy(copyValues, values)
 	seed := time.Now().UnixNano()
-	rand.Seed(seed)
+	rand.New(rand.NewSource(seed))
 	log.Printf("Getting a random subset of size %d from a set of values of size %d using seed %d",
 		subsetSize, len(values), seed)
 	rand.Shuffle(len(copyValues),

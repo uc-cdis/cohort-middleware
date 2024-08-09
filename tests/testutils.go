@@ -10,6 +10,7 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"time"
 
 	"github.com/uc-cdis/cohort-middleware/db"
 	"github.com/uc-cdis/cohort-middleware/models"
@@ -186,7 +187,10 @@ func GetInt64AttributeValue[T any](item T, attributeName string) int64 {
 func GetRandomSubset(values []int64, subsetSize int) []int64 {
 	copyValues := make([]int64, len(values))
 	copy(copyValues, values)
-	log.Printf("Getting a random subset of size %d from a set of values of size %d", subsetSize, len(values))
+	seed := time.Now().UnixNano()
+	rand.New(rand.NewSource(seed))
+	log.Printf("Getting a random subset of size %d from a set of values of size %d using seed %d",
+		subsetSize, len(values), seed)
 	rand.Shuffle(len(copyValues),
 		func(i, j int) {
 			copyValues[i], copyValues[j] = copyValues[j], copyValues[i]

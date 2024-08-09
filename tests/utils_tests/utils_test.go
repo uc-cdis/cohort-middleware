@@ -8,6 +8,7 @@ import (
 	"net/http"
 	"os"
 	"reflect"
+	"sort"
 	"strings"
 	"testing"
 
@@ -197,10 +198,12 @@ func TestIntersect(t *testing.T) {
 		2999999997,
 	}
 	result := utils.Intersect(list1, list2)
+	sort.Ints(result)
 	if !reflect.DeepEqual(expectedResult, result) {
 		t.Errorf("Expected %v but found %v", expectedResult, result)
 	}
 	result = utils.Intersect(list2, list1)
+	sort.Ints(result)
 	if !reflect.DeepEqual(expectedResult, result) {
 		t.Errorf("Expected %v but found %v", expectedResult, result)
 	}

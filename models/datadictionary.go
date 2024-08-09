@@ -81,7 +81,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 			var newDataDictionary DataDictionaryModel
 			var dataDictionaryEntries []*DataDictionaryResult
 			//Get total number of person ids
-			query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_data_dictionary as observation" + omopDataSource.GetViewDirective()).
+			query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation as observation" + omopDataSource.GetViewDirective()).
 				Select("count(distinct observation.person_id) as total, null as data")
 
 			query, cancel := utils.AddSpecificTimeoutToQuery(query, 600*time.Second)

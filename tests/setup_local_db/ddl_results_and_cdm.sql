@@ -101,12 +101,6 @@ FROM omop.observation ob
 INNER JOIN omop.concept concept ON concept.CONCEPT_ID=ob.OBSERVATION_CONCEPT_ID
 WHERE concept.CONCEPT_CLASS_ID='MVP Continuous' or concept.CONCEPT_ID=2000007027;
 
-CREATE VIEW OMOP.OBSERVATION_DATA_DICTIONARY AS
-SELECT ob.OBSERVATION_ID, ob.person_id, ob.observation_concept_id, ob.value_as_string, ob.value_as_number, ob.value_as_concept_id
-FROM OMOP.OBSERVATION ob
-INNER JOIN OMOP.CONCEPT a ON a.CONCEPT_ID = ob.OBSERVATION_CONCEPT_ID
-WHERE CONCEPT_CLASS_ID IN('MVP Answer', 'MVP Continuous', 'MVP DF', 'MVP Dichotomous', 'MVP Discrete', 'MVP Nominal', 'MVP Year', 'MVP_v20_1');
-
 -- ========================================================
 DROP SCHEMA IF EXISTS misc CASCADE;
 CREATE SCHEMA misc;

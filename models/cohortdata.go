@@ -125,7 +125,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 	var cohortData []*PersonConceptAndValue
 	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
 		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-		Joins("INNER JOIN "+omopDataSource.Schema+".observation as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
+		Joins("INNER JOIN "+omopDataSource.Schema+".observation as observation ON unionAndIntersect.subject_id = observation.person_id").
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
@@ -143,7 +143,7 @@ func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourc
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*NominalGroupData
 
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation as observation"+omopDataSource.GetViewDirective()).
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation as observation").
 		Select("c1.concept_name as name, count(distinct person_id) as person_count,observation.value_as_string as value_as_string, value_as_concept_id as value_as_concept_id").
 		Joins("INNER JOIN "+omopDataSource.Schema+".concept as c ON c.concept_id = observation.observation_concept_id").
 		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as c1 ON c1.concept_id = observation.value_as_concept_id").

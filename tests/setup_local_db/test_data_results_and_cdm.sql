@@ -172,3 +172,47 @@ values
     (4,17),
     (4,18)
 ;
+
+WITH cte_counts AS (SELECT observation_concept_id,
+                           COUNT(DISTINCT person_id) AS number_of_people_with_variable,
+                           COUNT(DISTINCT CASE WHEN value_as_number IS NOT NULL THEN person_id END) AS number_of_people_where_value_is_filled_number,
+                           COUNT(DISTINCT CASE WHEN value_as_concept_id IS NOT NULL AND value_as_concept_id > 0 THEN person_id END) AS number_of_people_where_value_is_filled_concept,
+                           COUNT(DISTINCT CASE WHEN value_as_number IS NULL THEN person_id END) AS number_of_people_where_value_is_null_number,
+                           COUNT(DISTINCT CASE WHEN value_as_concept_id IS NULL OR value_as_concept_id = 0 THEN person_id END) AS number_of_people_where_value_is_null_concept
+                    FROM omop.OBSERVATION_DATA_DICTIONARY
+                    GROUP BY observation_concept_id),
+cte_observation_class AS (select c.concept_id FROM OMOP.concept c, omop.observation ob
+Where c.concept_class_id in ('MVP Year', 'MVP_v20_1')
+And ob.OBSERVATION_CONCEPT_ID = c.CONCEPT_ID
+and ob.VALUE_AS_CONCEPT_ID in (4306768, 2000007053, 2000007054, 2000007055, 2000007056, 2000007059))
+SELECT c.vocabulary_id,
+       c.concept_id,
+       c.concept_code,
+       c.concept_name,
+       c.concept_class_id,
+       cc.number_of_people_with_variable,
+       CASE
+           WHEN c.concept_class_id IN ('MVP Continuous', 'MVP DF', 'MVP Discrete', 'MVP Year') THEN cc.number_of_people_where_value_is_filled_number
+           ELSE cc.number_of_people_where_value_is_filled_concept END AS number_of_people_where_value_is_filled,
+       CASE
+           WHEN  c.concept_class_id IN ('MVP Continuous', 'MVP DF', 'MVP Discrete', 'MVP Year') THEN cc.number_of_people_where_value_is_null_number
+           ELSE cc.number_of_people_where_value_is_null_concept END  AS number_of_people_where_value_is_null,
+       CASE WHEN c.concept_class_id IN ('MVP Continuous', 'MVP DF', 'MVP Discrete', 'MVP Year') OR c.CONCEPT_ID in (select concept_id from cte_observation_class coc) THEN 'Number' ELSE 'Concept Id' END AS value_stored_as,
+       MIN(oc.value_as_number) AS min_value,
+       MAX(oc.value_as_number) AS max_value,
+       AVG(oc.value_as_number) AS mean_value,
+-- For sql server deployment, use stdev(value_as_number) instead of stddev(value_as_number)
+       STDDEV(oc.value_as_number) AS standard_deviation,
+       NULL AS value_summary
+INTO misc.DATA_DICTIONARY
+FROM omop.CONCEPT c
+         JOIN omop.OBSERVATION_DATA_DICTIONARY oc ON oc.observation_concept_id = c.concept_id
+         JOIN cte_counts cc ON cc.observation_concept_id = c.concept_id
+         LEFT JOIN cte_observation_class coc on coc.concept_id = c.concept_id
+WHERE c.CONCEPT_CLASS_ID IN ('MVP Continuous', 'MVP DF', 'MVP Discrete', 'MVP Year', 'MVP Dichotomous', 'MVP Nominal', 'MVP Answer', 'MVP_v20_1')
+GROUP BY c.vocabulary_id, c.concept_id, c.concept_code, c.concept_name, c.concept_class_id,
+         cc.number_of_people_with_variable,
+         cc.number_of_people_where_value_is_filled_number,
+         cc.number_of_people_where_value_is_filled_concept,
+         cc.number_of_people_where_value_is_null_number,
+         cc.number_of_people_where_value_is_null_concept;

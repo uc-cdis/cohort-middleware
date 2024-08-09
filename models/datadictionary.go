@@ -138,7 +138,6 @@ func (u DataDictionary) GenerateDataDictionary() {
 		panic("More than one data source! Exiting")
 	}
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
 	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
 
 	if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
@@ -147,7 +146,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 	} else {
 		var dataDictionaryEntries []*DataDictionaryEntry
 		//see ddl_results_and_cdm.sql Data_Dictionary view
-		query := omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary")
+		query := miscDataSource.Db.Table(miscDataSource.Schema + ".data_dictionary")
 
 		query, cancel := utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 		defer cancel()

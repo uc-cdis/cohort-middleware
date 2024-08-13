@@ -202,6 +202,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 	var c = new(CohortData)
 
 	if data.ValueStoredAs == "Number" {
+		log.Printf("INFO: data standard deviation is %v", data.StandardDeviation)
 		//If histogram concept classes
 		log.Printf("Generate histogram for Concept id %v.", data.ConceptClassId)
 		var filterConceptIds = []int64{}
@@ -229,6 +230,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	}
 	result := DataDictionaryResult(*data)
+	log.Printf("Result standard deviation is %v", result.StandardDeviation)
 	//send result to channel
 	ch <- &result
 	wg.Done()

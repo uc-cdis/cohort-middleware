@@ -246,6 +246,7 @@ func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataL
 	})
 	if i > 0 {
 		log.Printf("INFO: WRITE TO DB FIRST NUMBER RESULT STANDARD DEVIATION IS %v", resultDataList[i].StandardDeviation)
+		log.Printf("INFO: concept id is %v", resultDataList[i].ConceptID)
 	}
 
 	result := dbSource.Db.Create(resultDataList)

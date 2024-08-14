@@ -202,7 +202,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 	var c = new(CohortData)
 
 	if data.ValueStoredAs == "Number" {
-		log.Printf("INFO: data standard deviation is %v", data.StandardDeviation)
+		log.Printf("INFO: DATA STANDARD DEVIATION IS %v", data.StandardDeviation)
 		//If histogram concept classes
 		log.Printf("Generate histogram for Concept id %v.", data.ConceptClassId)
 		var filterConceptIds = []int64{}
@@ -230,7 +230,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	}
 	result := DataDictionaryResult(*data)
-	log.Printf("Result standard deviation is %v", result.StandardDeviation)
+	log.Printf("INFO: RESULT STANDARD DEVIATION IS %v", result.StandardDeviation)
 	//send result to channel
 	ch <- &result
 	wg.Done()
@@ -238,6 +238,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 
 func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictionaryResult) bool {
 	result := dbSource.Db.Create(resultDataList)
+	log.Printf("INFO: WRITE TO DB FIRST RESULT STANDARD DEVIATION IS %v", resultDataList[0].StandardDeviation)
 	if result.Error != nil {
 		log.Printf("ERROR: Failed to insert data into table")
 		panic("")

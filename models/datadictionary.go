@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
+	"slices"
 	"sync"
 	"time"
 
@@ -202,7 +203,6 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 	var c = new(CohortData)
 
 	if data.ValueStoredAs == "Number" {
-		log.Printf("INFO: DATA STANDARD DEVIATION IS %v", data.StandardDeviation)
 		//If histogram concept classes
 		log.Printf("Generate histogram for Concept id %v.", data.ConceptClassId)
 		var filterConceptIds = []int64{}
@@ -223,6 +223,8 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		histogramData := utils.GenerateHistogramData(conceptValues)
 
 		data.ValueSummary, _ = json.Marshal(histogramData)
+		//TODO DELETE LOGGING
+		log.Printf("INFO: DATA STANDARD DEVIATION IS %v", data.StandardDeviation)
 	} else if data.ValueStoredAs == "Concept Id" {
 		//If bar graph concept classes
 		log.Printf("Generate bar graph for Concept id %v.", data.ConceptClassId)
@@ -230,6 +232,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	}
 	result := DataDictionaryResult(*data)
+	//TODO DELETE LOGGING
 	log.Printf("INFO: RESULT STANDARD DEVIATION IS %v", result.StandardDeviation)
 	//send result to channel
 	ch <- &result
@@ -237,8 +240,15 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 }
 
 func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictionaryResult) bool {
+	//TODO DELETE LOGGING
+	i := slices.IndexFunc(resultDataList, func(n *DataDictionaryResult) bool {
+		return n.ValueStoredAs == "Number"
+	})
+	if i > 0 {
+		log.Printf("INFO: WRITE TO DB FIRST NUMBER RESULT STANDARD DEVIATION IS %v", resultDataList[i].StandardDeviation)
+	}
+
 	result := dbSource.Db.Create(resultDataList)
-	log.Printf("INFO: WRITE TO DB FIRST RESULT STANDARD DEVIATION IS %v", resultDataList[0].StandardDeviation)
 	if result.Error != nil {
 		log.Printf("ERROR: Failed to insert data into table")
 		panic("")

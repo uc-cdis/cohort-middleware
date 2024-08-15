@@ -208,15 +208,12 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 
 		cohortData, _ = c.RetrieveHistogramDataBySourceIdAndConceptId(sourceId, data.ConceptID)
 
-		log.Printf("cohort data size is %v", len(cohortData))
 		conceptValues := []float64{}
 		for _, personData := range cohortData {
 			conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 		}
-		log.Printf("INFO: concept id is %v", data.ConceptID)
-		log.Printf("INFO: concept data size is %v", len(conceptValues))
+		log.Printf("INFO: concept id %v data size is %v", data.ConceptID, len(conceptValues))
 		histogramData := utils.GenerateHistogramData(conceptValues)
-		log.Printf("INFO: Size of histogram is %v", len(histogramData))
 		data.ValueSummary, _ = json.Marshal(histogramData)
 	} else if data.ValueStoredAs == "Concept Id" {
 		//If bar graph concept classes

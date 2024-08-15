@@ -117,10 +117,10 @@ CREATE TABLE misc.DATA_DICTIONARY_RESULT
     number_of_people_where_value_is_filled integer,
     number_of_people_where_value_is_null integer,
     value_stored_as character varying(20),
-    min_value numeric,
-    max_value numeric,
-    mean_value numeric,
-    standard_deviation numeric,
+    min_value float,
+    max_value float,
+    mean_value float,
+    standard_deviation float,
     value_summary JSON --For sql server use varbinary(max)
 );
 ALTER TABLE misc.DATA_DICTIONARY_RESULT  ADD CONSTRAINT xpk_DATA_DICTIONARY_RESULT PRIMARY KEY ( concept_id ) ;

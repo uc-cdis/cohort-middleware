@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"log"
-	"slices"
 	"sync"
 	"time"
 
@@ -213,7 +212,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		} else {
 			cohortData, _ = c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
 		}
-
+		log.Printf("cohort data size is %v", len(cohortData))
 		conceptValues := []float64{}
 		for _, personData := range cohortData {
 			conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
@@ -221,10 +220,8 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		log.Printf("INFO: concept id is %v", data.ConceptID)
 		log.Printf("INFO: concept data size is %v", len(conceptValues))
 		histogramData := utils.GenerateHistogramData(conceptValues)
-
+		log.Printf("INFO: Size of histogram is %v", len(histogramData))
 		data.ValueSummary, _ = json.Marshal(histogramData)
-		//TODO DELETE LOGGING
-		log.Printf("INFO: DATA STANDARD DEVIATION IS %v", data.StandardDeviation)
 	} else if data.ValueStoredAs == "Concept Id" {
 		//If bar graph concept classes
 		log.Printf("Generate bar graph for Concept id %v.", data.ConceptClassId)
@@ -232,22 +229,13 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	}
 	result := DataDictionaryResult(*data)
-	//TODO DELETE LOGGING
-	log.Printf("INFO: RESULT STANDARD DEVIATION IS %v", result.StandardDeviation)
+
 	//send result to channel
 	ch <- &result
 	wg.Done()
 }
 
 func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictionaryResult) bool {
-	//TODO DELETE LOGGING
-	i := slices.IndexFunc(resultDataList, func(n *DataDictionaryResult) bool {
-		return n.ValueStoredAs == "Number"
-	})
-	if i > 0 {
-		log.Printf("INFO: WRITE TO DB FIRST NUMBER RESULT STANDARD DEVIATION IS %v", resultDataList[i].StandardDeviation)
-		log.Printf("INFO: concept id is %v", resultDataList[i].ConceptID)
-	}
 
 	result := dbSource.Db.Create(resultDataList)
 	if result.Error != nil {

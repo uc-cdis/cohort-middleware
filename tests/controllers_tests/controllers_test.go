@@ -81,6 +81,12 @@ func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConce
 	return cohortData, nil
 }
 
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*models.PersonConceptAndValue, error) {
+
+	cohortData := []*models.PersonConceptAndValue{}
+	return cohortData, nil
+}
+
 func (h dummyCohortDataModel) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*models.NominalGroupData, error) {
 	cohortData := []*models.NominalGroupData{}
 	return cohortData, nil

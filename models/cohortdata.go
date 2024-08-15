@@ -13,6 +13,7 @@ type CohortDataI interface {
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
 	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, histogramConceptId int64) ([]*NominalGroupData, error)
+	RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error)
 }
 
 type CohortData struct{}
@@ -116,20 +117,17 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 	return cohortData, meta_result.Error
 }
 
-func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
+func (h CohortData) RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	var cohortData []*PersonConceptAndValue
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
-	var cohortData []*PersonConceptAndValue
-	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation as observation").
 		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-		Joins("INNER JOIN "+omopDataSource.Schema+".observation as observation ON unionAndIntersect.subject_id = observation.person_id").
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
-	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&cohortData)

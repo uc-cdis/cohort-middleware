@@ -204,14 +204,10 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 	if data.ValueStoredAs == "Number" {
 		//If histogram concept classes
 		log.Printf("Generate histogram for Concept id %v.", data.ConceptClassId)
-		var filterConceptIds = []int64{}
-		var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
 		var cohortData []*PersonConceptAndValue
-		if data.ConceptClassId == "MVP Continuous" {
-			cohortData, _ = c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
-		} else {
-			cohortData, _ = c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairsFromObservation(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
-		}
+
+		cohortData, _ = c.RetrieveHistogramDataBySourceIdAndConceptId(sourceId, data.ConceptID)
+
 		log.Printf("cohort data size is %v", len(cohortData))
 		conceptValues := []float64{}
 		for _, personData := range cohortData {

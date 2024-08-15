@@ -59,6 +59,8 @@ func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousV
 	}
 	unionAndIntersectSQL = unionAndIntersectSQL +
 		") "
+	//TODO REMOVE
+	log.Printf("union and intersect sql is:  %v %v as %v", unionAndIntersectSQL, cohortDefinitionId, unionAndIntersectSQLAlias)
 	query := resultsDataSource.Db.Table(unionAndIntersectSQL+" as "+unionAndIntersectSQLAlias+" ", idsList...)
 	return query
 }

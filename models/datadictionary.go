@@ -121,8 +121,6 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() {
 	conf := config.GetConfig()
-	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
-	log.Printf("catch all cohort id is %v", catchAllCohortId)
 	var maxWorkerSize int = conf.GetInt("worker_pool_size")
 	log.Printf("maxWorkerSize is %v", maxWorkerSize)
 	var batchSize int = conf.GetInt("batch_size")
@@ -176,7 +174,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 
 			for _, d := range partialDataList {
 				wg.Add(1)
-				go GenerateData(d, sources[0].SourceId, catchAllCohortId, &wg, entryCh)
+				go GenerateData(d, sources[0].SourceId, &wg, entryCh)
 				resultEntry := <-entryCh
 				partialResultList = append(partialResultList, resultEntry)
 			}
@@ -198,7 +196,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 	}
 }
 
-func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int, wg *sync.WaitGroup, ch chan *DataDictionaryResult) {
+func GenerateData(data *DataDictionaryEntry, sourceId int, wg *sync.WaitGroup, ch chan *DataDictionaryResult) {
 	var c = new(CohortData)
 
 	if data.ValueStoredAs == "Number" {
@@ -218,7 +216,7 @@ func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int,
 	} else if data.ValueStoredAs == "Concept Id" {
 		//If bar graph concept classes
 		log.Printf("Generate bar graph for Concept id %v.", data.ConceptClassId)
-		nominalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, catchAllCohortId, data.ConceptID)
+		nominalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, data.ConceptID)
 		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	}
 	result := DataDictionaryResult(*data)

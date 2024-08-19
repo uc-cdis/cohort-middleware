@@ -87,7 +87,7 @@ func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndConceptId(source
 	return cohortData, nil
 }
 
-func (h dummyCohortDataModel) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, histogramConceptId int64) ([]*models.NominalGroupData, error) {
+func (h dummyCohortDataModel) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, conceptId int64) ([]*models.NominalGroupData, error) {
 	cohortData := []*models.NominalGroupData{}
 	return cohortData, nil
 }

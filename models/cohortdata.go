@@ -12,7 +12,7 @@ type CohortDataI interface {
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
-	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, histogramConceptId int64) ([]*NominalGroupData, error)
+	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, conceptId int64) ([]*NominalGroupData, error)
 	RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error)
 }
 

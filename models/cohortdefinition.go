@@ -102,7 +102,10 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 
 	// Connect to source db and gather stats:
 	var dataSourceModel = new(Source)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	resultsDataSource, err := dataSourceModel.GetDataSource(sourceId, Results)
+	if err != nil {
+		return nil, err
+	}
 	var cohortDefinitionStats []*CohortDefinitionStats
 	query := resultsDataSource.Db.Model(&Cohort{}).
 		Select("cohort_definition_id as id, '' as name, count(*) as cohort_size").

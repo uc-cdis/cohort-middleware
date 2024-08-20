@@ -56,7 +56,10 @@ type OrdinalGroupData struct {
 // TODO - name this function as such
 func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error) {
 	var dataSourceModel = new(Source)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	resultsDataSource, err := dataSourceModel.GetDataSource(sourceId, Results)
+	if err != nil {
+		return nil, err
+	}
 	var personData []*PersonIdAndCohort
 
 	query := resultsDataSource.Db.Model(&Cohort{}).
@@ -76,9 +79,15 @@ func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, origi
 func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error) {
 	log.Printf(">> Using inner join impl. for large cohorts")
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	omopDataSource, err := dataSourceModel.GetDataSource(sourceId, Omop)
+	if err != nil {
+		return nil, err
+	}
 
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	resultsDataSource, err := dataSourceModel.GetDataSource(sourceId, Results)
+	if err != nil {
+		return nil, err
+	}
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
@@ -98,8 +107,14 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 
 func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	omopDataSource, err := dataSourceModel.GetDataSource(sourceId, Omop)
+	if err != nil {
+		return nil, err
+	}
+	resultsDataSource, err := dataSourceModel.GetDataSource(sourceId, Results)
+	if err != nil {
+		return nil, err
+	}
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
@@ -118,7 +133,10 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCo
 
 func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, cohortDefinitionId int, conceptId int64) ([]*OrdinalGroupData, error) {
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	omopDataSource, err := dataSourceModel.GetDataSource(sourceId, Omop)
+	if err != nil {
+		return nil, err
+	}
 
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*OrdinalGroupData
@@ -142,8 +160,14 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 	filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
 
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	omopDataSource, err := dataSourceModel.GetDataSource(sourceId, Omop)
+	if err != nil {
+		return CohortOverlapStats{}, err
+	}
+	resultsDataSource, err := dataSourceModel.GetDataSource(sourceId, Results)
+	if err != nil {
+		return CohortOverlapStats{}, err
+	}
 
 	var cohortOverlapStats CohortOverlapStats
 	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, caseCohortId, "case_cohort_unionedAndIntersectedWithFilters").
@@ -179,7 +203,10 @@ func (h CohortData) ValidateObservationData(observationConceptIdsToCheck []int64
 	countIssues := 0
 	for _, source := range sources {
 		var dataSourceModel = new(Source)
-		omopDataSource := dataSourceModel.GetDataSource(source.SourceId, Omop)
+		omopDataSource, err := dataSourceModel.GetDataSource(source.SourceId, Omop)
+		if err != nil {
+			return -1, err
+		}
 
 		log.Printf("INFO: checking if no duplicate data is found for concept ids %v in `observation` table of data source %d...",
 			observationConceptIdsToCheck, source.SourceId)

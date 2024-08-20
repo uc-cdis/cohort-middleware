@@ -74,14 +74,17 @@ const (
 
 // Get the data source details for given source id and source type.
 // The source type can be one of the type SourceType.
-func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndSchema {
+func (h Source) GetDataSource(sourceId int, sourceType SourceType) (*utils.DbAndSchema, error) {
 	dataSource, _ := h.GetSourceByIdWithConnection(sourceId)
 
 	sourceConnectionString := dataSource.SourceConnection
 	dbSchema, _ := h.GetSourceSchemaNameBySourceIdAndSourceType(sourceId, sourceType)
 	dbSchemaName := dbSchema.SchemaName
-	dbAndSchema := utils.GetDataSourceDB(sourceConnectionString, dbSchemaName)
-	return dbAndSchema
+	dbAndSchema, err := utils.GetDataSourceDB(sourceConnectionString, dbSchemaName)
+	if err != nil {
+		return nil, err
+	}
+	return dbAndSchema, nil
 }
 
 func (h Source) GetSourceByName(name string) (*Source, error) {

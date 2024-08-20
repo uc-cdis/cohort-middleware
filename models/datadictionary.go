@@ -74,8 +74,14 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 			panic("More than one data source! Exiting")
 		}
 		var dataSourceModel = new(Source)
-		omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
-		miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
+		omopDataSource, err := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
+		if err != nil {
+			log.Panicf("Error: Failed to get data source: %v", err)
+		}
+		miscDataSource, err := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
+		if err != nil {
+			log.Panicf("Error: Failed to get data source: %v", err)
+		}
 
 		if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
 			var newDataDictionary DataDictionaryModel
@@ -138,8 +144,14 @@ func (u DataDictionary) GenerateDataDictionary() {
 		panic("More than one data source! Exiting")
 	}
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
-	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
+	omopDataSource, err := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
+	if err != nil {
+		log.Panicf("Error: Failed to get data source: %v", err)
+	}
+	miscDataSource, err := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
+	if err != nil {
+		log.Panicf("Error: Failed to get data source: %v", err)
+	}
 
 	if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
 		log.Print("Data Dictionary Result already filled. Skipping generation.")

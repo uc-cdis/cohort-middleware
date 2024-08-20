@@ -20,11 +20,11 @@ type DbAndSchema struct {
 
 var dataSourceDbMap = make(map[string]*DbAndSchema)
 
-func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchema {
+func GetDataSourceDB(sourceConnectionString string, dbSchema string) (*DbAndSchema, error) {
 	sourceAndSchemaKey := "source:" + sourceConnectionString + ",schema:" + dbSchema
 	if dataSourceDbMap[sourceAndSchemaKey] != nil {
 		// return the already initialized object:
-		return dataSourceDbMap[sourceAndSchemaKey]
+		return dataSourceDbMap[sourceAndSchemaKey], nil
 	}
 	// otherwise, open a new connection:
 	dsn := GenerateDsn(sourceConnectionString)
@@ -43,19 +43,21 @@ func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchem
 		dataSourceDb.Vendor = "postgresql"
 	} else {
 		log.Printf("connecting to cohorts 'sqlserver' db...")
-		dataSource, _ := gorm.Open(sqlserver.Open(dsn),
+		dataSource, err := gorm.Open(sqlserver.Open(dsn),
 			&gorm.Config{
 				NamingStrategy: schema.NamingStrategy{
 					TablePrefix:   dbSchema + ".",
 					SingularTable: true,
 				}})
-		// TODO - should throw error if db connection fails! Currently fails "silently" by printing error to log and then just returning ...
+		if err != nil {
+			return nil, err
+		}
 		dataSourceDb.Db = dataSource
 		dataSourceDb.Vendor = "sqlserver"
 	}
 	dataSourceDb.Schema = dbSchema
 	dataSourceDbMap[sourceAndSchemaKey] = dataSourceDb
-	return dataSourceDb
+	return dataSourceDb, nil
 }
 
 // Adds a default timeout to a query

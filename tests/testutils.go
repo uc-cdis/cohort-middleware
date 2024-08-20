@@ -65,7 +65,7 @@ func ExecSQLString(sqlString string, sourceId int) (tx *gorm.DB) {
 
 	} else {
 		// look up the data source in source table:
-		omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
+		omopDataSource, _ := dataSourceModel.GetDataSource(sourceId, models.Omop)
 		return omopDataSource.Db.Model(models.Source{}).Exec(sqlString)
 	}
 }
@@ -131,7 +131,7 @@ func GetOmopDataSource() *utils.DbAndSchema {
 
 func GetOmopDataSourceForSourceId(sourceId int) *utils.DbAndSchema {
 	var dataSourceModel = new(models.Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, models.Omop)
+	omopDataSource, _ := dataSourceModel.GetDataSource(sourceId, models.Omop)
 	return omopDataSource
 }
 
@@ -141,7 +141,7 @@ func GetResultsDataSource() *utils.DbAndSchema {
 
 func GetResultsDataSourceForSourceId(sourceId int) *utils.DbAndSchema {
 	var dataSourceModel = new(models.Source)
-	dataSource := dataSourceModel.GetDataSource(sourceId, models.Results)
+	dataSource, _ := dataSourceModel.GetDataSource(sourceId, models.Results)
 	return dataSource
 }
 

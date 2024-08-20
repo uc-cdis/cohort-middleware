@@ -81,7 +81,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 			var newDataDictionary DataDictionaryModel
 			var dataDictionaryEntries []*DataDictionaryResult
 			//Get total number of person ids
-			query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
+			query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation as observation").
 				Select("count(distinct observation.person_id) as total, null as data")
 
 			query, cancel := utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
@@ -121,8 +121,6 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() {
 	conf := config.GetConfig()
-	var catchAllCohortId = conf.GetInt("catch_all_cohort_id")
-	log.Printf("catch all cohort id is %v", catchAllCohortId)
 	var maxWorkerSize int = conf.GetInt("worker_pool_size")
 	log.Printf("maxWorkerSize is %v", maxWorkerSize)
 	var batchSize int = conf.GetInt("batch_size")
@@ -138,7 +136,6 @@ func (u DataDictionary) GenerateDataDictionary() {
 		panic("More than one data source! Exiting")
 	}
 	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
 	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
 
 	if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
@@ -147,7 +144,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 	} else {
 		var dataDictionaryEntries []*DataDictionaryEntry
 		//see ddl_results_and_cdm.sql Data_Dictionary view
-		query := omopDataSource.Db.Table(omopDataSource.Schema + ".data_dictionary")
+		query := miscDataSource.Db.Table(miscDataSource.Schema + ".data_dictionary")
 
 		query, cancel := utils.AddSpecificTimeoutToQuery(query, 600*time.Second)
 		defer cancel()
@@ -177,7 +174,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 
 			for _, d := range partialDataList {
 				wg.Add(1)
-				go GenerateData(d, sources[0].SourceId, catchAllCohortId, &wg, entryCh)
+				go GenerateData(d, sources[0].SourceId, &wg, entryCh)
 				resultEntry := <-entryCh
 				partialResultList = append(partialResultList, resultEntry)
 			}
@@ -199,36 +196,38 @@ func (u DataDictionary) GenerateDataDictionary() {
 	}
 }
 
-func GenerateData(data *DataDictionaryEntry, sourceId int, catchAllCohortId int, wg *sync.WaitGroup, ch chan *DataDictionaryResult) {
+func GenerateData(data *DataDictionaryEntry, sourceId int, wg *sync.WaitGroup, ch chan *DataDictionaryResult) {
 	var c = new(CohortData)
 
-	if data.ConceptClassId == "MVP Continuous" {
-		// MVP Continuous #similar to bin items below call cohort-middleware
-		var filterConceptIds = []int64{}
-		var filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-		cohortData, _ := c.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, catchAllCohortId, data.ConceptID, filterConceptIds, filterCohortPairs)
+	if data.ValueStoredAs == "Number" {
+		//If histogram concept classes
+		log.Printf("Generate histogram for Concept id %v.", data.ConceptClassId)
+		var cohortData []*PersonConceptAndValue
+
+		cohortData, _ = c.RetrieveHistogramDataBySourceIdAndConceptId(sourceId, data.ConceptID)
+
 		conceptValues := []float64{}
 		for _, personData := range cohortData {
 			conceptValues = append(conceptValues, float64(*personData.ConceptValueAsNumber))
 		}
-		log.Printf("INFO: concept id is %v", data.ConceptID)
+		log.Printf("INFO: concept id %v data size is %v", data.ConceptID, len(conceptValues))
 		histogramData := utils.GenerateHistogramData(conceptValues)
-
 		data.ValueSummary, _ = json.Marshal(histogramData)
-	} else {
-		log.Print("Get Ordinal Data")
-		//Get Value Summary from bar graph method
-		ordinalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, catchAllCohortId, data.ConceptID)
-
-		data.ValueSummary, _ = json.Marshal(ordinalValueData)
+	} else if data.ValueStoredAs == "Concept Id" {
+		//If bar graph concept classes
+		log.Printf("Generate bar graph for Concept id %v.", data.ConceptClassId)
+		nominalValueData, _ := c.RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId, data.ConceptID)
+		data.ValueSummary, _ = json.Marshal(nominalValueData)
 	}
 	result := DataDictionaryResult(*data)
+
 	//send result to channel
 	ch <- &result
 	wg.Done()
 }
 
 func (u DataDictionary) WriteResultToDB(dbSource *utils.DbAndSchema, resultDataList []*DataDictionaryResult) bool {
+
 	result := dbSource.Db.Create(resultDataList)
 	if result.Error != nil {
 		log.Printf("ERROR: Failed to insert data into table")

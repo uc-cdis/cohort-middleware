@@ -101,44 +101,6 @@ FROM omop.observation ob
 INNER JOIN omop.concept concept ON concept.CONCEPT_ID=ob.OBSERVATION_CONCEPT_ID
 WHERE concept.CONCEPT_CLASS_ID='MVP Continuous' or concept.CONCEPT_ID=2000007027;
 
-CREATE VIEW omop.DATA_DICTIONARY AS
-WITH cte_counts AS (SELECT observation_concept_id,
-                           COUNT(DISTINCT person_id) AS number_of_people_with_variable,
-                           COUNT(DISTINCT CASE WHEN value_as_number IS NOT NULL THEN person_id END) AS number_of_people_where_value_is_filled_number,
-                           COUNT(DISTINCT CASE WHEN value_as_concept_id IS NOT NULL AND value_as_concept_id > 0 THEN person_id END) AS number_of_people_where_value_is_filled_concept,
-                           COUNT(DISTINCT CASE WHEN value_as_number IS NULL THEN person_id END) AS number_of_people_where_value_is_null_number,
-                           COUNT(DISTINCT CASE WHEN value_as_concept_id IS NULL OR value_as_concept_id = 0 THEN person_id END) AS number_of_people_where_value_is_null_concept
-                    FROM omop.OBSERVATION_CONTINUOUS
-                    GROUP BY observation_concept_id)
-SELECT c.vocabulary_id,
-       c.concept_id,
-       c.concept_code,
-       c.concept_name,
-       c.concept_class_id,
-       cc.number_of_people_with_variable,
-       CASE
-           WHEN c.concept_class_id = 'MVP Continuous' THEN cc.number_of_people_where_value_is_filled_number
-           ELSE cc.number_of_people_where_value_is_filled_concept END AS number_of_people_where_value_is_filled,
-       CASE
-           WHEN c.concept_class_id = 'MVP Continuous' THEN cc.number_of_people_where_value_is_null_number
-           ELSE cc.number_of_people_where_value_is_null_concept END  AS number_of_people_where_value_is_null,
-       CASE WHEN c.concept_class_id = 'MVP Continuous' THEN 'Number' ELSE 'Concept Id' END AS value_stored_as,
-       MIN(oc.value_as_number) AS min_value,
-       MAX(oc.value_as_number) AS max_value,
-       AVG(oc.value_as_number) AS mean_value,
--- For sql server deployment, use stdev(value_as_number) instead of stddev(value_as_number)
-       STDDEV(oc.value_as_number) AS standard_deviation,
-       NULL AS value_summary
-FROM omop.CONCEPT c
-         JOIN omop.OBSERVATION_CONTINUOUS oc ON oc.observation_concept_id = c.concept_id
-         JOIN cte_counts cc ON cc.observation_concept_id = c.concept_id
-GROUP BY c.vocabulary_id, c.concept_id, c.concept_code, c.concept_name, c.concept_class_id,
-         cc.number_of_people_with_variable,
-         cc.number_of_people_where_value_is_filled_number,
-         cc.number_of_people_where_value_is_filled_concept,
-         cc.number_of_people_where_value_is_null_number,
-         cc.number_of_people_where_value_is_null_concept;
-
 -- ========================================================
 DROP SCHEMA IF EXISTS misc CASCADE;
 CREATE SCHEMA misc;
@@ -155,10 +117,10 @@ CREATE TABLE misc.DATA_DICTIONARY_RESULT
     number_of_people_where_value_is_filled integer,
     number_of_people_where_value_is_null integer,
     value_stored_as character varying(20),
-    min_value numeric,
-    max_value numeric,
-    mean_value numeric,
-    standard_deviation numeric,
+    min_value float,
+    max_value float,
+    mean_value float,
+    standard_deviation float,
     value_summary JSON --For sql server use varbinary(max)
 );
 ALTER TABLE misc.DATA_DICTIONARY_RESULT  ADD CONSTRAINT xpk_DATA_DICTIONARY_RESULT PRIMARY KEY ( concept_id ) ;

@@ -767,6 +767,15 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 
 }
 
+func TestRetrieveHistogramDataBySourceIdAndConceptId(t *testing.T) {
+	setUp(t)
+	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndConceptId(testSourceId, histogramConceptId)
+	// everyone in the largestCohort has the histogramConceptId, but one person has NULL in the value_as_number:
+	if len(data) != 16 {
+		t.Errorf("expected %d histogram data but got %d", 16, len(data))
+	}
+}
+
 func TestQueryFilterByConceptIdsHelper(t *testing.T) {
 	// This test checks whether the query succeeds when the mainObservationTableAlias
 	// argument passed to QueryFilterByConceptIdsHelper (last argument)

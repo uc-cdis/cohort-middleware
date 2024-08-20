@@ -13,6 +13,5 @@ validate:
   single_observation_for_concept_ids:
     # HARE concept id:
     - '2000007027'
-catch_all_cohort_id: 4
 worker_pool_size: 2
 batch_size: 4

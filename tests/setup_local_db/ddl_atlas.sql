@@ -38,6 +38,16 @@ CREATE TABLE atlas.cohort_definition
     CONSTRAINT PK_cohort_definition PRIMARY KEY (id)
 );
 
+CREATE TABLE atlas.cohort_definition_details
+(
+    id integer NOT NULL ,
+    expression text NOT NULL,
+    hash_code integer,
+    CONSTRAINT PK_cohort_definition_details PRIMARY KEY (id),
+    CONSTRAINT fk_cohort_definition_details_to_cohort_definition FOREIGN KEY (id)
+        REFERENCES atlas.cohort_definition (id)
+);
+
 CREATE TABLE atlas.sec_role
 (
     id integer NOT NULL,

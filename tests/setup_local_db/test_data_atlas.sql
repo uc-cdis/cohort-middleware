@@ -27,6 +27,14 @@ values
     (4,'Test cohort4','Extra Larger cohort')
 ;
 
+insert into atlas.cohort_definition_details
+(id,expression,hash_code)
+values
+    (1,'{"expression" : "1" }',987654321),
+    (2,'{"expression" : "2" }',1234567890),
+    (3,'{"expression" : "3" }', NULL)
+;
+
 insert into atlas.sec_role
     (id, name, system_role)
 values

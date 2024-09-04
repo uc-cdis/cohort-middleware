@@ -722,6 +722,13 @@ func TestGetAllCohortDefinitionsAndStatsOrderBySizeDescWhenCohortDefinitionIsMis
 		firstCohort.Id,
 		firstCohort.Name,
 		firstCohort.Name))
+
+	tests.ExecAtlasSQLString(fmt.Sprintf("insert into %s.cohort_definition_details (id,expression,hash_code) "+
+		"values (%d, '{\"expression\" : \"%d\" }', %d)",
+		db.GetAtlasDB().Schema,
+		firstCohort.Id,
+		firstCohort.Id,
+		555444))
 }
 
 func TestGetCohortName(t *testing.T) {
@@ -1021,6 +1028,9 @@ func TestGetCohortDefinitionById(t *testing.T) {
 	foundCohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionById(allCohortDefinitions[0].Id)
 	if allCohortDefinitions[0].Id != foundCohortDefinition.Id {
 		t.Errorf("Expected data not found")
+	}
+	if foundCohortDefinition.Expression != "{\"expression\" : \"1\" }" {
+		t.Errorf("Expected expression data not found")
 	}
 }
 

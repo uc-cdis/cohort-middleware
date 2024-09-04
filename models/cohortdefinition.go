@@ -42,7 +42,7 @@ func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, er
 	query := db2.Model(&CohortDefinition{}).
 		Select("cohort_definition.id, cohort_definition.name, cohort_definition.description, cohort_definition_details.expression").
 		Where("cohort_definition.id = ?", id).
-		Joins("LEFT JOIN " + atlasDb.Schema + ".cohort_definition_details ON cohort_definition.id = cohort_definition_details.id")
+		Joins("INNER JOIN " + atlasDb.Schema + ".cohort_definition_details ON cohort_definition.id = cohort_definition_details.id")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

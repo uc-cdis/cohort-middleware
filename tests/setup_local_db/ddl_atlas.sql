@@ -45,7 +45,9 @@ CREATE TABLE atlas.cohort_definition_details
     hash_code integer,
     CONSTRAINT PK_cohort_definition_details PRIMARY KEY (id),
     CONSTRAINT fk_cohort_definition_details_to_cohort_definition FOREIGN KEY (id)
-        REFERENCES atlas.cohort_definition (id)
+        REFERENCES atlas.cohort_definition (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
 );
 
 CREATE TABLE atlas.sec_role

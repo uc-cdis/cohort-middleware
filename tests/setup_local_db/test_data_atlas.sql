@@ -32,7 +32,9 @@ insert into atlas.cohort_definition_details
 values
     (1,'{"expression" : "1" }',987654321),
     (2,'{"expression" : "2" }',1234567890),
-    (3,'{"expression" : "3" }', NULL)
+    (3,'{"expression" : "3" }', 33333445),
+    (4,'{"expression" : "4" }', 555444),
+    (32,'{"expression" : "32" }', 323232)
 ;
 
 insert into atlas.sec_role

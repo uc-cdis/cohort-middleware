@@ -26,6 +26,7 @@ type CohortDefinition struct {
 	ExpressionType string `json:",omitempty"`
 	CreatedById    int    `json:",omitempty"`
 	ModifiedById   int    `json:",omitempty"`
+	Expression     string `json:",omitempty"`
 }
 
 type CohortDefinitionStats struct {
@@ -35,11 +36,14 @@ type CohortDefinitionStats struct {
 }
 
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {
+	atlasDb := db.GetAtlasDB()
 	db2 := db.GetAtlasDB().Db
 	var cohortDefinition *CohortDefinition
 	query := db2.Model(&CohortDefinition{}).
-		Select("id, name, description").
-		Where("id = ?", id)
+		Select("cohort_definition.id, cohort_definition.name, cohort_definition.description, cohort_definition_details.expression").
+		Where("cohort_definition.id = ?", id).
+		Joins("INNER JOIN " + atlasDb.Schema + ".cohort_definition_details ON cohort_definition.id = cohort_definition_details.id")
+
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&cohortDefinition)

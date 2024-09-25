@@ -1,7 +1,7 @@
 ARG AZLINUX_BASE_VERSION=master
 
 #FROM 707767160287.dkr.ecr.us-east-1.amazonaws.com/gen3/golang-build-base:${AZLINUX_BASE_VERSION} as base
-FROM --platform=$BUILDPLATFORM quay.io/cdis/golang-build-base:${AZLINUX_BASE_VERSION} as base
+FROM --platform=$BUILDPLATFORM quay.io/cdis/golang-build-base:${AZLINUX_BASE_VERSION} AS base
 
 ARG TARGETOS
 ARG TARGETARCH
@@ -12,7 +12,7 @@ ENV CGO_ENABLED=0
 ENV GOOS=${TARGETOS}
 ENV GOARCH=${TARGETARCH}
 
-FROM base as builder
+FROM base AS builder
 WORKDIR $GOPATH/src/github.com/uc-cdis/cohort-middleware/
 
 COPY go.mod go.sum ./

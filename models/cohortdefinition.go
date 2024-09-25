@@ -129,8 +129,8 @@ func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceI
 
 func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {
 	cohortDefinition, err := h.GetCohortDefinitionById(cohortId)
-	if err != nil {
-		return "", fmt.Errorf("could not retrieve cohort name due to error: %s", err.Error())
+	if err != nil || cohortDefinition == nil {
+		return "", fmt.Errorf("could not retrieve cohort name for cohortId=%d", cohortId)
 	}
 
 	return cohortDefinition.Name, nil

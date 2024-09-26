@@ -48,8 +48,8 @@ func (h Version) GetSchemaVersion() *DbSchemaVersion {
 	var atlasSchemaVersion *SchemaVersion
 	query := atlasDb.Model(&SchemaVersion{}).
 		Limit(1).
-		Select("Version").
-		Order("Version Desc")
+		Select("version").
+		Order("installed_rank desc")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

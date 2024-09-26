@@ -62,6 +62,8 @@ func NewRouter() *gin.Engine {
 		// Data Dictionary endpoint
 		authorized.GET("/data-dictionary/Generate", cohortData.GenerateDataDictionary)
 
+		// Get Schema Version
+		authorized.GET("/_schema_version", version.RetrieveSchemaVersion)
 	}
 
 	return r

@@ -86,6 +86,22 @@ CREATE TABLE atlas.sec_role_permission
         ON DELETE NO ACTION
 );
 
+CREATE TABLE atlas.schema_version
+(
+    installed_rank integer NOT NULL,
+    version varchar(50),
+    description varchar(200) NOT NULL,
+    type varchar(20) NOT NULL,
+    script varchar(1000) NOT NULL,
+    checksum int,
+    installed_by varchar(100) NOT NULL,
+    installed_on timestamp(3) NOT NULL,
+    execution_time int NOT NULL,
+    success boolean NOT NULL,
+    CONSTRAINT pk_schema_version PRIMARY KEY (installed_rank)
+);
+
+
 CREATE VIEW atlas.COHORT_DEFINITION_SEC_ROLE AS
   select
     distinct cast(regexp_replace(sec_permission.value,

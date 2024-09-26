@@ -110,3 +110,10 @@ values
     (5466, 5000, 1193),
     (5467, 5000, 1194) -- 5000 dummyGlobalReaderRole has READ ONLY access to cohort 4
 ;
+
+INSERT INTO atlas.schema_version
+    (installed_rank, version, description, type, script, checksum, installed_by, installed_on, execution_time, success)
+VALUES
+    (1,'1.0.0', 'Initial version', 'SCHEMA', 'ohdsi', null, 'qa_testuser', '2022-11-07 23:28:04', 0, true),
+    (2, '1.0.1', 'Update', 'SQL', 'V1.0.1 Script', 175123456, 'qa_test_user', '2022-11-07 23:28:04', 118, true)
+;

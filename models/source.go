@@ -48,6 +48,10 @@ func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType So
 		return &SourceSchema{SchemaName: "MISC"}, nil
 	}
 
+	if sourceType == Dbo {
+		return &SourceSchema{SchemaName: "DBO"}, nil
+	}
+
 	// otherwise, get the schema name from source_daimon table
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db
@@ -70,6 +74,7 @@ const (
 	Results SourceType = 2
 	Temp    SourceType = 5
 	Misc    SourceType = 6
+	Dbo     SourceType = 7
 )
 
 // Get the data source details for given source id and source type.

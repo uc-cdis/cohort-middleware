@@ -1007,6 +1007,13 @@ func TestGetVersion(t *testing.T) {
 	}
 }
 
+func TestGetSchemaVersion(t *testing.T) {
+	v := versionModel.GetSchemaVersion()
+	if v.AtlasSchemaVersion != "1.0.1" || v.DataSchemaVersion != 1 {
+		t.Errorf("Wrong value")
+	}
+}
+
 func TestGetSourceByName(t *testing.T) {
 	allSources, _ := sourceModel.GetAllSources()
 	foundSource, _ := sourceModel.GetSourceByName(allSources[0].SourceName)

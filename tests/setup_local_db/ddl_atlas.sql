@@ -50,6 +50,24 @@ CREATE TABLE atlas.cohort_definition_details
         ON DELETE CASCADE
 );
 
+-- simplified version (not all FK constraints are present):
+CREATE TABLE atlas.cohort_generation_info (
+    id                 integer                        NOT NULL,
+    source_id          integer                        NOT NULL,
+    start_time         timestamp(3) without time zone,
+    execution_duration integer,
+    status             integer                        NOT NULL,
+    is_valid           boolean                        NOT NULL,
+    fail_message       character varying(2000),
+    person_count       bigint,
+    record_count       bigint,
+    is_canceled        boolean                        NOT NULL DEFAULT false,
+    created_by_id      integer,
+    PRIMARY KEY (id, source_id),
+    CONSTRAINT fk_cohort_generation_info_cohort_definition FOREIGN KEY (id)
+        REFERENCES atlas.cohort_definition(id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
 CREATE TABLE atlas.sec_role
 (
     id integer NOT NULL,

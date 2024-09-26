@@ -24,7 +24,9 @@ values
     (2,'Test cohort2','Medium cohort'),
     (3,'Test cohort3','Larger cohort'),
     (32,'Test cohort3b','Copy of Larger cohort'),
-    (4,'Test cohort4','Extra Larger cohort')
+    (4,'Test cohort4','Extra Larger cohort'),
+    (5,'Test cohort5','Cohort NOT used'),
+    (6,'Test cohort6','Cohort NOT used')
 ;
 
 insert into atlas.cohort_definition_details
@@ -67,7 +69,9 @@ values
     (1194, 'cohortdefinition:4:version:get', 'Get list of cohort versions'),
     (2193, 'cohortdefinition:1:get', 'Get Cohort Definition by ID'),
     (3193, 'cohortdefinition:3:get', 'Get Cohort Definition by ID'),
-    (4193, 'cohortdefinition:32:get', 'Get Cohort Definition by ID')
+    (4193, 'cohortdefinition:32:get', 'Get Cohort Definition by ID'),
+    (5193, 'cohortdefinition:5:get', 'Get Cohort Definition by ID'),
+    (6193, 'cohortdefinition:6:get', 'Get Cohort Definition by ID')
 ;
 
 insert into atlas.sec_role_permission
@@ -104,7 +108,9 @@ values
     (4467, 4000, 1194),
     (4468, 4000, 2193),
     (4469, 4000, 3193),
-    (4470, 4000, 4193), -- 4000 a "default" teamproject that has access to all cohorts - not really used in practice...but a possible kind of scenario.
+    (4470, 4000, 4193),
+    (4471, 4000, 5193),
+    (4472, 4000, 6193), -- 4000 a "default" teamproject that has access to all cohorts - not really used in practice...but a possible kind of scenario.
     (5464, 5000, 1191),
     (5465, 5000, 1192),
     (5466, 5000, 1193),
@@ -116,4 +122,18 @@ INSERT INTO atlas.schema_version
 VALUES
     (1,'1.0.0', 'Initial version', 'SCHEMA', 'ohdsi', null, 'qa_testuser', '2022-11-07 23:28:04', 0, true),
     (2, '1.0.1', 'Update', 'SQL', 'V1.0.1 Script', 175123456, 'qa_test_user', '2022-11-07 23:28:04', 118, true)
+;
+
+insert into atlas.cohort_generation_info
+    (id, person_count, source_id, start_time, status, is_valid, is_canceled)
+values
+    (1,   1, 1, '2023-09-02 14:30:00', 2, true, false ),
+    (1, 100, 2, '2024-09-02 14:30:00', 2, false, false ),
+    (1, 120, 3, '2024-09-02 14:30:00', 2, true, true ),
+    (2,   2, 1, '2024-09-02 14:30:00', 2, true, false ),
+    (3,   6, 1, '2024-09-02 14:30:00', 2, true, false ),
+    (32, 10, 1, '2024-09-02 14:30:00', 2, true, false ),
+    (4,  14, 1, '2024-09-02 14:30:00', 2, true, false ),
+    (5,  1400, 1, '2024-09-02 14:30:00', 2, true, true ), -- cohort 5 has a cancelled generation_info record, so should not be used in most queries...
+    (6,  1600, 1, '2024-09-02 14:30:00', 2, false, false ) -- cohort 6 has an invalid generation_info record, so should not be used in most queries...
 ;

@@ -40,6 +40,7 @@ cohorts:
       # makes 2 copies of this concept:
       clone_count: 2
     - concept: HARE-group
+      value_type: concept
       # we want this concept to have/use a specific id...
       id: 2000007027
       # ...and populate with one of these ids (picks a random one):

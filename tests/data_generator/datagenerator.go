@@ -58,6 +58,15 @@ func RunDataGeneration(testDataConfigFilePrefix string) {
 	if error1 != nil || error2 != nil {
 		log.Fatalf("Error while parsing configuration files: %v, %v", error1, error2)
 	}
+	ResetCohortCache()
+}
+
+func ResetCohortCache() {
+	tests.ExecSQLStringOrFail(
+		fmt.Sprintf(
+			"DELETE from %s.cohort_cache ",
+			tests.GetResultsDataSourceForSourceId(sourceId).Schema),
+		sourceId)
 }
 
 func GetTestDataConfig(configFilePrefix string) *viper.Viper {
@@ -92,15 +101,16 @@ func AddCohort(cohort Cohort) {
 	cohortId := tests.GetNextCohortId()
 	cohortName := fmt.Sprintf("%s (%d)", cohort.Cohort, cohortId)
 	log.Printf("Adding cohort_definition '%s'...", cohortName)
-	tests.ExecSQLStringOrFail(
-		fmt.Sprintf(
-			"INSERT into %s.cohort_definition "+
-				"(id,name,description) "+
-				"values "+
-				"(%d,'%s','%s')",
-			db.GetAtlasDB().Schema,
-			cohortId, cohortName, cohortName),
-		-1)
+	// We should probably remove all cohort parts...or add them to sec_ table... TODO
+	// tests.ExecSQLStringOrFail(
+	// 	fmt.Sprintf(
+	// 		"INSERT into %s.cohort_definition "+
+	// 			"(id,name,description) "+
+	// 			"values "+
+	// 			"(%d,'%s','%s')",
+	// 		db.GetAtlasDB().Schema,
+	// 		cohortId, cohortName, cohortName),
+	// 	-1)
 	AddCohortPersonsAndObservations(cohortId, cohort)
 }
 
@@ -151,15 +161,16 @@ func AddCohortPersonsAndObservations(cohortId int, cohort Cohort) {
 
 func AddPersonToCohort(cohortId int, personId int64) {
 	AddPerson(personId)
-	tests.ExecSQLStringOrFail(
-		fmt.Sprintf(
-			"INSERT into %s.cohort "+
-				"(cohort_definition_id,subject_id,cohort_start_date,cohort_end_date) "+
-				"values "+
-				"(%d,%d,'1970-01-01','2999-01-01')",
-			tests.GetResultsDataSourceForSourceId(sourceId).Schema,
-			cohortId, personId),
-		sourceId)
+	// We should probably remove all cohort parts...or add them to sec_ table... TODO
+	// tests.ExecSQLStringOrFail(
+	// 	fmt.Sprintf(
+	// 		"INSERT into %s.cohort "+
+	// 			"(cohort_definition_id,subject_id,cohort_start_date,cohort_end_date) "+
+	// 			"values "+
+	// 			"(%d,%d,'1970-01-01','2999-01-01')",
+	// 		tests.GetResultsDataSourceForSourceId(sourceId).Schema,
+	// 		cohortId, personId),
+	// 	sourceId)
 }
 
 func AddPerson(personId int64) {
@@ -229,7 +240,7 @@ func AddConceptAndMaybeAddObservations(nextConceptId int64, concept Concept) {
 					"values "+
 					"(%d,'%s','%s','%s','%s','%s','%s','%s',NULL,%d)",
 				tests.GetOmopDataSourceForSourceId(sourceId).Schema,
-				conceptId, concept.Concept, conceptName, "Person", conceptClassId, "S", "1970-01-01", "2097-12-31", vocabularyId),
+				conceptId, concept.Concept, conceptName, "Observation", conceptClassId, "S", "1970-01-01", "2097-12-31", vocabularyId),
 			sourceId)
 		// keep track of added concepts, so we don't add them twice:
 		conceptIds = append(conceptIds, conceptId)
@@ -272,12 +283,24 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 	tests.ExecSQLStringOrFail(
 		fmt.Sprintf(
 			"INSERT into %s.observation "+
-				"(observation_id,person_id,observation_concept_id,value_as_concept_id,value_as_number,observation_date,observation_type_concept_id) "+
+				"(observation_id,person_id,observation_concept_id,value_as_concept_id,value_as_number,observation_date,observation_datetime,observation_type_concept_id) "+
 				"values "+
-				"(%d,%d,%d,%s,%s,'2000-01-01',0)",
+				"(%d,%d,%d,%s,%s,'2000-01-01','2000-01-01 00:00:00',0)",
 			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
 			lastObservationId+1, personId, conceptId, valueAsConceptId, valueAsNumber),
 		sourceId)
+
+	// add observation period as well:
+	tests.ExecSQLStringOrFail(
+		fmt.Sprintf(
+			"INSERT into %s.observation_period "+
+				"(observation_period_id,person_id,observation_period_start_date,observation_period_end_date,period_type_concept_id) "+
+				"values "+
+				"(%d,%d,'1999-01-01','2099-01-01',0)",
+			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
+			lastObservationId+1, personId),
+		sourceId)
+
 	lastObservationId++
 	countObservations++
 }

@@ -9,7 +9,7 @@ import (
 
 func GenerateDsn(sourceConnectionString string) string {
 	sourceConnectionParts := strings.FieldsFunc(sourceConnectionString, func(r rune) bool {
-		separators := ":/;="
+		separators := ":/;=?&"
 		return strings.ContainsRune(separators, r)
 	})
 	dbVendor := sourceConnectionParts[1]

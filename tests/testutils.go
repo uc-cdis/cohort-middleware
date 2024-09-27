@@ -104,6 +104,14 @@ func GetLastCohortId() int {
 	return lastCohortDefinition.Id
 }
 
+func GetNextCohortId() int {
+	dataSource := db.GetAtlasDB()
+	var nextCohortId int
+	// Use raw SQL to get the next value from the sequence
+	dataSource.Db.Raw("SELECT NEXTVAL('" + dataSource.Schema + ".cohort_definition_sequence')").Scan(&nextCohortId)
+	return nextCohortId
+}
+
 func GetLastConceptId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
 	var lastConcept models.Concept

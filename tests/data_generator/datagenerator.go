@@ -10,6 +10,7 @@ import (
 	"github.com/spf13/viper"
 	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/db"
+	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/tests"
 	"github.com/uc-cdis/cohort-middleware/utils"
 )
@@ -75,7 +76,6 @@ func GetTestDataConfig(configFilePrefix string) *viper.Viper {
 
 func AddCohorts(cohorts []Cohort) {
 	log.Printf("Processing %d cohorts...", len(cohorts))
-	nextCohortId := tests.GetLastCohortId() + 1
 	for _, cohort := range cohorts {
 		var nrClones = 1
 		if cohort.CloneCount > 0 {
@@ -83,13 +83,13 @@ func AddCohorts(cohorts []Cohort) {
 			log.Printf("** Clone directive found! Cloning this cohort %d times **", cohort.CloneCount)
 		}
 		for i := 0; i < nrClones; i++ {
-			AddCohort(nextCohortId, cohort)
-			nextCohortId++
+			AddCohort(cohort)
 		}
 	}
 }
 
-func AddCohort(cohortId int, cohort Cohort) {
+func AddCohort(cohort Cohort) {
+	cohortId := tests.GetNextCohortId()
 	cohortName := fmt.Sprintf("%s (%d)", cohort.Cohort, cohortId)
 	log.Printf("Adding cohort_definition '%s'...", cohortName)
 	tests.ExecSQLStringOrFail(
@@ -154,25 +154,27 @@ func AddPersonToCohort(cohortId int, personId int64) {
 	tests.ExecSQLStringOrFail(
 		fmt.Sprintf(
 			"INSERT into %s.cohort "+
-				"(cohort_definition_id,subject_id) "+
+				"(cohort_definition_id,subject_id,cohort_start_date,cohort_end_date) "+
 				"values "+
-				"(%d,%d)",
+				"(%d,%d,'1970-01-01','2999-01-01')",
 			tests.GetResultsDataSourceForSourceId(sourceId).Schema,
 			cohortId, personId),
 		sourceId)
 }
 
 func AddPerson(personId int64) {
+	genderConceptIds := []int{8507, 8532}
+
 	// only add if this personId is new:
 	if utils.Pos(personId, personIds) == -1 {
 		tests.ExecSQLStringOrFail(
 			fmt.Sprintf(
 				"INSERT into %s.person "+
-					"(person_id,year_of_birth,month_of_birth,day_of_birth) "+
+					"(person_id,year_of_birth,month_of_birth,day_of_birth,gender_concept_id,race_concept_id,ethnicity_concept_id) "+
 					"values "+
-					"(%d,%d,%d,%d)",
+					"(%d,%d,%d,%d,%d,0,0)",
 				tests.GetOmopDataSourceForSourceId(sourceId).Schema,
-				personId, rand.Intn(100)+1900, rand.Intn(12), rand.Intn(28)),
+				personId, rand.Intn(100)+1900, rand.Intn(12), rand.Intn(28), genderConceptIds[rand.Intn(len(genderConceptIds))]),
 			sourceId)
 		// keep track of added persons, so we don't add them twice:
 		personIds = append(personIds, personId)
@@ -214,16 +216,20 @@ func AddConceptAndMaybeAddObservations(nextConceptId int64, concept Concept) {
 	if conceptName == "" {
 		conceptName = fmt.Sprintf("%s-%d", concept.Concept, conceptId)
 	}
-	// If concept id was already added before, skip inserting it:
+	vocabularyId := 124 // just use "OMOP Vocabulary" for now...
+	// If concept id was already added in this session before, skip inserting it:
 	if utils.Pos(conceptId, conceptIds) == -1 {
+		// just in case, remove it if it already exists in DB:
+		tests.RemoveConcept(models.Omop, conceptId)
+		// add:
 		tests.ExecSQLStringOrFail(
 			fmt.Sprintf(
 				"INSERT into %s.concept "+
-					"(concept_id,concept_code,concept_name,domain_id,concept_class_id,standard_concept,valid_start_date,valid_end_date,invalid_reason) "+
+					"(concept_id,concept_code,concept_name,domain_id,concept_class_id,standard_concept,valid_start_date,valid_end_date,invalid_reason,vocabulary_id) "+
 					"values "+
-					"(%d,'%s','%s','%s','%s','%s','%s','%s',NULL)",
+					"(%d,'%s','%s','%s','%s','%s','%s','%s',NULL,%d)",
 				tests.GetOmopDataSourceForSourceId(sourceId).Schema,
-				conceptId, concept.Concept, conceptName, "Person", conceptClassId, "S", "1970-01-01", "2097-12-31"),
+				conceptId, concept.Concept, conceptName, "Person", conceptClassId, "S", "1970-01-01", "2097-12-31", vocabularyId),
 			sourceId)
 		// keep track of added concepts, so we don't add them twice:
 		conceptIds = append(conceptIds, conceptId)
@@ -266,9 +272,9 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 	tests.ExecSQLStringOrFail(
 		fmt.Sprintf(
 			"INSERT into %s.observation "+
-				"(observation_id,person_id,observation_concept_id,value_as_concept_id,value_as_number) "+
+				"(observation_id,person_id,observation_concept_id,value_as_concept_id,value_as_number,observation_date,observation_type_concept_id) "+
 				"values "+
-				"(%d,%d,%d,%s,%s)",
+				"(%d,%d,%d,%s,%s,'2000-01-01',0)",
 			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
 			lastObservationId+1, personId, conceptId, valueAsConceptId, valueAsNumber),
 		sourceId)

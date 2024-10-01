@@ -56,6 +56,7 @@ func tearDown() {
 	log.Println("teardown for test")
 	// cleanup all tables:
 	tests.EmptyTable(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "observation")
+	tests.EmptyTable(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "observation_period")
 	tests.EmptyTable(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "concept")
 	tests.EmptyTable(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "person")
 	tests.EmptyTable(tests.GetResultsDataSourceForSourceId(tests.GetTestSourceId()), "cohort")

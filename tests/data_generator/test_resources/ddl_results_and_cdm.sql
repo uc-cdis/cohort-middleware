@@ -1,4 +1,5 @@
 -- TODO - improve this by reusing the ../../setup_local_db/*.sql version which is basically a copy of this
+   -- the version below does have an extra tables: observation_period, COHORT_CACHE
 
 -- ========================================================
 DROP SCHEMA IF EXISTS results2 CASCADE;
@@ -13,6 +14,11 @@ CREATE TABLE results2.COHORT
     cohort_end_date date NOT NULL DEFAULT DATE('2099-01-01')
 );
 
+-- just a placeholder...not the real table:
+CREATE TABLE results2.COHORT_CACHE
+(
+    dummy integer NOT NULL
+);
 
 -- ========================================================
 DROP SCHEMA IF EXISTS omop2 CASCADE;
@@ -69,6 +75,16 @@ CREATE TABLE omop2.observation
 ALTER TABLE omop2.observation  ADD CONSTRAINT xpk_observation PRIMARY KEY ( observation_id ) ;
 drop sequence if exists observation_id_seq;
 create sequence observation_id_seq start with 1;
+
+CREATE TABLE omop2.observation_period
+(
+    observation_period_id integer NOT NULL,
+    person_id integer NOT NULL,
+    observation_period_start_date date NOT NULL,
+    observation_period_end_date date NOT NULL,
+    period_type_concept_id integer NOT NULL,
+    CONSTRAINT xpk_observation_period PRIMARY KEY (observation_period_id)
+);
 
 CREATE TABLE omop2.concept
 (

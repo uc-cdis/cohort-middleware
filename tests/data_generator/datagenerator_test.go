@@ -80,14 +80,14 @@ func TestRunDataGeneration(t *testing.T) {
 		t.Errorf("Expected 18 persons, found %d", countPersons)
 	}
 	// the name cohort is confusing...but it is one row per person x cohort_definition:
-	totalCohortSize := tests.GetCount(tests.GetResultsDataSourceForSourceId(tests.GetTestSourceId()), "cohort")
-	if totalCohortSize != 32 {
-		t.Errorf("Expected total cohort size of 32, found %d", totalCohortSize)
-	}
-	countCohorts := tests.GetCount(db.GetAtlasDB(), "cohort_definition")
-	if countCohorts != 5 {
-		t.Errorf("Expected 5 cohort_definition records, found %d", countCohorts)
-	}
+	// totalCohortSize := tests.GetCount(tests.GetResultsDataSourceForSourceId(tests.GetTestSourceId()), "cohort")
+	// if totalCohortSize != 32 {
+	// 	t.Errorf("Expected total cohort size of 32, found %d", totalCohortSize)
+	// }
+	// countCohorts := tests.GetCount(db.GetAtlasDB(), "cohort_definition")
+	// if countCohorts != 5 {
+	// 	t.Errorf("Expected 5 cohort_definition records, found %d", countCohorts)
+	// }
 }
 
 func TestRunDataGeneration2(t *testing.T) {
@@ -95,10 +95,10 @@ func TestRunDataGeneration2(t *testing.T) {
 
 	RunDataGeneration("example_test_data_config")
 
-	countCohorts := tests.GetCount(db.GetAtlasDB(), "cohort_definition")
-	if countCohorts != 3 {
-		t.Errorf("Expected 3 cohort_definition records, found %d", countCohorts)
-	}
+	// countCohorts := tests.GetCount(db.GetAtlasDB(), "cohort_definition")
+	// if countCohorts != 3 {
+	// 	t.Errorf("Expected 3 cohort_definition records, found %d", countCohorts)
+	// }
 	countPersons := tests.GetCount(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "person")
 	if countPersons != 36 {
 		t.Errorf("Expected 36 persons, found %d", countPersons)

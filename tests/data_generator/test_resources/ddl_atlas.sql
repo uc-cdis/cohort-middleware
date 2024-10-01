@@ -39,3 +39,5 @@ CREATE TABLE atlas2.cohort_definition
     modified_by_id  integer,
     CONSTRAINT PK_cohort_definition PRIMARY KEY (id)
 );
+drop sequence if exists atlas2.cohort_definition_sequence;
+create sequence atlas2.cohort_definition_sequence start with 1;

@@ -173,6 +173,11 @@ values
     (4,18)
 ;
 
+INSERT INTO dbo.VersionInfo
+(Version, AppliedOn, Description)
+Values(0, '20240101 09:30:00 AM', 'Initial Version'),
+(1, '20240901 09:30:00 AM', 'Table Update');
+
 WITH cte_counts AS (SELECT observation_concept_id,
                            COUNT(DISTINCT person_id) AS number_of_people_with_variable,
                            COUNT(DISTINCT CASE WHEN value_as_number IS NOT NULL THEN person_id END) AS number_of_people_where_value_is_filled_number,

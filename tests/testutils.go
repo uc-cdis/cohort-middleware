@@ -17,8 +17,15 @@ import (
 	"gorm.io/gorm"
 )
 
+// Global variable
+var testSourceId int = 1
+
 func GetTestSourceId() int {
-	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
+	return testSourceId
+}
+
+func SetTestSourceId(id int) {
+	testSourceId = id
 }
 
 func GetTestDummyContinuousConceptId() int64 {

@@ -325,6 +325,7 @@ func main() {
 	environment := flag.String("e", "development", "Environment/prefix of config .yaml file name")
 	testData := flag.String("d", "models_tests_data_config", "Prefix of test data config .yaml file name")
 	sourceId := flag.Int("s", 1, "Source id for Omop DB")
+	tests.SetTestSourceId(*sourceId)
 	flag.Parse()
 	Init(*environment, *sourceId)
 	log.Printf("\n\n=============== GENERATING TEST DATA BASED ON CONFIG ============================\n\n")

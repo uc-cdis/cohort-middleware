@@ -31,7 +31,8 @@ RUN GITCOMMIT=$(git rev-parse HEAD) \
     && go build -C tests/data_generator \
     -o /data-generator
 
-FROM scratch
+FROM alpine
+RUN apk add --no-cache bash
 COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /cohort-middleware /cohort-middleware
 COPY --from=builder /data-generator /data-generator

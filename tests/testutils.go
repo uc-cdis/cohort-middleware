@@ -21,10 +21,12 @@ import (
 var testSourceId int = 1
 
 func GetTestSourceId() int {
+	log.Printf("Using source id %d...", testSourceId)
 	return testSourceId
 }
 
 func SetTestSourceId(id int) {
+	log.Printf("Setting source id %d...", id)
 	testSourceId = id
 }
 

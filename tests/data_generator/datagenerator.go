@@ -241,9 +241,7 @@ func AddConceptAndMaybeAddObservations(nextConceptId int64, concept Concept) {
 	}
 	vocabularyId := 124 // just use "OMOP Vocabulary" for now...
 	// If concept id was already added in this session before, skip inserting it:
-	if utils.Pos(conceptId, conceptIds) == -1 {
-		// just in case, remove it if it already exists in DB:
-		tests.RemoveConcept(models.Omop, conceptId)
+	if utils.Pos(conceptId, conceptIds) == -1 && !tests.ConceptExists(models.Omop, conceptId) {
 		// add:
 		tests.ExecSQLStringOrFail(
 			fmt.Sprintf(
@@ -292,7 +290,7 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 		}
 		valueAsConceptId = concept.PossibleValues[randIndex]
 	}
-	tests.ExecSQLStringOrFail(
+	result := tests.ExecSQLString(
 		fmt.Sprintf(
 			"INSERT into %s.observation "+
 				"(observation_id,person_id,observation_concept_id,value_as_concept_id,value_as_number,observation_date,observation_datetime,observation_type_concept_id) "+
@@ -301,9 +299,20 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
 			lastObservationId+1, personId, conceptId, valueAsConceptId, valueAsNumber),
 		sourceId)
+	if result.Error != nil {
+		// fallback, try simpler record without explicitly setting observation_id:
+		tests.ExecSQLStringOrFail(fmt.Sprintf(
+			"INSERT into %s.observation "+
+				"(person_id,observation_concept_id,value_as_concept_id,value_as_number,observation_date,observation_datetime,observation_type_concept_id) "+
+				"values "+
+				"(%d,%d,%s,%s,'2000-01-01','2000-01-01 00:00:00',0)",
+			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
+			personId, conceptId, valueAsConceptId, valueAsNumber),
+			sourceId)
+	}
 
 	// add observation period as well:
-	tests.ExecSQLStringOrFail(
+	result = tests.ExecSQLString(
 		fmt.Sprintf(
 			"INSERT into %s.observation_period "+
 				"(observation_period_id,person_id,observation_period_start_date,observation_period_end_date,period_type_concept_id) "+
@@ -312,7 +321,17 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
 			lastObservationId+1, personId),
 		sourceId)
-
+	if result.Error != nil {
+		// fallback, try simpler record without explicitly setting observation_id:
+		tests.ExecSQLStringOrFail(fmt.Sprintf(
+			"INSERT into %s.observation_period "+
+				"(person_id,observation_period_start_date,observation_period_end_date,period_type_concept_id) "+
+				"values "+
+				"(%d,'1999-01-01','2099-01-01',0)",
+			tests.GetOmopDataSourceForSourceId(sourceId).Schema,
+			personId),
+			sourceId)
+	}
 	lastObservationId++
 	countObservations++
 }

@@ -194,6 +194,14 @@ func RemoveConcept(sourceType models.SourceType, conceptId int64) {
 		" where concept_id =%v", conceptId), GetTestSourceId())
 }
 
+func ConceptExists(sourceType models.SourceType, conceptId int64) bool {
+	dataSource := db.GetAtlasDB()
+	count := 0
+	query := fmt.Sprintf("SELECT COUNT(*) FROM %s.concept WHERE concept_id = ?", GetSchemaNameForType(sourceType))
+	dataSource.Db.Raw(query, conceptId).Scan(&count)
+	return count > 0
+}
+
 func GetInt64AttributeValue[T any](item T, attributeName string) int64 {
 	r := reflect.ValueOf(item)
 	f := reflect.Indirect(r).FieldByName(attributeName)

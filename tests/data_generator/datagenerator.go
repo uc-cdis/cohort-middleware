@@ -178,7 +178,7 @@ func AddPerson(personId int64) {
 
 	// only add if this personId is new:
 	if utils.Pos(personId, personIds) == -1 {
-		tests.ExecSQLStringOrFail(
+		result := tests.ExecSQLString(
 			fmt.Sprintf(
 				"INSERT into %s.person "+
 					"(person_id,year_of_birth,month_of_birth,day_of_birth,gender_concept_id,race_concept_id,ethnicity_concept_id) "+
@@ -187,6 +187,18 @@ func AddPerson(personId int64) {
 				tests.GetOmopDataSourceForSourceId(sourceId).Schema,
 				personId, rand.Intn(100)+1900, rand.Intn(12), rand.Intn(28), genderConceptIds[rand.Intn(len(genderConceptIds))]),
 			sourceId)
+		if result.Error != nil {
+			// fallback, try simpler record:
+			tests.ExecSQLStringOrFail(
+				fmt.Sprintf(
+					"INSERT into %s.person "+
+						"(person_id) "+
+						"values "+
+						"(%d)",
+					tests.GetOmopDataSourceForSourceId(sourceId).Schema,
+					personId),
+				sourceId)
+		}
 		// keep track of added persons, so we don't add them twice:
 		personIds = append(personIds, personId)
 	}

@@ -109,7 +109,7 @@ func EmptyTable(dataSource *utils.DbAndSchema, tableName string) {
 func GetLastCohortId() int {
 	dataSource := db.GetAtlasDB()
 	var lastCohortDefinition models.CohortDefinition
-	dataSource.Db.Order("id DESC").First(&lastCohortDefinition)
+	dataSource.Db.Select("id").Order("id DESC").First(&lastCohortDefinition)
 	return lastCohortDefinition.Id
 }
 
@@ -124,7 +124,7 @@ func GetNextCohortId() int {
 func GetLastConceptId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
 	var lastConcept models.Concept
-	dataSource.Db.Order("concept_id DESC").First(&lastConcept)
+	dataSource.Db.Select("concept_id").Order("concept_id DESC").First(&lastConcept)
 	log.Printf("Last concept id found %d",
 		lastConcept.ConceptId)
 	return lastConcept.ConceptId
@@ -133,14 +133,14 @@ func GetLastConceptId(sourceId int) int64 {
 func GetLastObservationId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
 	var lastObservation models.Observation
-	dataSource.Db.Order("observation_id DESC").First(&lastObservation)
+	dataSource.Db.Select("observation_id").Order("observation_id DESC").First(&lastObservation)
 	return lastObservation.ObservationId
 }
 
 func GetLastPersonId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
 	var lastPerson models.Person
-	dataSource.Db.Order("person_id DESC").First(&lastPerson)
+	dataSource.Db.Select("person_id").Order("person_id DESC").First(&lastPerson)
 	return lastPerson.PersonId
 }
 

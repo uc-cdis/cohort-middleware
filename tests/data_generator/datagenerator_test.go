@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"os"
 	"testing"
@@ -80,6 +81,16 @@ func TestRunDataGeneration(t *testing.T) {
 	if countPersons != 18 {
 		t.Errorf("Expected 18 persons, found %d", countPersons)
 	}
+	lastConceptId := tests.GetLastConceptId(tests.GetTestSourceId())
+	if lastConceptId <= 2000007031 {
+		t.Errorf("Expected larger concept_id, found %d", lastConceptId)
+	}
+	totalObservationsLastConcept := tests.GetCountWhere(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "observation",
+		fmt.Sprintf("observation_concept_id = %d", lastConceptId))
+	if totalObservationsLastConcept != 4 {
+		t.Errorf("Expected 4 observations, found %d", totalObservationsLastConcept)
+	}
+
 	// the name cohort is confusing...but it is one row per person x cohort_definition:
 	// totalCohortSize := tests.GetCount(tests.GetResultsDataSourceForSourceId(tests.GetTestSourceId()), "cohort")
 	// if totalCohortSize != 32 {

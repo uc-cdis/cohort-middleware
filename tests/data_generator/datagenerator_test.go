@@ -69,12 +69,12 @@ func TestRunDataGeneration(t *testing.T) {
 	RunDataGeneration("models_tests_data_config")
 	// assert on number of records per table:
 	countObservations := tests.GetCount(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "observation")
-	if countObservations != 35 {
-		t.Errorf("Expected 35 observations, found %d", countObservations)
+	if countObservations != 43 {
+		t.Errorf("Expected 43 observations, found %d", countObservations)
 	}
 	countConcepts := tests.GetCount(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "concept")
-	if countConcepts != 7 {
-		t.Errorf("Expected 7 concepts, found %d", countConcepts)
+	if countConcepts != 9 {
+		t.Errorf("Expected 9 concepts, found %d", countConcepts)
 	}
 	countPersons := tests.GetCount(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "person")
 	if countPersons != 18 {

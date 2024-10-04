@@ -206,8 +206,8 @@ func AddPerson(personId int64) {
 
 func AddConcepts(concepts []Concept) {
 	log.Printf("Processing %d concepts...", len(concepts))
-	nextConceptId := tests.GetLastConceptId(sourceId) + 1
 	for _, concept := range concepts {
+		nextConceptId := tests.GetLastConceptId(sourceId) + 1
 		var nrClones = 1
 		if concept.CloneCount > 0 {
 			nrClones = concept.CloneCount

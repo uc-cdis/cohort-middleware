@@ -67,3 +67,12 @@ cohorts:
    person_ids: [1,2,3,4,5,6,7,8,9,10]
  - cohort: largest-cohort
    person_ids: [6,7,8,9,10,11,12,13,14,15,16,17,18]
+   concepts:
+    - concept: new-continuous-value-a
+      value_type: number
+      # this means ~1/3 of the persons in the cohort will have this concept associated to them in the observation table:
+      ratio_of_persons: 0.34
+    - concept: new-continuous-value-b
+      value_type: number
+      # this means ~1/3 of the persons in the cohort will have this concept associated to them in the observation table:
+      ratio_of_persons: 0.34

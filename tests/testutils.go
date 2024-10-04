@@ -195,7 +195,8 @@ func RemoveConcept(sourceType models.SourceType, conceptId int64) {
 }
 
 func ConceptExists(sourceType models.SourceType, conceptId int64) bool {
-	dataSource := db.GetAtlasDB()
+	var dataSourceModel = new(models.Source)
+	dataSource := dataSourceModel.GetDataSource(GetTestSourceId(), sourceType)
 	count := 0
 	query := fmt.Sprintf("SELECT COUNT(*) FROM %s.concept WHERE concept_id = ?", GetSchemaNameForType(sourceType))
 	dataSource.Db.Raw(query, conceptId).Scan(&count)

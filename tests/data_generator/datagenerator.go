@@ -278,7 +278,7 @@ func AddObservationForPerson(conceptId int64, concept Concept, personId int64) {
 			max := len(concept.PossibleValues)
 			randIndex := 0
 			if max > 1 {
-				randIndex = rand.Intn(max - 1)
+				randIndex = rand.Intn(max)
 			}
 			valueAsNumber = concept.PossibleValues[randIndex]
 		}

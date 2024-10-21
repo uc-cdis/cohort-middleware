@@ -135,3 +135,7 @@ CREATE TABLE dbo.VersionInfo(
 	AppliedOn timestamp NULL,
 	Description varchar(1024) NULL
 )
+
+CREATE TABLEE dbo.VersionInfo(
+	Version bigint NOT NULL,
+)

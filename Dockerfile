@@ -13,7 +13,7 @@ ENV GOOS=${TARGETOS}
 ENV GOARCH=${TARGETARCH}
 
 FROM base AS builder
-WORKDIR /app/
+WORKDIR $GOPATH/src/github.com/uc-cdis/cohort-middleware/
 
 COPY go.mod go.sum ./
 RUN go mod download

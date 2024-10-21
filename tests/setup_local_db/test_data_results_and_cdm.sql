@@ -173,6 +173,11 @@ values
     (4,18)
 ;
 
+INSERT INTO dbo.VersionInfo
+(Version, AppliedOn, Description)
+Values(0, '20240101 09:30:00 AM', 'Initial Version'),
+(1, '20240901 09:30:00 AM', 'Table Update');
+
 WITH cte_counts AS (SELECT observation_concept_id,
                            COUNT(DISTINCT person_id) AS number_of_people_with_variable,
                            COUNT(DISTINCT CASE WHEN value_as_number IS NOT NULL THEN person_id END) AS number_of_people_where_value_is_filled_number,
@@ -209,7 +214,7 @@ FROM omop.CONCEPT c
          JOIN omop.OBSERVATION oc ON oc.observation_concept_id = c.concept_id
          JOIN cte_counts cc ON cc.observation_concept_id = c.concept_id
          LEFT JOIN cte_observation_class coc on coc.concept_id = c.concept_id
-WHERE c.CONCEPT_CLASS_ID IN ('MVP Continuous', 'MVP DF', 'MVP Discrete', 'MVP Year', 'MVP Dichotomous', 'MVP Nominal', 'MVP Answer', 'MVP_v20_1')
+WHERE c.CONCEPT_CLASS_ID IN ('MVP Continuous', 'MVP DF', 'MVP Discrete', 'MVP Year', 'MVP Dichotomous', 'MVP Nominal', 'MVP Ordinal', 'MVP Answer', 'MVP_v20_1')
 GROUP BY c.vocabulary_id, c.concept_id, c.concept_code, c.concept_name, c.concept_class_id,
          cc.number_of_people_with_variable,
          cc.number_of_people_where_value_is_filled_number,

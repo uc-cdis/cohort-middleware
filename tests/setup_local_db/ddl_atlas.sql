@@ -50,6 +50,24 @@ CREATE TABLE atlas.cohort_definition_details
         ON DELETE CASCADE
 );
 
+-- simplified version (not all FK constraints are present):
+CREATE TABLE atlas.cohort_generation_info (
+    id                 integer                        NOT NULL,
+    source_id          integer                        NOT NULL,
+    start_time         timestamp(3) without time zone,
+    execution_duration integer,
+    status             integer                        NOT NULL,
+    is_valid           boolean                        NOT NULL,
+    fail_message       character varying(2000),
+    person_count       bigint,
+    record_count       bigint,
+    is_canceled        boolean                        NOT NULL DEFAULT false,
+    created_by_id      integer,
+    PRIMARY KEY (id, source_id),
+    CONSTRAINT fk_cohort_generation_info_cohort_definition FOREIGN KEY (id)
+        REFERENCES atlas.cohort_definition(id) ON UPDATE CASCADE ON DELETE CASCADE
+);
+
 CREATE TABLE atlas.sec_role
 (
     id integer NOT NULL,
@@ -85,6 +103,22 @@ CREATE TABLE atlas.sec_role_permission
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
 );
+
+CREATE TABLE atlas.schema_version
+(
+    installed_rank integer NOT NULL,
+    version varchar(50),
+    description varchar(200) NOT NULL,
+    type varchar(20) NOT NULL,
+    script varchar(1000) NOT NULL,
+    checksum int,
+    installed_by varchar(100) NOT NULL,
+    installed_on timestamp(3) NOT NULL,
+    execution_time int NOT NULL,
+    success boolean NOT NULL,
+    CONSTRAINT pk_schema_version PRIMARY KEY (installed_rank)
+);
+
 
 CREATE VIEW atlas.COHORT_DEFINITION_SEC_ROLE AS
   select

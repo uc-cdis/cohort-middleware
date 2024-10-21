@@ -104,48 +104,33 @@ func (h CohortDefinition) GetCohortDefinitionIdsForTeamProject(teamProject strin
 
 func (h CohortDefinition) GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId int, teamProject string) ([]*CohortDefinitionStats, error) {
 
-	// Connect to source db and gather stats:
-	var dataSourceModel = new(Source)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	// get the list of cohort_definition_ids that are allowed for the given teamProject:
+	allowedCohortDefinitionIds, _ := h.GetCohortDefinitionIdsForTeamProject(teamProject)
+	log.Printf("INFO: found %d cohorts for this team project", len(allowedCohortDefinitionIds))
+
+	// Gather stats:
+	atlasDb := db.GetAtlasDB().Db
 	var cohortDefinitionStats []*CohortDefinitionStats
-	query := resultsDataSource.Db.Model(&Cohort{}).
-		Select("cohort_definition_id as id, '' as name, count(*) as cohort_size").
-		Group("cohort_definition_id").
-		Order("count(*) desc")
+	query := atlasDb.Model(&CohortDefinition{}).
+		Select("cohort_definition.id, cohort_definition.name, cohort_generation_info.person_count as cohort_size").
+		Joins("INNER JOIN "+db.GetAtlasDB().Schema+".cohort_generation_info ON cohort_definition.id = cohort_generation_info.id").
+		Where("cohort_generation_info.source_id = ?", sourceId).
+		Where("cohort_generation_info.is_valid = true").
+		Where("cohort_generation_info.is_canceled = false").
+		Where("cohort_definition.id in (?)", allowedCohortDefinitionIds).
+		Where("cohort_generation_info.person_count > 0").
+		Order("cohort_generation_info.person_count desc")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&cohortDefinitionStats)
 
-	// get (from separate Atlas DB - hence not using JOIN above) the list of cohort_definition_ids
-	// that are allowed for the given teamProject:
-	allowedCohortDefinitionIds, _ := h.GetCohortDefinitionIdsForTeamProject(teamProject)
-	log.Printf("INFO: found %d cohorts for this team project", len(allowedCohortDefinitionIds))
-
-	// add name details:
-	finalList := []*CohortDefinitionStats{}
-	for _, cohortDefinitionStat := range cohortDefinitionStats {
-		var cohortDefinition, _ = h.GetCohortDefinitionById(cohortDefinitionStat.Id)
-		if cohortDefinition == nil {
-			// unexpected issue: cohortDefinition not found. Warn and skip:
-			log.Printf("WARNING: found a cohort of size %d with missing cohort_definition record",
-				cohortDefinitionStat.CohortSize)
-			continue
-		} else {
-			// filter to keep only the allowed ones:
-			if utils.Contains(allowedCohortDefinitionIds, cohortDefinitionStat.Id) {
-				cohortDefinitionStat.Name = cohortDefinition.Name
-				finalList = append(finalList, cohortDefinitionStat)
-			}
-		}
-	}
-
-	return finalList, meta_result.Error
+	return cohortDefinitionStats, meta_result.Error
 }
 
 func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {
 	cohortDefinition, err := h.GetCohortDefinitionById(cohortId)
-	if err != nil {
-		return "", fmt.Errorf("could not retrieve cohort name due to error: %s", err.Error())
+	if err != nil || cohortDefinition == nil {
+		return "", fmt.Errorf("could not retrieve cohort name for cohortId=%d", cohortId)
 	}
 
 	return cohortDefinition.Name, nil

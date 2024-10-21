@@ -124,3 +124,14 @@ CREATE TABLE misc.DATA_DICTIONARY_RESULT
     value_summary JSON --For sql server use varbinary(max)
 );
 ALTER TABLE misc.DATA_DICTIONARY_RESULT  ADD CONSTRAINT xpk_DATA_DICTIONARY_RESULT PRIMARY KEY ( concept_id ) ;
+
+-- ========================================================
+DROP SCHEMA IF EXISTS dbo CASCADE;
+CREATE SCHEMA dbo;
+-- ========================================================
+
+CREATE TABLE dbo.VersionInfo(
+	Version bigint NOT NULL,
+	AppliedOn timestamp NULL,
+	Description varchar(1024) NULL
+)

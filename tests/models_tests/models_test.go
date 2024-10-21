@@ -739,6 +739,13 @@ func TestGetCohortName(t *testing.T) {
 	if cohortName != allCohortDefinitions[0].Name {
 		t.Errorf("Expected %s", allCohortDefinitions[0].Name)
 	}
+
+	// try non-existing cohort id...should result in error:
+	_, err := cohortDefinitionModel.GetCohortName(-123)
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+
 }
 
 func TestGetCohortDefinitionByName(t *testing.T) {
@@ -1003,6 +1010,13 @@ func TestGetVersion(t *testing.T) {
 	version.GitVersion = "def"
 	v := versionModel.GetVersion()
 	if v.GitCommit != version.GitCommit || v.GitVersion != version.GitVersion {
+		t.Errorf("Wrong value")
+	}
+}
+
+func TestGetSchemaVersion(t *testing.T) {
+	v := versionModel.GetSchemaVersion()
+	if v.AtlasSchemaVersion != "1.0.1" || v.DataSchemaVersion != 1 {
 		t.Errorf("Wrong value")
 	}
 }

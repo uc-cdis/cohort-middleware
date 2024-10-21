@@ -37,9 +37,9 @@ func ExecAtlasSQLScript(sqlFilePath string) {
 	ExecSQLScript(sqlFilePath, -1)
 }
 
-func ExecSQLScript(sqlFilePath string, sourceId int) {
+func ExecSQLScript(sqlFilePath string, sourceId int) string {
 	log.Printf("Loading %s...", sqlFilePath)
-
+	errString := ""
 	path, err := filepath.Abs(sqlFilePath)
 	if err != nil {
 		panic(err)
@@ -50,8 +50,11 @@ func ExecSQLScript(sqlFilePath string, sourceId int) {
 	}
 	result := ExecSQLString(string(fileContents), sourceId)
 	if result.Error != nil && len(result.Error.Error()) > 0 {
-		fmt.Printf("Errors: %s\n", result.Error.Error())
+		errString = result.Error.Error()
+		fmt.Printf("Errors: %s\n", errString)
 	}
+
+	return errString
 }
 
 func ExecAtlasSQLString(sqlString string) {

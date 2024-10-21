@@ -1160,3 +1160,13 @@ func TestWriteToDB(t *testing.T) {
 		t.Errorf("Write failed")
 	}
 }
+
+func TestExecSQLError(t *testing.T) {
+	setUp(t)
+
+	errorString := tests.ExecSQLScript("invalidSql.sql", tests.GetTestSourceId())
+	errorString = strings.ToUpper(errorString)
+	if !strings.Contains(errorString, "ERROR") {
+		t.Errorf("SQL Error should have occurred")
+	}
+}

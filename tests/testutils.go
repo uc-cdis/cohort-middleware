@@ -49,7 +49,9 @@ func ExecSQLScript(sqlFilePath string, sourceId int) {
 	}
 	result := ExecSQLString(string(fileContents), sourceId)
 	if result.Error != nil && len(result.Error.Error()) > 0 {
-		panic(result.Error.Error())
+		errString := result.Error.Error()
+		fmt.Printf("Errors: %s\n", errString)
+		panic(errString)
 	}
 }
 

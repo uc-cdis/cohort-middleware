@@ -1160,3 +1160,15 @@ func TestWriteToDB(t *testing.T) {
 		t.Errorf("Write failed")
 	}
 }
+
+func TestExecSQLError(t *testing.T) {
+	setUp(t)
+	defer func() {
+		if err := recover(); err != nil {
+			log.Println("panic occurred:", err)
+		}
+	}()
+	tests.ExecSQLScript("invalidSql.sql", tests.GetTestSourceId())
+	t.Errorf("Panic should have occurred due to SQL Error")
+
+}

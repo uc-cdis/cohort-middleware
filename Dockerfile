@@ -27,6 +27,7 @@ RUN GITCOMMIT=$(git rev-parse HEAD) \
     -o /cohort-middleware
 
 FROM scratch
+USER nobody
 COPY --from=builder /etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem /etc/ssl/certs/ca-certificates.crt
 COPY --from=builder /cohort-middleware /cohort-middleware
 CMD ["/cohort-middleware"]

@@ -48,3 +48,11 @@ After a successful run you should get something like:
  - Concepts: 20
  - Observations: 750
  ```
+
+## Running in a container
+
+For running in the container, `exec -it` the container to run the command:
+
+```bash
+/data-generator -e /config/development.yaml -d  /example_dataset.yaml -s 2
+```

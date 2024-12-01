@@ -1,0 +1,120 @@
+# list of "global" concepts:
+concepts:
+- concept: HARE-group
+  id: 2000007027
+  concept_name: 'HARE'
+  value_type: concept
+- concept: HIS
+  id: 2000007027
+  value_type: concept
+  possible_values: [2000007028]
+  concept_value_name: 'Hispanic'
+- concept: ASN
+  id: 2000007027
+  value_type: concept
+  possible_values: [2000007029]
+  concept_value_name: 'non-Hispanic Asian'
+- concept: AFR
+  id: 2000007027
+  value_type: concept
+  possible_values: [2000007030]
+  concept_value_name: 'non-Hispanic Black'
+- concept: EUR
+  id: 2000007027
+  value_type: concept
+  possible_values: [2000007031]
+  concept_value_name: 'non-Hispanic White'
+- concept: height
+  id: 2000006000
+  value_type: number
+- concept: weight
+  id: 2000006001
+  value_type: number
+
+
+# list of cohorts to be created:
+cohorts:
+ - cohort: small-cohort
+   number_of_persons: 120
+   # this will repeat a cohort like below 2 times:
+   clone_count: 2
+   # concepts that will be created and linked to persons in this cohort via observations:
+   concepts:
+    - concept: concept-name-small
+      value_type: number
+      # this means ~1/3 of the persons in the cohort will have this concept associated to them in the observation table:
+      ratio_of_persons: 0.34
+      # makes 2 copies of this concept:
+      clone_count: 2
+    - concept: height
+      value_type: number
+      # this means 90% of the persons in the cohort will have height filled in:
+      ratio_of_persons: 0.9
+      id: 2000006000
+    - concept: weight
+      value_type: number
+      # this means 90% of the persons in the cohort will have weight filled in:
+      ratio_of_persons: 0.9
+      id: 2000006001
+    - concept: HARE-group
+      value_type: concept
+      # we want this concept to have/use a specific id...
+      id: 2000007027
+      # ...and populate with one of these ids (picks a random one):
+      possible_values: [2000007028,2000007029,2000007030,2000007031]
+ - cohort: medium-cohort
+   number_of_persons: 10000
+   # this will repeat a cohort like below 2 times:
+   clone_count: 2
+   # concepts that will be created and linked to persons in this cohort via observations:
+   concepts:
+    - concept: concept-name-medium
+      value_type: number
+      # this means ~1/3 of the persons in the cohort will have this concept associated to them in the observation table:
+      ratio_of_persons: 0.34
+      # makes 2 copies of this concept:
+      clone_count: 2
+    - concept: height
+      value_type: number
+      # this means 90% of the persons in the cohort will have height filled in:
+      ratio_of_persons: 0.9
+      id: 2000006000
+    - concept: weight
+      value_type: number
+      # this means 90% of the persons in the cohort will have weight filled in:
+      ratio_of_persons: 0.9
+      id: 2000006001
+    - concept: HARE-group
+      value_type: concept
+      # we want this concept to have/use a specific id...
+      id: 2000007027
+      # ...and populate with one of these ids (picks a random one):
+      possible_values: [2000007028,2000007029,2000007030,2000007031]
+ - cohort: large-cohort
+   number_of_persons: 50000
+   # this will repeat a cohort like below 2 times:
+   clone_count: 2
+   # concepts that will be created and linked to persons in this cohort via observations:
+   concepts:
+    - concept: concept-name-large
+      value_type: number
+      # this means ~1/3 of the persons in the cohort will have this concept associated to them in the observation table:
+      ratio_of_persons: 0.34
+      # makes 2 copies of this concept:
+      clone_count: 2
+    - concept: height
+      value_type: number
+      # this means 90% of the persons in the cohort will have height filled in:
+      ratio_of_persons: 0.9
+      id: 2000006000
+    - concept: weight
+      value_type: number
+      # this means 90% of the persons in the cohort will have weight filled in:
+      ratio_of_persons: 0.9
+      id: 2000006001
+    - concept: HARE-group
+      value_type: concept
+      # we want this concept to have/use a specific id...
+      id: 2000007027
+      # ...and populate with one of these ids (picks a random one):
+      possible_values: [2000007028,2000007029,2000007030,2000007031]

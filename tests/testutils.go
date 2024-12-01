@@ -17,8 +17,17 @@ import (
 	"gorm.io/gorm"
 )
 
+// Global variable
+var testSourceId int = 1
+
 func GetTestSourceId() int {
-	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
+	log.Printf("Using source id %d...", testSourceId)
+	return testSourceId
+}
+
+func SetTestSourceId(id int) {
+	log.Printf("Setting source id %d...", id)
+	testSourceId = id
 }
 
 func GetTestDummyContinuousConceptId() int64 {
@@ -103,30 +112,40 @@ func EmptyTable(dataSource *utils.DbAndSchema, tableName string) {
 
 func GetLastCohortId() int {
 	dataSource := db.GetAtlasDB()
-	var lastCohortDefinition models.CohortDefinition
-	dataSource.Db.Last(&lastCohortDefinition)
-	return lastCohortDefinition.Id
+	var lastCohortDefinitionId int
+	dataSource.Db.Raw("SELECT MAX(id) FROM " + dataSource.Schema + ".cohort_definition").Scan(&lastCohortDefinitionId)
+	return lastCohortDefinitionId
+}
+
+func GetNextCohortId() int {
+	dataSource := db.GetAtlasDB()
+	var nextCohortId int
+	// Use raw SQL to get the next value from the sequence
+	dataSource.Db.Raw("SELECT NEXTVAL('" + dataSource.Schema + ".cohort_definition_sequence')").Scan(&nextCohortId)
+	return nextCohortId
 }
 
 func GetLastConceptId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
-	var lastConcept models.Concept
-	dataSource.Db.Last(&lastConcept)
-	return lastConcept.ConceptId
+	var lastConceptId int64
+	dataSource.Db.Raw("SELECT MAX(concept_id) FROM " + dataSource.Schema + ".concept").Scan(&lastConceptId)
+	log.Printf("Last concept id found %d",
+		lastConceptId)
+	return lastConceptId
 }
 
 func GetLastObservationId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
-	var lastObservation models.Observation
-	dataSource.Db.Last(&lastObservation)
-	return lastObservation.ObservationId
+	var lastObservationId int64
+	dataSource.Db.Raw("SELECT MAX(observation_id) FROM " + dataSource.Schema + ".observation").Scan(&lastObservationId)
+	return lastObservationId
 }
 
 func GetLastPersonId(sourceId int) int64 {
 	dataSource := GetOmopDataSourceForSourceId(sourceId)
-	var lastPerson models.Person
-	dataSource.Db.Last(&lastPerson)
-	return lastPerson.PersonId
+	var lastPersonId int64
+	dataSource.Db.Raw("SELECT MAX(person_id) FROM " + dataSource.Schema + ".person").Scan(&lastPersonId)
+	return lastPersonId
 }
 
 func GetOmopDataSource() *utils.DbAndSchema {
@@ -179,6 +198,15 @@ func AddInvalidTypeConcept(sourceType models.SourceType) int64 {
 func RemoveConcept(sourceType models.SourceType, conceptId int64) {
 	ExecSQLString(fmt.Sprintf("DELETE FROM "+GetSchemaNameForType(sourceType)+".concept  "+
 		" where concept_id =%v", conceptId), GetTestSourceId())
+}
+
+func ConceptExists(sourceType models.SourceType, conceptId int64) bool {
+	var dataSourceModel = new(models.Source)
+	dataSource := dataSourceModel.GetDataSource(GetTestSourceId(), sourceType)
+	count := 0
+	query := fmt.Sprintf("SELECT COUNT(*) FROM %s.concept WHERE concept_id = ?", GetSchemaNameForType(sourceType))
+	dataSource.Db.Raw(query, conceptId).Scan(&count)
+	return count > 0
 }
 
 func GetInt64AttributeValue[T any](item T, attributeName string) int64 {

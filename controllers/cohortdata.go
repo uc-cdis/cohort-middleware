@@ -88,7 +88,7 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 		return
 	}
 
-	filterConceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
+	filterConceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(c)
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)

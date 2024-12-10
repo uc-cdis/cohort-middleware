@@ -89,11 +89,6 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 	}
 
 	filterConceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
-		c.Abort()
-		return
-	}
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)

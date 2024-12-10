@@ -316,3 +316,19 @@ func TestSubtract(t *testing.T) {
 		t.Errorf("Expected [] but found %v", result)
 	}
 }
+
+func TestGenerateStatsData(t *testing.T) {
+	setUp(t)
+
+	var emptyData = []float64{}
+	result := utils.GenerateStatsData(1, 1, emptyData)
+	if result != nil {
+		t.Errorf("Expected a nil result for an empty data set")
+	}
+
+	var expectedResult = &utils.ConceptStats{CohortId: 1, ConceptId: 1, NumberOfPeople: 11, Min: 6.0, Max: 49.0, Avg: 33.18181818181818, Sd: 15.134657288477642}
+	result = utils.GenerateStatsData(1, 1, testData)
+	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
+}

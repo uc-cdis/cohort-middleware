@@ -88,7 +88,7 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 		return
 	}
 
-	filterConceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(c)
+	filterConceptIdsAndValues, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(c)
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
@@ -102,7 +102,7 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 		return
 	}
 
-	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, conceptId, filterConceptIds, cohortPairs)
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, conceptId, filterConceptIdsAndValues, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
@@ -133,7 +133,7 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 		return
 	}
 
-	conceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
+	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
@@ -150,6 +150,8 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 		c.Abort()
 		return
 	}
+
+	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -293,12 +295,13 @@ func populateConceptValue(row []string, cohortItem models.PersonConceptAndValue,
 func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	errors := make([]error, 4)
 	var sourceId, caseCohortId, controlCohortId int
-	var conceptIds []int64
+	var conceptIdsAndValues []utils.CustomConceptVariableDef
 	var cohortPairs []utils.CustomDichotomousVariableDef
 	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
 	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
-	conceptIds, cohortPairs, errors[3] = utils.ParseConceptIdsAndDichotomousDefs(c)
+	conceptIdsAndValues, cohortPairs, errors[3] = utils.ParseConceptIdsAndDichotomousDefs(c)
+	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{caseCohortId, controlCohortId}, cohortPairs)
 	if !validAccessRequest {

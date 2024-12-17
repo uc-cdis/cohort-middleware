@@ -758,9 +758,9 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 
 func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t *testing.T) {
 	setUp(t)
-	filterConceptIds := []int64{}
+	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{}
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIdsAndValues, filterCohortPairs)
 	// everyone in the largestCohort has the histogramConceptId, but one person has NULL in the value_as_number:
 	if len(data) != largestCohort.CohortSize-1 {
 		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize, len(data))
@@ -774,7 +774,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t
 			ProvidedName:        "test"},
 	}
 	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIds, filterCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIdsAndValues, filterCohortPairs)
 	if len(data) != 5 {
 		t.Errorf("expected 5 histogram data but got %d", len(data))
 	}
@@ -817,6 +817,51 @@ func TestQueryFilterByConceptIdsHelper(t *testing.T) {
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error == nil {
 		t.Errorf("Expected an error")
+	}
+}
+
+func TestQueryFilterByConceptIdsAndValuesHelper(t *testing.T) {
+	// This test checks whether the query succeeds when the mainObservationTableAlias
+	// argument passed to QueryFilterByConceptIdsHelper (last argument)
+	// matches the alias used in the main query, and whether it fails otherwise.
+
+	setUp(t)
+	omopDataSource := tests.GetOmopDataSource()
+	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{{ConceptId: allConceptIds[0], ConceptValues: []int64{}}, {ConceptId: allConceptIds[1], ConceptValues: []int64{}}, {ConceptId: allConceptIds[2], ConceptValues: []int64{}}}
+	var personIds []struct {
+		PersonId int64
+	}
+
+	// Subtest1: correct alias "observation":
+	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
+		Select("observation.person_id")
+	query = models.QueryFilterByConceptIdsAndValuesHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	meta_result := query.Scan(&personIds)
+	if meta_result.Error != nil {
+		t.Errorf("Did NOT expect an error")
+	}
+	// Subtest2: incorrect alias "observation"...should fail:
+	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
+		Select("*")
+	query = models.QueryFilterByConceptIdsAndValuesHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	meta_result = query.Scan(&personIds)
+	if meta_result.Error == nil {
+		t.Errorf("Expected an error")
+	}
+	// Subtest3: limit result set by concept value:
+	filterConceptIdsAndValues = []utils.CustomConceptVariableDef{{ConceptId: 2000007027, ConceptValues: []int64{2000007028}}}
+
+	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
+		Select("*")
+	query = models.QueryFilterByConceptIdsAndValuesHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	meta_result = query.Scan(&personIds)
+	if meta_result.Error != nil {
+		t.Errorf("Should have succeeded")
+	}
+	for _, id := range personIds {
+		if id.PersonId != 1 && id.PersonId != 7 {
+			t.Errorf("Filter did not work successfully")
+		}
 	}
 }
 

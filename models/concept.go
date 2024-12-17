@@ -122,8 +122,9 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 // how many persons in the cohort have that value in their observation records.
 // E.g. if we have a cohort of size N and a concept that can have values "A" or "B",
 // then it will return something like:
-//  {ConceptValue: "A", NPersonsInCohortWithValue: M},
-//  {ConceptValue: "B", NPersonsInCohortWithValue: N-M},
+//
+//	{ConceptValue: "A", NPersonsInCohortWithValue: M},
+//	{ConceptValue: "B", NPersonsInCohortWithValue: N-M},
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	// this is identical to the result of the function below if called with empty filterConceptIds[] and empty filterCohortPairs... so call that:
 	filterConceptIds := []int64{}
@@ -134,8 +135,10 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohor
 // Basically same goal as described in function above, but only count persons that have a non-null value for each
 // of the ids in the given filterConceptIds. So, using the example documented in the function above, it will
 // return something like:
-//  {ConceptValue: "A", NPersonsInCohortWithValue: M-X},
-//  {ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
+//
+//	{ConceptValue: "A", NPersonsInCohortWithValue: M-X},
+//	{ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
+//
 // where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 

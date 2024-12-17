@@ -75,7 +75,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 	return cohortData, nil
 }
 
-func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
 
 	cohortData := []*models.PersonConceptAndValue{}
 	return cohortData, nil
@@ -907,13 +907,13 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 
 	// mix of concept ids and CustomDichotomousVariableDef items:
 	conceptIdsAndCohortPairs := []interface{}{
-		int64(1234),
-		int64(5678),
+		utils.CustomConceptVariableDef{ConceptId: int64(1234), ConceptValues: []int64{}},
+		utils.CustomConceptVariableDef{ConceptId: int64(5678), ConceptValues: []int64{}},
 		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: 1,
 			CohortDefinitionId2: 2,
 			ProvidedName:        "testA12"},
-		int64(2090006880),
+		utils.CustomConceptVariableDef{ConceptId: int64(2090006880), ConceptValues: []int64{}},
 		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: 3,
 			CohortDefinitionId2: 4,

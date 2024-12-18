@@ -183,13 +183,13 @@ func ParseConceptIdsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface{
 }
 
 // deprecated: for backwards compatibility
-func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef, error) {
+func ParseConceptDefsAndDichotomousDefs(c *gin.Context) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef, error) {
 	conceptIdsAndCohortPairs, err := ParseConceptIdsAndDichotomousDefsAsSingleList(c)
 	if err != nil {
 		log.Printf("Error: %s", err)
 		return nil, nil, err
 	}
-	conceptIds, cohortPairs := GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	conceptIds, cohortPairs := GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	return conceptIds, cohortPairs, nil
 }
 
@@ -266,7 +266,7 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 }
 
 // separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list
-func GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
+func GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
 	conceptIdsAndValues := []CustomConceptVariableDef{}
 	cohortPairs := []CustomDichotomousVariableDef{}
 	for _, item := range conceptIdsAndCohortPairs {
@@ -286,7 +286,7 @@ func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64
 	if err != nil {
 		return -1, -1, nil, nil, err
 	}
-	conceptIdsAndValues, cohortPairs := GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	conceptIdsAndValues, cohortPairs := GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	conceptIds := ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 	return sourceId, cohortId, conceptIds, cohortPairs, nil
 }

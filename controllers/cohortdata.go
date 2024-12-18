@@ -40,7 +40,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		return
 	}
 
-	filterConceptIds, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
+	filterConceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
 		c.Abort()
@@ -59,7 +59,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		return
 	}
 
-	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, histogramConceptId, filterConceptIds, cohortPairs)
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, histogramConceptId, filterConceptIdsAndValues, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()
@@ -88,7 +88,7 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 		return
 	}
 
-	filterConceptIdsAndValues, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(c)
+	filterConceptIdsAndValues, cohortPairs, _ := utils.ParseConceptDefsAndDichotomousDefs(c)
 
 	sourceId, _ := strconv.Atoi(sourceIdStr)
 	cohortId, _ := strconv.Atoi(cohortIdStr)
@@ -133,7 +133,9 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 		return
 	}
 
-	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptIdsAndDichotomousDefs(c)
+	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
+	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
@@ -150,8 +152,6 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 		c.Abort()
 		return
 	}
-
-	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -300,7 +300,7 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
 	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
-	conceptIdsAndValues, cohortPairs, errors[3] = utils.ParseConceptIdsAndDichotomousDefs(c)
+	conceptIdsAndValues, cohortPairs, errors[3] = utils.ParseConceptDefsAndDichotomousDefs(c)
 	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{caseCohortId, controlCohortId}, cohortPairs)

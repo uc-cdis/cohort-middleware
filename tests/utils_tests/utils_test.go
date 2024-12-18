@@ -55,14 +55,14 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 		"{\"variable_type\": \"custom_dichotomous\", \"provided_name\": \"test\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
-	conceptIds, cohortPairs, _ := utils.ParseConceptIdsAndDichotomousDefs(requestContext)
+	conceptDefs, cohortPairs, _ := utils.ParseConceptDefsAndDichotomousDefs(requestContext)
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
 	}
 
-	expectedPrefixedConceptIds := []utils.CustomConceptVariableDef{{ConceptId: 2000000324, ConceptValues: []int64{}}, {ConceptId: 2000000123, ConceptValues: []int64{2000000237, 2000000238}}}
-	if !reflect.DeepEqual(conceptIds, expectedPrefixedConceptIds) {
-		t.Errorf("Expected %d but found %d", expectedPrefixedConceptIds, conceptIds)
+	expectedPrefixedConceptDefs := []utils.CustomConceptVariableDef{{ConceptId: 2000000324, ConceptValues: []int64{}}, {ConceptId: 2000000123, ConceptValues: []int64{2000000237, 2000000238}}}
+	if !reflect.DeepEqual(conceptDefs, expectedPrefixedConceptDefs) {
+		t.Errorf("Expected %d but found %d", expectedPrefixedConceptDefs, conceptDefs)
 	}
 
 	expectedCohortPairs := []utils.CustomDichotomousVariableDef{

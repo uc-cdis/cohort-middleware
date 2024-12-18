@@ -197,7 +197,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	_, cohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	_, cohortPairs := utils.GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -266,7 +266,7 @@ func (u ConceptController) GetAttritionRowForConceptIdsAndCohortPairs(sourceId i
 }
 
 func (u ConceptController) GetAttritionRowForConceptIdOrCohortPair(sourceId int, cohortId int, conceptIdOrCohortPair interface{}, filterConceptIdsAndCohortPairs []interface{}, breakdownConceptId int64, sortedConceptValues []string) ([]string, error) {
-	filterConceptIdsAndValues, filterCohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(filterConceptIdsAndCohortPairs)
+	filterConceptIdsAndValues, filterCohortPairs := utils.GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(filterConceptIdsAndCohortPairs)
 	filterConceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(filterConceptIdsAndValues)
 	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 	if err != nil {

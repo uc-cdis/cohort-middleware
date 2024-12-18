@@ -75,7 +75,7 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 	return cohortData, nil
 }
 
-func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
 
 	cohortData := []*models.PersonConceptAndValue{}
 	return cohortData, nil
@@ -907,13 +907,13 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 
 	// mix of concept ids and CustomDichotomousVariableDef items:
 	conceptIdsAndCohortPairs := []interface{}{
-		int64(1234),
-		int64(5678),
+		utils.CustomConceptVariableDef{ConceptId: int64(1234), ConceptValues: []int64{}},
+		utils.CustomConceptVariableDef{ConceptId: int64(5678), ConceptValues: []int64{}},
 		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: 1,
 			CohortDefinitionId2: 2,
 			ProvidedName:        "testA12"},
-		int64(2090006880),
+		utils.CustomConceptVariableDef{ConceptId: int64(2090006880), ConceptValues: []int64{}},
 		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: 3,
 			CohortDefinitionId2: 4,
@@ -1199,4 +1199,54 @@ func TestGenerateDataDictionary(t *testing.T) {
 		t.Errorf("Expected request to succeed")
 	}
 
+}
+
+func TestRetrieveStatsForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	//requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDataController.RetrieveStatsForCohortIdAndConceptId(requestContext)
+	// Params above are wrong, so request should abort:
+	if !requestContext.IsAborted() {
+		t.Errorf("should have aborted")
+	}
+}
+
+func TestRetrieveStatsForCohortIdAndConceptIdWithCorrectParams(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "conceptid", Value: "2000006885"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataController.RetrieveStatsForCohortIdAndConceptId(requestContext)
+	// Params above are correct, so request should NOT abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !strings.Contains(result.CustomResponseWriterOut, "statsData") {
+		t.Errorf("Expected output starting with 'statsData,...'")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveStatsForCohortIdAndConceptId(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
 }

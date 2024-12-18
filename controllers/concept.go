@@ -197,7 +197,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	_, cohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	_, cohortPairs := utils.GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -266,7 +266,8 @@ func (u ConceptController) GetAttritionRowForConceptIdsAndCohortPairs(sourceId i
 }
 
 func (u ConceptController) GetAttritionRowForConceptIdOrCohortPair(sourceId int, cohortId int, conceptIdOrCohortPair interface{}, filterConceptIdsAndCohortPairs []interface{}, breakdownConceptId int64, sortedConceptValues []string) ([]string, error) {
-	filterConceptIds, filterCohortPairs := utils.GetConceptIdsAndCohortPairsAsSeparateLists(filterConceptIdsAndCohortPairs)
+	filterConceptIdsAndValues, filterCohortPairs := utils.GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(filterConceptIdsAndCohortPairs)
+	filterConceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(filterConceptIdsAndValues)
 	breakdownStats, err := u.conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, filterConceptIds, filterCohortPairs, breakdownConceptId)
 	if err != nil {
 		return nil, fmt.Errorf("could not retrieve concept Breakdown for concepts %v dichotomous variables %v due to error: %s", filterConceptIds, filterCohortPairs, err.Error())
@@ -274,8 +275,8 @@ func (u ConceptController) GetAttritionRowForConceptIdOrCohortPair(sourceId int,
 	conceptValuesToPeopleCount := getConceptValueToPeopleCount(breakdownStats)
 	variableName := ""
 	switch convertedItem := conceptIdOrCohortPair.(type) {
-	case int64:
-		conceptInformation, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptId(sourceId, convertedItem)
+	case utils.CustomConceptVariableDef:
+		conceptInformation, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptId(sourceId, convertedItem.ConceptId)
 		if err != nil {
 			return nil, fmt.Errorf("could not retrieve concept details for %v due to error: %s", convertedItem, err.Error())
 		}

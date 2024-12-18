@@ -25,6 +25,27 @@ func QueryFilterByConceptIdsHelper(query *gorm.DB, sourceId int, filterConceptId
 	return query
 }
 
+// Same as Query Filter above but adds additional value filter as well
+func QueryFilterByConceptIdsAndValuesHelper(query *gorm.DB, sourceId int, filterConceptIdsAndValues []utils.CustomConceptVariableDef,
+	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string) *gorm.DB {
+	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
+	// set of persons that have a non-null value for each and every one of the concepts:
+	for i, filterConceptIdAndValue := range filterConceptIdsAndValues {
+		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
+		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
+		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
+			Where(observationTableAlias+".observation_concept_id = ?", filterConceptIdAndValue.ConceptId)
+
+		//If filter by value, add the value filtering clauses to the query
+		if len(filterConceptIdAndValue.ConceptValues) > 0 {
+			query = query.Where(observationTableAlias+".value_as_concept_id in ?", filterConceptIdAndValue.ConceptValues)
+		} else {
+			query = query.Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptIdAndValue.ConceptId))
+		}
+	}
+	return query
+}
+
 // Helper function that adds extra filter clauses to the query, for the given filterCohortPairs, intersecting on the
 // right set of tables, excluding data where necessary, etc.
 // It basically iterates over the list of filterCohortPairs, adding relevant INTERSECT and EXCEPT clauses, so that the resulting set is the

@@ -108,17 +108,24 @@ type CustomDichotomousVariableDef struct {
 	ProvidedName        string
 }
 
+type CustomConceptVariableDef struct {
+	ConceptId     int64
+	ConceptValues []int64
+}
+
 func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int) string {
 	return fmt.Sprintf("ID_%v_%v", firstCohortDefinitionId, secondCohortDefinitionId)
 }
 
 // This method expects a request body with a payload similar to the following example:
 // {"variables": [
-//   {variable_type: "concept", concept_id: 2000000324},
-//   {variable_type: "concept", concept_id: 2000006885},
-//   {variable_type: "custom_dichotomous", provided_name: "name1", cohort_ids: [cohortX_id, cohortY_id]},
-//   {variable_type: "custom_dichotomous", provided_name: "name2", cohort_ids: [cohortM_id, cohortN_id]},
-//       ...
+//
+//	{variable_type: "concept", concept_id: 2000000324},
+//	{variable_type: "concept", concept_id: 2000006885},
+//	{variable_type: "custom_dichotomous", provided_name: "name1", cohort_ids: [cohortX_id, cohortY_id]},
+//	{variable_type: "custom_dichotomous", provided_name: "name2", cohort_ids: [cohortM_id, cohortN_id]},
+//	    ...
+//
 // ]}
 // It returns the list with all concept_id values and custom dichotomous variable definitions.
 func ParseConceptIdsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface{}, error) {
@@ -140,7 +147,19 @@ func ParseConceptIdsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface{
 	// accessing them...needs to be fixed to throw better errors:
 	for _, variable := range variables {
 		if variable["variable_type"] == "concept" {
-			conceptIdsAndCohortPairs = append(conceptIdsAndCohortPairs, int64(variable["concept_id"].(float64)))
+			convertedConceptValues := []int64{}
+			values, ok := variable["values"].([]interface{})
+			// If the values are passed as parameter, add to list
+			if ok {
+				for _, val := range values {
+					convertedConceptValues = append(convertedConceptValues, int64(val.(float64)))
+				}
+			}
+			conceptVariableDef := CustomConceptVariableDef{
+				ConceptId:     int64(variable["concept_id"].(float64)),
+				ConceptValues: convertedConceptValues,
+			}
+			conceptIdsAndCohortPairs = append(conceptIdsAndCohortPairs, conceptVariableDef)
 		}
 		if variable["variable_type"] == "custom_dichotomous" {
 			cohortPair := []int{}
@@ -164,13 +183,13 @@ func ParseConceptIdsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface{
 }
 
 // deprecated: for backwards compatibility
-func ParseConceptIdsAndDichotomousDefs(c *gin.Context) ([]int64, []CustomDichotomousVariableDef, error) {
+func ParseConceptDefsAndDichotomousDefs(c *gin.Context) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef, error) {
 	conceptIdsAndCohortPairs, err := ParseConceptIdsAndDichotomousDefsAsSingleList(c)
 	if err != nil {
 		log.Printf("Error: %s", err)
 		return nil, nil, err
 	}
-	conceptIds, cohortPairs := GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	conceptIds, cohortPairs := GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	return conceptIds, cohortPairs, nil
 }
 
@@ -247,18 +266,18 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 }
 
 // separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list
-func GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]int64, []CustomDichotomousVariableDef) {
-	conceptIds := []int64{}
+func GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
+	conceptIdsAndValues := []CustomConceptVariableDef{}
 	cohortPairs := []CustomDichotomousVariableDef{}
 	for _, item := range conceptIdsAndCohortPairs {
 		switch convertedItem := item.(type) {
-		case int64:
-			conceptIds = append(conceptIds, convertedItem)
+		case CustomConceptVariableDef:
+			conceptIdsAndValues = append(conceptIdsAndValues, convertedItem)
 		case CustomDichotomousVariableDef:
 			cohortPairs = append(cohortPairs, convertedItem)
 		}
 	}
-	return conceptIds, cohortPairs
+	return conceptIdsAndValues, cohortPairs
 }
 
 // deprecated: returns the conceptIds and cohortPairs as separate lists (for backwards compatibility)
@@ -267,7 +286,8 @@ func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64
 	if err != nil {
 		return -1, -1, nil, nil, err
 	}
-	conceptIds, cohortPairs := GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	conceptIdsAndValues, cohortPairs := GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	conceptIds := ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 	return sourceId, cohortId, conceptIds, cohortPairs, nil
 }
 
@@ -346,5 +366,24 @@ func Subtract(list1 []int, list2 []int) []int {
 			result = append(result, list1Item)
 		}
 	}
+	return result
+}
+
+func ConvertConceptIdToCustomConceptVariablesDef(conceptIds []int64) []CustomConceptVariableDef {
+	result := []CustomConceptVariableDef{}
+	for _, val := range conceptIds {
+		variable := CustomConceptVariableDef{ConceptId: val, ConceptValues: []int64{}}
+		result = append(result, variable)
+	}
+
+	return result
+}
+
+func ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues []CustomConceptVariableDef) []int64 {
+	result := []int64{}
+	for _, val := range conceptIdsAndValues {
+		result = append(result, val.ConceptId)
+	}
+
 	return result
 }

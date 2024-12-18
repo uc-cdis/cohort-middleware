@@ -37,6 +37,7 @@ func QueryFilterByConceptIdsAndValuesHelper(query *gorm.DB, sourceId int, filter
 			Where(observationTableAlias+".observation_concept_id = ?", filterConceptIdAndValue.ConceptId).
 			Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptIdAndValue.ConceptId))
 
+		//If filter by value, add the value filtering clauses to the query
 		if len(filterConceptIdAndValue.ConceptValues) > 0 {
 			query = query.Where(observationTableAlias+".value_as_concept_id in ?", filterConceptIdAndValue.ConceptValues)
 		}

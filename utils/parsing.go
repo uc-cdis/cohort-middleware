@@ -267,17 +267,17 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 
 // separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list
 func GetConceptIdsAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
-	conceptIds := []CustomConceptVariableDef{}
+	conceptIdsAndValues := []CustomConceptVariableDef{}
 	cohortPairs := []CustomDichotomousVariableDef{}
 	for _, item := range conceptIdsAndCohortPairs {
 		switch convertedItem := item.(type) {
 		case CustomConceptVariableDef:
-			conceptIds = append(conceptIds, convertedItem)
+			conceptIdsAndValues = append(conceptIdsAndValues, convertedItem)
 		case CustomDichotomousVariableDef:
 			cohortPairs = append(cohortPairs, convertedItem)
 		}
 	}
-	return conceptIds, cohortPairs
+	return conceptIdsAndValues, cohortPairs
 }
 
 // deprecated: returns the conceptIds and cohortPairs as separate lists (for backwards compatibility)

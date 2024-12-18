@@ -34,12 +34,13 @@ func QueryFilterByConceptIdsAndValuesHelper(query *gorm.DB, sourceId int, filter
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
-			Where(observationTableAlias+".observation_concept_id = ?", filterConceptIdAndValue.ConceptId).
-			Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptIdAndValue.ConceptId))
+			Where(observationTableAlias+".observation_concept_id = ?", filterConceptIdAndValue.ConceptId)
 
 		//If filter by value, add the value filtering clauses to the query
 		if len(filterConceptIdAndValue.ConceptValues) > 0 {
 			query = query.Where(observationTableAlias+".value_as_concept_id in ?", filterConceptIdAndValue.ConceptValues)
+		} else {
+			query = query.Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptIdAndValue.ConceptId))
 		}
 	}
 	return query

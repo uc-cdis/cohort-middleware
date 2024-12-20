@@ -8,6 +8,7 @@ import (
 	"gorm.io/gorm"
 )
 
+// DEPRECATED - USE QueryFilterByConceptDefsHelper
 // Helper function that adds extra filter clauses to the query, joining on the right set of tables.
 //   - It was added here to make it reusable, given these filters need to be added to many of the queries that take in
 //     a list of filters in the form of concept ids.
@@ -26,21 +27,37 @@ func QueryFilterByConceptIdsHelper(query *gorm.DB, sourceId int, filterConceptId
 }
 
 // Same as Query Filter above but adds additional value filter as well
-func QueryFilterByConceptIdsAndValuesHelper(query *gorm.DB, sourceId int, filterConceptIdsAndValues []utils.CustomConceptVariableDef,
+func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptDefs []utils.CustomConceptVariableDef,
 	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string) *gorm.DB {
 	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
 	// set of persons that have a non-null value for each and every one of the concepts:
-	for i, filterConceptIdAndValue := range filterConceptIdsAndValues {
+	for i, filterConceptDef := range filterConceptDefs {
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
 		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
-			Where(observationTableAlias+".observation_concept_id = ?", filterConceptIdAndValue.ConceptId)
+			Where(observationTableAlias+".observation_concept_id = ?", filterConceptDef.ConceptId)
 
-		//If filter by value, add the value filtering clauses to the query
-		if len(filterConceptIdAndValue.ConceptValues) > 0 {
-			query = query.Where(observationTableAlias+".value_as_concept_id in ?", filterConceptIdAndValue.ConceptValues)
+		valueExpression := fmt.Sprintf("%s.value_as_number", observationTableAlias)
+		//If filters, add the value filtering clauses to the query
+		if len(filterConceptDef.Filters) > 0 {
+			for _, filter := range filterConceptDef.Filters {
+				switch filter.Type {
+				case ">", "<", ">=", "<=", "=", "!=":
+					if filter.Value != nil {
+						query = query.Where(fmt.Sprintf("%s %s ?", valueExpression, filter.Type), *filter.Value)
+					}
+				case "in": // tODO - should not accept transformation
+					if len(filter.Values) > 0 {
+						query = query.Where(fmt.Sprintf("%s.value_as_number IN (?)", observationTableAlias), filter.Values)
+					} else if len(filter.ValuesAsConceptIds) > 0 {
+						query = query.Where(fmt.Sprintf("%s.value_as_concept_id IN (?)", observationTableAlias), filter.ValuesAsConceptIds)
+					}
+				default:
+					log.Printf("Unsupported filter type: %s", filter.Type)
+				}
+			}
 		} else {
-			query = query.Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptIdAndValue.ConceptId))
+			query = query.Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptDef.ConceptId))
 		}
 	}
 	return query

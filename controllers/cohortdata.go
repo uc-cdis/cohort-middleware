@@ -29,26 +29,14 @@ func NewCohortDataController(cohortDataModel models.CohortDataI, dataDictionaryM
 }
 
 func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Context) {
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
+	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
 	histogramIdStr := c.Param("histogramid")
-	if sourceIdStr == "" || cohortIdStr == "" || histogramIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	if err != nil || histogramIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
 
-	filterConceptDefs, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
-		c.Abort()
-		return
-	}
-
-	sourceId, _ := strconv.Atoi(sourceIdStr)
-	cohortId, _ := strconv.Atoi(cohortIdStr)
 	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
 
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
@@ -58,10 +46,9 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		c.Abort()
 		return
 	}
-
-	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId, cohortId, histogramConceptId, filterConceptDefs, cohortPairs)
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId, cohortId, histogramConceptId, conceptIdsAndCohortPairs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving histogram data", "error": err.Error()})
 		c.Abort()
 		return
 	}

@@ -781,6 +781,85 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(
 
 }
 
+func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(t *testing.T) {
+	setUp(t)
+	filterConceptDefsPlusCohortPairs := []interface{}{}
+	data, error := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	if error != nil {
+		t.Errorf("Got error: %s", error)
+	}
+	// everyone in the largestCohort has the histogramConceptId, but one person has NULL in the value_as_number:
+	if len(data) != largestCohort.CohortSize-1 {
+		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize, len(data))
+	}
+
+	// now filter on the extendedCopyOfSecondLargestCohort
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test",
+		},
+	}
+	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	if len(data) != 5 {
+		t.Errorf("expected 5 histogram data but got %d", len(data))
+	}
+
+	// now add a concept filter:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000007027,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000007028},
+				},
+			},
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	if len(data) != 1 {
+		t.Errorf("expected 1 histogram data but got %d", len(data))
+	}
+
+	// another concept filter:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000006885,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(8.7),
+				},
+			},
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	if len(data) != 2 {
+		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
+
+	// now with a filter and a transformation:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000006885,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(8.7),
+				},
+			},
+			Transformation: "log",
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	if len(data) != 2 {
+		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
+}
+
 func TestRetrieveHistogramDataBySourceIdAndConceptId(t *testing.T) {
 	setUp(t)
 	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndConceptId(testSourceId, histogramConceptId)
@@ -827,7 +906,7 @@ func TestQueryFilterByConceptDefsHelper(t *testing.T) {
 
 	setUp(t)
 	omopDataSource := tests.GetOmopDataSource()
-	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{{ConceptId: allConceptIds[0], ConceptValues: []int64{}}, {ConceptId: allConceptIds[1], ConceptValues: []int64{}}, {ConceptId: allConceptIds[2], ConceptValues: []int64{}}}
+	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{{ConceptId: allConceptIds[0]}, {ConceptId: allConceptIds[1]}, {ConceptId: allConceptIds[2]}}
 	var personIds []struct {
 		PersonId int64
 	}
@@ -849,7 +928,16 @@ func TestQueryFilterByConceptDefsHelper(t *testing.T) {
 		t.Errorf("Expected an error")
 	}
 	// Subtest3: limit result set by concept value:
-	filterConceptIdsAndValues = []utils.CustomConceptVariableDef{{ConceptId: 2000007027, ConceptValues: []int64{2000007028}}}
+	filterConceptIdsAndValues = []utils.CustomConceptVariableDef{
+		{ConceptId: 2000007027,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000007028},
+				},
+			},
+		},
+	}
 
 	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
 		Select("*")

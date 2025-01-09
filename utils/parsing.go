@@ -105,7 +105,7 @@ type Variable struct {
 	VariableType   string   `json:"variable_type"`
 	ConceptId      *int64   `json:"concept_id,omitempty"`
 	Filters        []Filter `json:"filters,omitempty"`
-	Transformation *string  `json:"transformation,omitempty"`
+	Transformation string   `json:"transformation,omitempty"`
 	ProvidedName   *string  `json:"provided_name,omitempty"`
 	CohortIds      []int    `json:"cohort_ids,omitempty"`
 }
@@ -128,7 +128,7 @@ type CustomDichotomousVariableDef struct {
 type CustomConceptVariableDef struct {
 	ConceptId      int64
 	Filters        []Filter
-	Transformation *string
+	Transformation string
 }
 
 func GetCohortPairKey(firstCohortDefinitionId int, secondCohortDefinitionId int) string {
@@ -221,8 +221,8 @@ func parseConceptVariable(variable Variable) (CustomConceptVariableDef, error) {
 	var validTransformationTypes = map[string]bool{
 		"log": true, "inverse_normal_rank": true, "z_score": true, "box_cox": true,
 	}
-	if variable.Transformation != nil && !validTransformationTypes[*variable.Transformation] {
-		return CustomConceptVariableDef{}, errors.New("invalid transformation type: " + *variable.Transformation)
+	if variable.Transformation != "" && !validTransformationTypes[variable.Transformation] {
+		return CustomConceptVariableDef{}, errors.New("invalid transformation type: " + variable.Transformation)
 	}
 
 	return CustomConceptVariableDef{
@@ -453,4 +453,9 @@ func ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues []Custom
 	}
 
 	return result
+}
+
+// returns the pointer to a float value
+func Float64Ptr(v float64) *float64 {
+	return &v
 }

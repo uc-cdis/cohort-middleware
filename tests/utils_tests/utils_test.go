@@ -51,7 +51,7 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324}," +
-		"{\"variable_type\": \"concept\", \"concept_id\": 2000000123, \"values\": [2000000237, 2000000238]}," +
+		"{\"variable_type\": \"concept\", \"concept_id\": 2000000123, \"filters\": [{\"type\": \"in\", \"values_as_concept_ids\": [2000000237, 2000000238]}]}," +
 		"{\"variable_type\": \"custom_dichotomous\", \"provided_name\": \"test\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
@@ -60,9 +60,20 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 		t.Errorf("Did not expect this request to abort")
 	}
 
-	expectedPrefixedConceptDefs := []utils.CustomConceptVariableDef{{ConceptId: 2000000324, ConceptValues: []int64{}}, {ConceptId: 2000000123, ConceptValues: []int64{2000000237, 2000000238}}}
+	expectedPrefixedConceptDefs := []utils.CustomConceptVariableDef{
+		{ConceptId: 2000000324},
+		{ConceptId: 2000000123,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000000237, 2000000238},
+				},
+			},
+		},
+	}
+
 	if !reflect.DeepEqual(conceptDefs, expectedPrefixedConceptDefs) {
-		t.Errorf("Expected %d but found %d", expectedPrefixedConceptDefs, conceptDefs)
+		t.Errorf("Expected %v but found %v", expectedPrefixedConceptDefs, conceptDefs)
 	}
 
 	expectedCohortPairs := []utils.CustomDichotomousVariableDef{
@@ -336,7 +347,7 @@ func TestGenerateStatsData(t *testing.T) {
 func TestConvertConceptIdToCustomConceptVariablesDef(t *testing.T) {
 	setUp(t)
 
-	expectedResult := []utils.CustomConceptVariableDef{{ConceptId: 1234, ConceptValues: []int64{}}, {ConceptId: 5678, ConceptValues: []int64{}}}
+	expectedResult := []utils.CustomConceptVariableDef{{ConceptId: 1234}, {ConceptId: 5678}}
 	conceptIds := []int64{1234, 5678}
 	result := utils.ConvertConceptIdToCustomConceptVariablesDef(conceptIds)
 
@@ -348,7 +359,17 @@ func TestConvertConceptIdToCustomConceptVariablesDef(t *testing.T) {
 func TestExtractConceptIdsFromCustomConceptVariablesDef(t *testing.T) {
 	setUp(t)
 
-	var testData = []utils.CustomConceptVariableDef{{ConceptId: 1234, ConceptValues: []int64{7890}}, {ConceptId: 5678, ConceptValues: []int64{}}}
+	var testData = []utils.CustomConceptVariableDef{
+		{ConceptId: 1234,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{7890},
+				},
+			},
+		},
+		{ConceptId: 5678},
+	}
 	expectedResult := []int64{1234, 5678}
 	result := utils.ExtractConceptIdsFromCustomConceptVariablesDef(testData)
 	if !reflect.DeepEqual(expectedResult, result) {

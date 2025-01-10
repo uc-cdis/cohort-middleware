@@ -117,7 +117,7 @@ type Filter struct {
 	Value              *float64  `json:"value,omitempty"`
 	Values             []float64 `json:"values,omitempty"`
 	ValueAsConceptId   *int64    `json:"value_as_concept_id,omitempty"`
-	ValuesAsConceptIds []int64   `json:"values_as_concept_id,omitempty"`
+	ValuesAsConceptIds []int64   `json:"values_as_concept_ids,omitempty"`
 }
 
 // fields that define a custom dichotomous variable:

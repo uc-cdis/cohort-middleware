@@ -116,7 +116,7 @@ func CreateAndFillTempTable(query *gorm.DB, tempTableName string, querySQL strin
 		switch filterConceptDef.Transformation {
 		case "log":
 			tempTableSQL := fmt.Sprintf("CREATE TEMPORARY TABLE %s AS (SELECT person_id, observation_concept_id, LOG(value_as_number) as value_as_number FROM (%s) AS T)", tempTableName, querySQL)
-			// TODO - could add filter here already to reduce temp table size
+			// TODO - could add filter here already to reduce temp table size...although it would incurr in many caches if the filter keeps changing by small amounts...
 			log.Printf("Creating new temp table: %s", tempTableName)
 
 			// Execute the SQL to create and fill the temp table
@@ -130,8 +130,15 @@ func CreateAndFillTempTable(query *gorm.DB, tempTableName string, querySQL strin
 			log.Printf("inverse_normal_rank transformation logic needs to be implemented")
 			return
 		case "z_score":
-			//valueExpression = "(" + observationTableAlias + ".value - AVG(" + observationTableAlias + ".value) OVER ()) / STDDEV(" + observationTableAlias + ".value) OVER ()"
-			log.Printf("z_score transformation logic needs to be implemented")
+			tempTableSQL := fmt.Sprintf("CREATE TEMPORARY TABLE %s AS (SELECT person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / STDDEV(value_as_number) OVER () as value_as_number FROM (%s) AS T)", tempTableName, querySQL)
+			// TODO - could add filter here already to reduce temp table size...although it would incurr in many caches if the filter keeps changing by small amounts...
+			log.Printf("Creating new temp table: %s", tempTableName)
+
+			// Execute the SQL to create and fill the temp table
+			if err := query.Exec(tempTableSQL).Error; err != nil {
+				log.Fatalf("Failed to create temp table: %v", err)
+				panic("error")
+			}
 			return
 		case "box_cox":
 			// Placeholder: implement Box-Cox transformation logic as per requirements

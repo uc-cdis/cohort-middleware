@@ -863,6 +863,25 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 	if *data[0].ConceptValueAsNumber > 1 || *data[1].ConceptValueAsNumber > 1.0 {
 		t.Errorf("expected log transformed values but got values that look untransformed")
 	}
+
+	// now with a Z-score filter and transformation:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000006885,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "z_score",
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	// make sure the filter worked on transformed values:
+	if len(data) != 2 {
+		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
 }
 
 func TestRetrieveHistogramDataBySourceIdAndConceptId(t *testing.T) {

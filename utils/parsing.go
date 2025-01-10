@@ -1,6 +1,8 @@
 package utils
 
 import (
+	"crypto/sha256"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
 	"fmt"
@@ -458,4 +460,10 @@ func ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues []Custom
 // returns the pointer to a float value
 func Float64Ptr(v float64) *float64 {
 	return &v
+}
+
+// Creates a unique hash from a given string
+func GenerateHash(input string) string {
+	hash := sha256.Sum256([]byte(input))
+	return hex.EncodeToString(hash[:]) // Convert to hexadecimal string
 }

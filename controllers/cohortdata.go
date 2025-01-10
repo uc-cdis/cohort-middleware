@@ -36,9 +36,15 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		c.Abort()
 		return
 	}
-
 	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
 
+	// parse cohortPairs separately as well, so we can validate permissions
+	_, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
+		c.Abort()
+		return
+	}
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -46,6 +52,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		c.Abort()
 		return
 	}
+
 	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId, cohortId, histogramConceptId, conceptIdsAndCohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving histogram data", "error": err.Error()})

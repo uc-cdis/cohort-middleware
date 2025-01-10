@@ -848,15 +848,20 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 			Filters: []utils.Filter{
 				{
 					Type:  ">=",
-					Value: utils.Float64Ptr(8.7),
+					Value: utils.Float64Ptr(0.939519252),
 				},
 			},
 			Transformation: "log",
 		},
 	}
 	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	// make sure the filter worked on transformed values:
 	if len(data) != 2 {
 		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
+	// check if the values in the returned data buckets are transformed:
+	if *data[0].ConceptValueAsNumber > 1 || *data[1].ConceptValueAsNumber > 1.0 {
+		t.Errorf("expected log transformed values but got values that look untransformed")
 	}
 }
 

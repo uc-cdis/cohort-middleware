@@ -105,11 +105,15 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	finalSetAlias := "final_set_alias"
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	query := QueryFilterByConceptDefsPlusCohortPairsHelper(sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias).
-		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-		Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
-		Where("observation.observation_concept_id = ?", histogramConceptId).
-		Where("observation.value_as_number is not null")
+	query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
+	if tmpTableName != "" {
+		query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
+	} else {
+		query = query.Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
+			Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
+			Where("observation.observation_concept_id = ?", histogramConceptId).
+			Where("observation.value_as_number is not null")
+	}
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

@@ -239,7 +239,7 @@ func parseCustomDichotomousVariable(variable Variable) (CustomDichotomousVariabl
 		return CustomDichotomousVariableDef{}, errors.New("custom dichotomous variable must have exactly 2 cohort_ids")
 	}
 
-	providedName := "default_name"
+	providedName := GetCohortPairKey(variable.CohortIds[0], variable.CohortIds[1])
 	if variable.ProvidedName != nil {
 		providedName = *variable.ProvidedName
 	}

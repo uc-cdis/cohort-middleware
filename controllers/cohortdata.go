@@ -30,9 +30,15 @@ func NewCohortDataController(cohortDataModel models.CohortDataI, dataDictionaryM
 
 func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Context) {
 	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
-	histogramIdStr := c.Param("histogramid")
-	if err != nil || histogramIdStr == "" {
+	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
+	histogramIdStr := c.Param("histogramid")
+	if histogramIdStr == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": "missing histogramid parameter in request"})
 		c.Abort()
 		return
 	}

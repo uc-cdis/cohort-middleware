@@ -844,7 +844,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 	// now with a filter and a transformation:
 	filterConceptDefsPlusCohortPairs = []interface{}{
 		utils.CustomConceptVariableDef{
-			ConceptId: 2000006885,
+			ConceptId: histogramConceptId,
 			Filters: []utils.Filter{
 				{
 					Type:  ">=",
@@ -867,7 +867,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 	// now with a Z-score filter and transformation:
 	filterConceptDefsPlusCohortPairs = []interface{}{
 		utils.CustomConceptVariableDef{
-			ConceptId: 2000006885,
+			ConceptId: histogramConceptId,
 			Filters: []utils.Filter{
 				{
 					Type:  ">=",

@@ -86,6 +86,9 @@ func (h DbAndSchema) GetViewDirective() string {
 
 func ToSQL(query *gorm.DB) (string, error) {
 	var dummy []interface{}
+	log.Printf("Statement.SQL: %s", query.Statement.SQL.String())
+	log.Printf("TableExpr.SQL: %s", query.Statement.TableExpr.SQL)
+	log.Printf("Clauses: %+v", query.Statement.Clauses)
 	sqlString := query.Session(&gorm.Session{DryRun: true}).Find(&dummy).Statement.SQL.String()
 	interpolatedSQL, err := InterpolateSQL(query, sqlString)
 

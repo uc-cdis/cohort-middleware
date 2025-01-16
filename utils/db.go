@@ -83,14 +83,28 @@ func (h DbAndSchema) GetViewDirective() string {
 		return ""
 	}
 }
+func ToSQL2(query *gorm.DB) (string, error) {
+	// Use db.ToSQL to generate the SQL string for the existing query
+	sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Session(&gorm.Session{DryRun: true}).Find([]interface{}{})
+	})
+
+	return sql, nil
+}
 
 func ToSQL(query *gorm.DB) (string, error) {
-	var dummy []interface{}
+	//var dummy []interface{}
 	log.Printf("Statement.SQL: %s", query.Statement.SQL.String())
 	log.Printf("TableExpr.SQL: %s", query.Statement.TableExpr.SQL)
-	log.Printf("Clauses: %+v", query.Statement.Clauses)
-	sqlString := query.Session(&gorm.Session{DryRun: true}).Find(&dummy).Statement.SQL.String()
-	interpolatedSQL, err := InterpolateSQL(query, sqlString)
+	log.Printf("Clauses: %+v", query.Statement.Clauses) // TODO - REMOVE?
+	//sqlString := query.Session(&gorm.Session{DryRun: true}).Find(&dummy).Statement.SQL.String()
+	// if sqlString == "" {
+	// 	sqlString, _ = ToSQL2(query)
+	// }
+	sqlString2, _ := ToSQL2(query)
+	log.Printf("Statement.SQL: %s", sqlString2)
+
+	interpolatedSQL, err := InterpolateSQL(query, sqlString2)
 
 	return interpolatedSQL, err
 }

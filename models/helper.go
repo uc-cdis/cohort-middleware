@@ -127,7 +127,7 @@ func QueryFilterByConceptDefHelper2(query *gorm.DB, sourceId int, filterConceptD
 // Returns the temp table name.
 func TransformDataIntoTempTable(query *gorm.DB, filterConceptDef utils.CustomConceptVariableDef) (string, error) {
 	// Generate a unique hash key based on the query and transformation
-	querySQL, _ := utils.ToSQL(query)
+	querySQL := utils.ToSQL(query)
 	queryKey := fmt.Sprintf("%s|%s", querySQL, filterConceptDef.Transformation)
 	cacheKey := utils.GenerateHash(queryKey) // Assuming utils.GenerateHash exists for creating unique keys.
 

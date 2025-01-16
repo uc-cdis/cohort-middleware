@@ -94,7 +94,7 @@ func ToSQL2(query *gorm.DB) (string, error) {
 
 func ToSQL(query *gorm.DB) (string, error) {
 	//var dummy []interface{}
-	log.Printf("Statement.SQL: %s", query.Statement.SQL.String())
+	//log.Printf("Statement.SQL: %s", query.Statement.SQL.String())
 	log.Printf("TableExpr.SQL: %s", query.Statement.TableExpr.SQL)
 	log.Printf("Clauses: %+v", query.Statement.Clauses) // TODO - REMOVE?
 	//sqlString := query.Session(&gorm.Session{DryRun: true}).Find(&dummy).Statement.SQL.String()
@@ -104,9 +104,9 @@ func ToSQL(query *gorm.DB) (string, error) {
 	sqlString2, _ := ToSQL2(query)
 	log.Printf("Statement.SQL: %s", sqlString2)
 
-	interpolatedSQL, err := InterpolateSQL(query, sqlString2)
+	//interpolatedSQL, err := InterpolateSQL(query, sqlString2)
 
-	return interpolatedSQL, err
+	return sqlString2, nil
 }
 
 // Replaces placeholders in SQL with actual values,

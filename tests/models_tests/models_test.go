@@ -790,7 +790,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 	}
 	// everyone in the largestCohort has the histogramConceptId, but one person has NULL in the value_as_number:
 	if len(data) != largestCohort.CohortSize-1 {
-		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize, len(data))
+		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize-1, len(data))
 	}
 
 	// now filter on the extendedCopyOfSecondLargestCohort

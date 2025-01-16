@@ -21,8 +21,10 @@ func QueryFilterByConceptDefsPlusCohortPairsHelper(sourceId int, mainCohortDefin
 	// Caching of temporary tables: for optimal performance, a temporary table dictionary / cache is updated, keeping a mapping
 	// of existing temporary table names vs underlying subsets of items in filterConceptDefsAndCohortPairs that gave rise to these
 	// tables.
-	finalSQL := "(SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? )" + " as " + finalSetAlias + " "
-	query := resultsDataSource.Db.Table(finalSQL, mainCohortDefinitionId)
+	query := resultsDataSource.Db.Table(resultsDataSource.Schema+".cohort as "+finalSetAlias).
+		Select("*").
+		Where("cohort_definition_id=?", mainCohortDefinitionId)
+
 	tmpTableName := ""
 	for i, item := range filterConceptDefsAndCohortPairs {
 		tableAlias := fmt.Sprintf("filter_%d", i)

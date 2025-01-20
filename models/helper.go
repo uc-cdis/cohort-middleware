@@ -152,7 +152,7 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 		case "log":
 			tempTableSQL, finalTempTableName, _ := TempTableSQLAndFinalName(omopDataSource, tempTableName,
 				"person_id, observation_concept_id, LOG(value_as_number) as value_as_number",
-				querySQL)
+				querySQL, "value_as_number > 0")
 			log.Printf("Creating new temp table: %s", tempTableName)
 
 			// Execute the SQL to create and fill the temp table
@@ -168,7 +168,7 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 		case "z_score":
 			tempTableSQL, finalTempTableName, _ := TempTableSQLAndFinalName(omopDataSource, tempTableName,
 				"person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / STDDEV(value_as_number) OVER () as value_as_number",
-				querySQL)
+				querySQL, "")
 			log.Printf("Creating new temp table: %s", tempTableName)
 
 			// Execute the SQL to create and fill the temp table
@@ -189,19 +189,22 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 	panic("error")
 }
 
-func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName string, selectStatement string, fromSQL string) (string, string, error) {
+func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName string, selectStatement string, fromSQL string, extraWhereSQL string) (string, string, error) {
 	var tempTableSQL string
+	if extraWhereSQL == "" {
+		extraWhereSQL = "1=1"
+	}
 	finalTempTableName := tempTableName
 	if omopDataSource.Vendor == "postgresql" {
 		tempTableSQL = fmt.Sprintf(
-			"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T)",
-			tempTableName, selectStatement, fromSQL,
+			"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T WHERE %s)",
+			tempTableName, selectStatement, fromSQL, extraWhereSQL,
 		)
 	} else if omopDataSource.Vendor == "sqlserver" {
 		finalTempTableName = "#" + tempTableName // Local temp table for MSSQL
 		tempTableSQL = fmt.Sprintf(
-			"SELECT %s INTO %s FROM (%s) AS T",
-			selectStatement, finalTempTableName, fromSQL,
+			"SELECT %s INTO %s FROM (%s) T WHERE %s",
+			selectStatement, finalTempTableName, fromSQL, extraWhereSQL,
 		)
 	} else {
 		return "", "", fmt.Errorf("unsupported database type: %s", omopDataSource.Vendor)

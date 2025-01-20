@@ -928,6 +928,33 @@ func TestTransformDataIntoTempTable(t *testing.T) {
 	if tmpTableName1 == tmpTableName3 {
 		t.Errorf("tmp table should have a new one")
 	}
+
+	// test log transformation
+	filterConceptDef =
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000006885,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "log",
+		}
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest3 "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName4, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName4 == "" {
+		t.Errorf("tmp table should have been created")
+	}
+	// what happens if values are negative:
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number*(-1) as value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest4 "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName5, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName5 == "" {
+		t.Errorf("tmp table should have been created since log transformation filters out negative values and therefore does not crash")
+	}
+
 }
 
 func TestQueryFilterByConceptIdsHelper(t *testing.T) {

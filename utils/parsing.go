@@ -8,6 +8,8 @@ import (
 	"fmt"
 	"log"
 	"strconv"
+	"sync"
+	"time"
 
 	"github.com/gin-gonic/gin"
 )
@@ -466,4 +468,14 @@ func Float64Ptr(v float64) *float64 {
 func GenerateHash(input string) string {
 	hash := sha256.Sum256([]byte(input))
 	return hex.EncodeToString(hash[:]) // Convert to hexadecimal string
+}
+
+var mu sync.Mutex
+
+// A unique ID based on timestamp
+func GenerateSynchronizedTimestampID() string {
+	mu.Lock()
+	defer mu.Unlock()
+
+	return fmt.Sprintf("%x", time.Now().UnixNano())
 }

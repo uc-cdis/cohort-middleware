@@ -915,16 +915,16 @@ func TestTransformDataIntoTempTable(t *testing.T) {
 	querySQL := "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest "
 	query := resultsDataSource.Db.Table(querySQL)
 
-	tmpTableName1, _ := models.TransformDataIntoTempTable(query, filterConceptDef)
+	tmpTableName1, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 	// repeat the exact same query...it should return the same temp table:
-	tmpTableName2, _ := models.TransformDataIntoTempTable(query, filterConceptDef)
+	tmpTableName2, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 	if tmpTableName1 != tmpTableName2 {
 		t.Errorf("tmp table should have been reused")
 	}
 	// do a slightly different query...and the temp table should be a different one:
 	querySQL = "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest2 "
 	query = resultsDataSource.Db.Table(querySQL)
-	tmpTableName3, _ := models.TransformDataIntoTempTable(query, filterConceptDef)
+	tmpTableName3, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 	if tmpTableName1 == tmpTableName3 {
 		t.Errorf("tmp table should have a new one")
 	}

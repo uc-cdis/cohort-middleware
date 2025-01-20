@@ -137,7 +137,7 @@ func TransformDataIntoTempTable(omopDataSource *utils.DbAndSchema, query *gorm.D
 		return cachedTableName.(string), nil
 	}
 	// Create a unique temporary table name
-	tempTableName := fmt.Sprintf("tmp_transformed_%s", cacheKey[:64]) // Use the first 64 chars of the hash for brevity - a collision will cause the CREATE stament below to fail
+	tempTableName := fmt.Sprintf("tmp_transformed_%s", utils.GenerateSynchronizedTimestampID())
 
 	finalTempTableName := CreateAndFillTempTable(omopDataSource, query, tempTableName, querySQL, filterConceptDef)
 
@@ -201,7 +201,7 @@ func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName s
 		finalTempTableName = "#" + tempTableName // Local temp table for MSSQL
 		tempTableSQL = fmt.Sprintf(
 			"SELECT %s INTO %s FROM (%s) AS T",
-			selectStatement, tempTableName, fromSQL,
+			selectStatement, finalTempTableName, fromSQL,
 		)
 	} else {
 		return "", "", fmt.Errorf("unsupported database type: %s", omopDataSource.Vendor)

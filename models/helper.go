@@ -70,7 +70,7 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 		simpleFilterConceptDef := utils.CustomConceptVariableDef{ConceptId: filterConceptDef.ConceptId}
 		resultingQuery := QueryFilterByConceptDefHelper2(query, sourceId, simpleFilterConceptDef,
 			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias)
-		tmpTransformedTable, err := TransformDataIntoTempTable(resultingQuery, filterConceptDef)
+		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, resultingQuery, filterConceptDef)
 		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries. TODO2 - ensure the transform method also filters....
 		resultingQuery = QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef, //TODO - turn around
 			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias)
@@ -125,11 +125,11 @@ func QueryFilterByConceptDefHelper2(query *gorm.DB, sourceId int, filterConceptD
 // and the temp table name as the value. This allows the method to reuse a temp table if
 // one has already been made for this combination.
 // Returns the temp table name.
-func TransformDataIntoTempTable(query *gorm.DB, filterConceptDef utils.CustomConceptVariableDef) (string, error) {
+func TransformDataIntoTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, filterConceptDef utils.CustomConceptVariableDef) (string, error) {
 	// Generate a unique hash key based on the query and transformation
 	querySQL := utils.ToSQL(query)
 	queryKey := fmt.Sprintf("%s|%s", querySQL, filterConceptDef.Transformation)
-	cacheKey := utils.GenerateHash(queryKey) // Assuming utils.GenerateHash exists for creating unique keys.
+	cacheKey := utils.GenerateHash(queryKey) // TODO - review
 
 	// Check if the temporary table already exists in the cache
 	if cachedTableName, exists := utils.TempTableCache.Get(cacheKey); exists {
@@ -139,20 +139,20 @@ func TransformDataIntoTempTable(query *gorm.DB, filterConceptDef utils.CustomCon
 	// Create a unique temporary table name
 	tempTableName := fmt.Sprintf("tmp_transformed_%s", cacheKey[:64]) // Use the first 64 chars of the hash for brevity - a collision will cause the CREATE stament below to fail
 
-	CreateAndFillTempTable(query, tempTableName, querySQL, filterConceptDef)
+	finalTempTableName := CreateAndFillTempTable(omopDataSource, query, tempTableName, querySQL, filterConceptDef)
 
 	// Cache the temp table name
-	utils.TempTableCache.Set(cacheKey, tempTableName)
-	return tempTableName, nil
+	utils.TempTableCache.Set(cacheKey, finalTempTableName)
+	return finalTempTableName, nil
 }
 
-func CreateAndFillTempTable(query *gorm.DB, tempTableName string, querySQL string, filterConceptDef utils.CustomConceptVariableDef) {
-
+func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, tempTableName string, querySQL string, filterConceptDef utils.CustomConceptVariableDef) string {
 	if filterConceptDef.Transformation != "" {
 		switch filterConceptDef.Transformation {
 		case "log":
-			tempTableSQL := fmt.Sprintf("CREATE TEMPORARY TABLE %s AS (SELECT person_id, observation_concept_id, LOG(value_as_number) as value_as_number FROM (%s) AS T)", tempTableName, querySQL)
-			// TODO - could add filter here already to reduce temp table size...although it would incurr in many caches if the filter keeps changing by small amounts...
+			tempTableSQL, finalTempTableName, _ := TempTableSQLAndFinalName(omopDataSource, tempTableName,
+				"person_id, observation_concept_id, LOG(value_as_number) as value_as_number",
+				querySQL)
 			log.Printf("Creating new temp table: %s", tempTableName)
 
 			// Execute the SQL to create and fill the temp table
@@ -160,14 +160,15 @@ func CreateAndFillTempTable(query *gorm.DB, tempTableName string, querySQL strin
 				log.Fatalf("Failed to create temp table: %v", err)
 				panic("error")
 			}
-			return
+			return finalTempTableName
 		case "inverse_normal_rank":
 			// Implement a custom SQL function or transformation if needed
 			log.Printf("inverse_normal_rank transformation logic needs to be implemented")
-			return
+			panic("TODO")
 		case "z_score":
-			tempTableSQL := fmt.Sprintf("CREATE TEMPORARY TABLE %s AS (SELECT person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / STDDEV(value_as_number) OVER () as value_as_number FROM (%s) AS T)", tempTableName, querySQL)
-			// TODO - could add filter here already to reduce temp table size...although it would incurr in many caches if the filter keeps changing by small amounts...
+			tempTableSQL, finalTempTableName, _ := TempTableSQLAndFinalName(omopDataSource, tempTableName,
+				"person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / STDDEV(value_as_number) OVER () as value_as_number",
+				querySQL)
 			log.Printf("Creating new temp table: %s", tempTableName)
 
 			// Execute the SQL to create and fill the temp table
@@ -175,15 +176,37 @@ func CreateAndFillTempTable(query *gorm.DB, tempTableName string, querySQL strin
 				log.Fatalf("Failed to create temp table: %v", err)
 				panic("error")
 			}
-			return
+			return finalTempTableName
 		case "box_cox":
 			// Placeholder: implement Box-Cox transformation logic as per requirements
 			log.Printf("box_cox transformation logic needs to be implemented")
-			return
+			return ""
 		default:
-			log.Printf("Unsupported transformation type: %s", filterConceptDef.Transformation)
+			log.Fatalf("Unsupported transformation type: %s", filterConceptDef.Transformation)
+			panic("error")
 		}
 	}
+	panic("error")
+}
+
+func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName string, selectStatement string, fromSQL string) (string, string, error) {
+	var tempTableSQL string
+	finalTempTableName := tempTableName
+	if omopDataSource.Vendor == "postgresql" {
+		tempTableSQL = fmt.Sprintf(
+			"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T)",
+			tempTableName, selectStatement, fromSQL,
+		)
+	} else if omopDataSource.Vendor == "sqlserver" {
+		finalTempTableName = "#" + tempTableName // Local temp table for MSSQL
+		tempTableSQL = fmt.Sprintf(
+			"SELECT %s INTO %s FROM (%s) AS T",
+			selectStatement, tempTableName, fromSQL,
+		)
+	} else {
+		return "", "", fmt.Errorf("unsupported database type: %s", omopDataSource.Vendor)
+	}
+	return tempTableSQL, finalTempTableName, nil
 }
 
 func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptDefs []utils.CustomConceptVariableDef,

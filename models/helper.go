@@ -69,12 +69,12 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 		// simple filterConceptDef with just the concept id
 		simpleFilterConceptDef := utils.CustomConceptVariableDef{ConceptId: filterConceptDef.ConceptId}
 		resultingQuery := QueryFilterByConceptDefHelper2(query, sourceId, simpleFilterConceptDef,
-			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias)
+			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias+"_a")
 		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, resultingQuery, filterConceptDef)
 		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries. TODO2 - ensure the transform method also filters....
 		resultingQuery = QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef, //TODO - turn around
-			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias)
-		return resultingQuery, tmpTransformedTable, err
+			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b")
+		return resultingQuery, observationTableAlias + "_b", err
 
 	} else {
 		// simple filterConceptDef with no transformation
@@ -88,9 +88,9 @@ func QueryFilterByConceptDefHelper2(query *gorm.DB, sourceId int, filterConceptD
 	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string, observationDataSource string, observationTableAlias string) *gorm.DB {
 	log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 	aliasedObservationDataSource := omopDataSource.Schema + "." + observationDataSource + " as " + observationTableAlias + omopDataSource.GetViewDirective()
-	if strings.HasPrefix(observationDataSource, "tmp_") {
-		aliasedObservationDataSource = observationDataSource
-		observationTableAlias = aliasedObservationDataSource
+	// for temp table, the alias is slightly different:
+	if strings.HasPrefix(observationDataSource, "tmp_") || strings.HasPrefix(observationDataSource, "#tmp_") {
+		aliasedObservationDataSource = observationDataSource + " as " + observationTableAlias
 	}
 	query = query.Joins("INNER JOIN "+aliasedObservationDataSource+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
 		Where(observationTableAlias+".observation_concept_id = ?", filterConceptDef.ConceptId)

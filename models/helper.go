@@ -89,7 +89,7 @@ func QueryFilterByConceptDefHelper2(query *gorm.DB, sourceId int, filterConceptD
 	log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 	aliasedObservationDataSource := omopDataSource.Schema + "." + observationDataSource + " as " + observationTableAlias + omopDataSource.GetViewDirective()
 	// for temp table, the alias is slightly different:
-	if strings.HasPrefix(observationDataSource, "tmp_") || strings.HasPrefix(observationDataSource, "#tmp_") {
+	if strings.HasPrefix(observationDataSource, "tmp_") || strings.HasPrefix(observationDataSource, "##tmp_") {
 		aliasedObservationDataSource = observationDataSource + " as " + observationTableAlias
 	}
 	query = query.Joins("INNER JOIN "+aliasedObservationDataSource+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
@@ -204,7 +204,7 @@ func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName s
 		tempTableName, selectStatement, fromSQL, extraWhereSQL,
 	)
 	if omopDataSource.Vendor == "sqlserver" {
-		finalTempTableName = "#" + tempTableName // Local temp table for MSSQL
+		finalTempTableName = "##" + tempTableName // Global temp table for MSSQL
 		tempTableSQL = fmt.Sprintf(
 			"SELECT %s INTO %s FROM (%s) T WHERE %s",
 			selectStatement, finalTempTableName, fromSQL, extraWhereSQL,

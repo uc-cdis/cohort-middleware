@@ -150,8 +150,8 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 	if filterConceptDef.Transformation != "" {
 		switch filterConceptDef.Transformation {
 		case "log":
-			tempTableSQL, finalTempTableName, _ := TempTableSQLAndFinalName(omopDataSource, tempTableName,
-				"person_id, observation_concept_id, LOG(value_as_number) as value_as_number",
+			tempTableSQL, finalTempTableName := TempTableSQLAndFinalName(omopDataSource, tempTableName,
+				"person_id, observation_concept_id, CASE WHEN value_as_number > 0 THEN LOG(value_as_number) ELSE NULL END AS value_as_number",
 				querySQL, "value_as_number > 0")
 			log.Printf("Creating new temp table: %s", tempTableName)
 
@@ -166,8 +166,12 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 			log.Printf("inverse_normal_rank transformation logic needs to be implemented")
 			panic("TODO")
 		case "z_score":
-			tempTableSQL, finalTempTableName, _ := TempTableSQLAndFinalName(omopDataSource, tempTableName,
-				"person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / STDDEV(value_as_number) OVER () as value_as_number",
+			stdDevFunc := "STDDEV"
+			if omopDataSource.Vendor == "sqlserver" {
+				stdDevFunc = "STDEV"
+			}
+			tempTableSQL, finalTempTableName := TempTableSQLAndFinalName(omopDataSource, tempTableName,
+				"person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / "+stdDevFunc+"(value_as_number) OVER () as value_as_number",
 				querySQL, "")
 			log.Printf("Creating new temp table: %s", tempTableName)
 
@@ -189,27 +193,24 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 	panic("error")
 }
 
-func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName string, selectStatement string, fromSQL string, extraWhereSQL string) (string, string, error) {
+func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName string, selectStatement string, fromSQL string, extraWhereSQL string) (string, string) {
 	var tempTableSQL string
 	if extraWhereSQL == "" {
 		extraWhereSQL = "1=1"
 	}
 	finalTempTableName := tempTableName
-	if omopDataSource.Vendor == "postgresql" {
-		tempTableSQL = fmt.Sprintf(
-			"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T WHERE %s)",
-			tempTableName, selectStatement, fromSQL, extraWhereSQL,
-		)
-	} else if omopDataSource.Vendor == "sqlserver" {
+	tempTableSQL = fmt.Sprintf(
+		"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T WHERE %s)",
+		tempTableName, selectStatement, fromSQL, extraWhereSQL,
+	)
+	if omopDataSource.Vendor == "sqlserver" {
 		finalTempTableName = "#" + tempTableName // Local temp table for MSSQL
 		tempTableSQL = fmt.Sprintf(
 			"SELECT %s INTO %s FROM (%s) T WHERE %s",
 			selectStatement, finalTempTableName, fromSQL, extraWhereSQL,
 		)
-	} else {
-		return "", "", fmt.Errorf("unsupported database type: %s", omopDataSource.Vendor)
 	}
-	return tempTableSQL, finalTempTableName, nil
+	return tempTableSQL, finalTempTableName
 }
 
 func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptDefs []utils.CustomConceptVariableDef,

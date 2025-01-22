@@ -80,11 +80,20 @@ func (h DbAndSchema) GetViewDirective() string {
 		return ""
 	}
 }
-func ToSQL(query *gorm.DB) string {
+func ToSQL2(query *gorm.DB) string {
 	// Use db.ToSQL to generate the SQL string for the existing query
 	sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Session(&gorm.Session{DryRun: true}).Find([]interface{}{})
 	})
 
+	return sql
+}
+
+func ToSQL(query *gorm.DB) string {
+	// Clone the query object to avoid altering the original
+	tempQuery := query.Session(&gorm.Session{DryRun: true})
+	sql := tempQuery.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Find([]interface{}{})
+	})
 	return sql
 }

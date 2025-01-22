@@ -91,8 +91,8 @@ func ToSQL2(query *gorm.DB) string {
 
 func ToSQL(query *gorm.DB) string {
 	// Clone the query object to avoid altering the original
-	tempQuery := query.Session(&gorm.Session{DryRun: true})
-	sql := tempQuery.ToSQL(func(tx *gorm.DB) *gorm.DB {
+	//tempQuery := query.Session(&gorm.Session{DryRun: true})
+	sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Find([]interface{}{})
 	})
 	return sql

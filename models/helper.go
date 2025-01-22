@@ -68,19 +68,19 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 	if filterConceptDef.Transformation != "" {
 		// simple filterConceptDef with just the concept id
 		simpleFilterConceptDef := utils.CustomConceptVariableDef{ConceptId: filterConceptDef.ConceptId}
-		resultingQuery := QueryFilterByConceptDefHelper2(query, sourceId, simpleFilterConceptDef,
+		query := QueryFilterByConceptDefHelper2(query, sourceId, simpleFilterConceptDef,
 			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias+"_a")
-		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, resultingQuery, filterConceptDef)
+		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries. TODO2 - ensure the transform method also filters....
-		resultingQuery = QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef, //TODO - turn around
-			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b")
-		return resultingQuery, observationTableAlias + "_b", err
+		query = QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef, //TODO - turn around
+			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b") //PA the temp table seems to be created in one session....and not visible in another session....hm...in reality, that can't be the case, because the one created in data studio is visible to the gorm....it is basically gorm NOT creating temp tables...not sure why not....
+		return query, observationTableAlias + "_b", err
 
 	} else {
 		// simple filterConceptDef with no transformation
-		resultingQuery := QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef,
+		query := QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef,
 			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias)
-		return resultingQuery, "", nil
+		return query, "", nil
 	}
 }
 

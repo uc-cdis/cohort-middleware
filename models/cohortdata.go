@@ -5,6 +5,7 @@ import (
 	"log"
 
 	"github.com/uc-cdis/cohort-middleware/utils"
+	"gorm.io/gorm"
 )
 
 type CohortDataI interface {
@@ -105,20 +106,27 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	finalSetAlias := "final_set_alias"
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
-	query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
-	if tmpTableName != "" {
-		query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
-	} else {
-		query = query.Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-			Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
-			Where("observation.observation_concept_id = ?", histogramConceptId).
-			Where("observation.value_as_number is not null")
-	}
+	session := resultsDataSource.Db.Session(&gorm.Session{})
+	err := session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
+		query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
+		if tmpTableName != "" {
+			query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
+		} else {
+			query = query.Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
+				Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
+				Where("observation.observation_concept_id = ?", histogramConceptId).
+				Where("observation.value_as_number is not null")
+		}
 
-	query, cancel := utils.AddTimeoutToQuery(query)
-	defer cancel()
-	meta_result := query.Scan(&cohortData)
-	return cohortData, meta_result.Error
+		query, cancel := utils.AddTimeoutToQuery(query)
+		defer cancel()
+		meta_result := query.Scan(&cohortData)
+		return meta_result.Error
+	})
+	if err != nil {
+		log.Fatalf("Transaction failed: %v", err)
+	}
+	return cohortData, err
 }
 
 // DEPRECATED - USE RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs instead.

@@ -9,7 +9,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func QueryFilterByConceptDefsPlusCohortPairsHelper(sourceId int, mainCohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{},
+func QueryFilterByConceptDefsPlusCohortPairsHelper(query *gorm.DB, sourceId int, mainCohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{},
 	omopDataSource *utils.DbAndSchema, resultsDataSource *utils.DbAndSchema, finalSetAlias string) (*gorm.DB, string) {
 	// filterConceptDefsAndCohortPairs is a list of utils.CustomConceptVariableDef (concept definitions type of filter)
 	// and utils.CustomDichotomousVariableDef (cohort pair type of filter) items.
@@ -21,7 +21,7 @@ func QueryFilterByConceptDefsPlusCohortPairsHelper(sourceId int, mainCohortDefin
 	// Caching of temporary tables: for optimal performance, a temporary table dictionary / cache is updated, keeping a mapping
 	// of existing temporary table names vs underlying subsets of items in filterConceptDefsAndCohortPairs that gave rise to these
 	// tables.
-	query := resultsDataSource.Db.Table(resultsDataSource.Schema+".cohort as "+finalSetAlias).
+	query = query.Table(resultsDataSource.Schema+".cohort as "+finalSetAlias).
 		Select("*").
 		Where("cohort_definition_id=?", mainCohortDefinitionId)
 
@@ -73,7 +73,7 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries. TODO2 - ensure the transform method also filters....
 		query = QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef, //TODO - turn around
-			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b") //PA the temp table seems to be created in one session....and not visible in another session....hm...in reality, that can't be the case, because the one created in data studio is visible to the gorm....it is basically gorm NOT creating temp tables...not sure why not....
+			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b")
 		return query, observationTableAlias + "_b", err
 
 	} else {

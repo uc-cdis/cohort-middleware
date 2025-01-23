@@ -123,8 +123,8 @@ func QueryFilterByConceptDefHelper2(query *gorm.DB, sourceId int, filterConceptD
 // Transforms the data returned by query into a new temp table.
 // Caches the temp table name by using the query definition + transformation method as the key,
 // and the temp table name as the value. This allows the method to reuse a temp table if
-// one has already been made for this combination.
-// Returns the temp table name.
+// one has already been made (and is still around) for this combination.
+// Returns the temp table name, if found in cache and still exists in DB.
 func TransformDataIntoTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, filterConceptDef utils.CustomConceptVariableDef) (string, error) {
 	// Generate a unique hash key based on the query and transformation
 	querySQL := utils.ToSQL(query)
@@ -133,8 +133,14 @@ func TransformDataIntoTempTable(omopDataSource *utils.DbAndSchema, query *gorm.D
 
 	// Check if the temporary table already exists in the cache
 	if cachedTableName, exists := utils.TempTableCache.Get(cacheKey); exists {
-		log.Printf("Reusing cached temp table: %s", cachedTableName)
-		return cachedTableName.(string), nil
+		// check if the temporary table is still around:
+		if utils.TableExists(query, cachedTableName.(string)) {
+			log.Printf("Reusing cached temp table: %s", cachedTableName)
+			return cachedTableName.(string), nil
+		} else {
+			log.Printf("Temp table NOT available, removing from cache: %s", cachedTableName)
+			utils.TempTableCache.Delete(cachedTableName.(string))
+		}
 	}
 	// Create a unique temporary table name
 	tempTableName := fmt.Sprintf("tmp_transformed_%s", utils.GenerateSynchronizedTimestampID())

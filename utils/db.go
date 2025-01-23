@@ -95,6 +95,7 @@ func TableExists(tx *gorm.DB, tableName string) bool {
 	err := tx.Exec(query).Error
 	if err != nil {
 		log.Printf("TableExists check failed for: %s, error: %v", tableName, err)
+		tx.Error = nil
 		return false
 	}
 	// If the query succeeds, the table exists:

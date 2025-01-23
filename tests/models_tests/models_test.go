@@ -882,6 +882,38 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 	if len(data) != 2 {
 		t.Errorf("expected 2 histogram data but got %d", len(data))
 	}
+
+	// now filter repeated twice:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "z_score",
+		}, // ^ this filter will narrow down to 2 records
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.7),
+				},
+			},
+			Transformation: "z_score", // > a subsequent transformation of z_score on the remaining 2 records, will result
+			// in different values compared to the first filter above, as the scores are now
+			// calculated over two values only
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	// make sure the filter worked on transformed values:
+	if len(data) != 1 {
+		t.Errorf("expected 1 histogram data but got %d", len(data))
+	}
+
 }
 
 func TestRetrieveHistogramDataBySourceIdAndConceptId(t *testing.T) {

@@ -68,6 +68,8 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 	if filterConceptDef.Transformation != "" {
 		// simple filterConceptDef with just the concept id
 		simpleFilterConceptDef := utils.CustomConceptVariableDef{ConceptId: filterConceptDef.ConceptId}
+		query.Select(fmt.Sprintf("%s.person_id, %s.observation_concept_id, %s.value_as_number ",
+			observationTableAlias+"_a", observationTableAlias+"_a", observationTableAlias+"_a"))
 		query := QueryFilterByConceptDefHelper2(query, sourceId, simpleFilterConceptDef,
 			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias+"_a")
 		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)

@@ -13,7 +13,7 @@ type CohortDataI interface {
 	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIdsAndValues []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
-	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptDefsAndCohortPairs []interface{}) ([]*PersonConceptAndValue, error)
+	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*PersonConceptAndValue, error)
 	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, conceptId int64) ([]*NominalGroupData, error)
 	RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error)
 }
@@ -99,22 +99,27 @@ func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPerso
 	return cohortData, meta_result.Error
 }
 
-func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptDefsAndCohortPairs []interface{}) ([]*PersonConceptAndValue, error) {
+func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*PersonConceptAndValue, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	finalSetAlias := "final_set_alias"
+	histogramConcept, err := utils.GetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)
+	if err != nil {
+		log.Fatalf("failed: %v", err)
+		return nil, err
+	}
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
 	session := resultsDataSource.Db.Session(&gorm.Session{})
-	err := session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
+	err = session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
 		query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
 		if tmpTableName != "" {
 			query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
 		} else {
 			query = query.Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
 				Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
-				Where("observation.observation_concept_id = ?", histogramConceptId).
+				Where("observation.observation_concept_id = ?", histogramConcept.ConceptId).
 				Where("observation.value_as_number is not null")
 		}
 
@@ -125,6 +130,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	})
 	if err != nil {
 		log.Fatalf("Transaction failed: %v", err)
+		return nil, err
 	}
 	return cohortData, err
 }

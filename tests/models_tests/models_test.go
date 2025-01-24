@@ -783,8 +783,12 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(
 
 func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(t *testing.T) {
 	setUp(t)
-	filterConceptDefsPlusCohortPairs := []interface{}{}
-	data, error := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	filterConceptDefsPlusCohortPairs := []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
+	}
+	data, error := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	if error != nil {
 		t.Errorf("Got error: %s", error)
 	}
@@ -800,9 +804,12 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
 			ProvidedName:        "test",
 		},
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
 	}
 	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	if len(data) != 5 {
 		t.Errorf("expected 5 histogram data but got %d", len(data))
 	}
@@ -818,8 +825,11 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 				},
 			},
 		},
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
 	}
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	if len(data) != 1 {
 		t.Errorf("expected 1 histogram data but got %d", len(data))
 	}
@@ -827,7 +837,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 	// another concept filter:
 	filterConceptDefsPlusCohortPairs = []interface{}{
 		utils.CustomConceptVariableDef{
-			ConceptId: 2000006885,
+			ConceptId: histogramConceptId,
 			Filters: []utils.Filter{
 				{
 					Type:  ">=",
@@ -836,7 +846,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 			},
 		},
 	}
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	if len(data) != 2 {
 		t.Errorf("expected 2 histogram data but got %d", len(data))
 	}
@@ -854,7 +864,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 			Transformation: "log",
 		},
 	}
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	// make sure the filter worked on transformed values:
 	if len(data) != 2 {
 		t.Errorf("expected 2 histogram data but got %d", len(data))
@@ -877,7 +887,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 			Transformation: "z_score",
 		},
 	}
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	// make sure the filter worked on transformed values:
 	if len(data) != 2 {
 		t.Errorf("expected 2 histogram data but got %d", len(data))
@@ -908,7 +918,7 @@ func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs
 			// calculated over two values only
 		},
 	}
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptDefsPlusCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	// make sure the filter worked on transformed values:
 	if len(data) != 1 {
 		t.Errorf("expected 1 histogram data but got %d", len(data))

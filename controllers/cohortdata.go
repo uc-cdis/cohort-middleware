@@ -36,14 +36,6 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		return
 	}
 
-	histogramIdStr := c.Param("histogramid")
-	if histogramIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": "missing histogramid parameter in request"})
-		c.Abort()
-		return
-	}
-	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
-
 	// parse cohortPairs separately as well, so we can validate permissions
 	_, cohortPairs := utils.GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	if err != nil {
@@ -59,7 +51,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		return
 	}
 
-	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId, cohortId, histogramConceptId, conceptIdsAndCohortPairs)
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId, cohortId, conceptIdsAndCohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving histogram data", "error": err.Error()})
 		c.Abort()

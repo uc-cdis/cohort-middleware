@@ -81,7 +81,7 @@ func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConce
 	return cohortData, nil
 }
 
-func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptDefsAndCohortPairs []interface{}) ([]*models.PersonConceptAndValue, error) {
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*models.PersonConceptAndValue, error) {
 	cohortData := []*models.PersonConceptAndValue{}
 	return cohortData, nil
 }

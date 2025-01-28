@@ -67,22 +67,11 @@ var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohor
 
 type dummyCohortDataModel struct{}
 
-func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.PersonConceptAndValue, error) {
-	value := float32(0.0)
-	cohortData := []*models.PersonConceptAndValue{
-		{PersonId: 1, ConceptId: 10, ConceptClassId: "something", ObservationValueAsConceptName: "abc", ConceptValueAsNumber: &value},
-	}
-	return cohortData, nil
-}
-
-func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
-
-	cohortData := []*models.PersonConceptAndValue{}
-	return cohortData, nil
-}
-
 func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*models.PersonConceptAndValue, error) {
-	cohortData := []*models.PersonConceptAndValue{}
+	value := float32(5.1)
+	cohortData := []*models.PersonConceptAndValue{
+		{PersonId: 1, ConceptId: 2000000324, ConceptClassId: "something", ObservationValueAsConceptName: "abc", ConceptValueAsNumber: &value},
+	}
 	return cohortData, nil
 }
 
@@ -98,7 +87,7 @@ func (h dummyCohortDataModel) RetrieveBarGraphDataBySourceIdAndCohortIdAndConcep
 }
 
 func (h dummyCohortDataModel) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (models.CohortOverlapStats, error) {
+	filterConceptDefsAndCohortPairs []interface{}) (models.CohortOverlapStats, error) {
 	var zeroOverlap models.CohortOverlapStats
 	return zeroOverlap, nil
 }
@@ -274,10 +263,12 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortId(sourc
 	}
 	return conceptBreakdown, nil
 }
-func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
+func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}, breakdownConceptId int64) ([]*models.ConceptBreakdown, error) {
+	filterConceptDefs, filterCohortPairs := utils.GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(filterConceptDefsAndCohortPairs)
+
 	conceptBreakdown := []*models.ConceptBreakdown{
 		{ConceptValue: "value1", NpersonsInCohortWithValue: 4 - len(filterCohortPairs)}, // simulate decreasing numbers as filter increases - the use of filterCohortPairs instead of filterConceptIds is otherwise meaningless here...
-		{ConceptValue: "value2", NpersonsInCohortWithValue: 7 - len(filterConceptIds)},  // simulate decreasing numbers as filter increases- the use of filterConceptIds instead of filterCohortPairs is otherwise meaningless here...
+		{ConceptValue: "value2", NpersonsInCohortWithValue: 7 - len(filterConceptDefs)}, // simulate decreasing numbers as filter increases- the use of filterConceptIds instead of filterCohortPairs is otherwise meaningless here...
 	}
 	if dummyModelReturnError {
 		return nil, fmt.Errorf("error!")
@@ -382,7 +373,7 @@ func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [2, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
 	// Params above are correct, so request should NOT abort:
@@ -390,8 +381,22 @@ func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T
 		t.Errorf("Did not expect this request to abort")
 	}
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	if !strings.Contains(result.CustomResponseWriterOut, "sample.id,") {
-		t.Errorf("Expected output starting with 'sample.id,...'")
+	expectedOut := "sample.id,ID_2000000324,ID_2_3\n1,abc,0\n"
+	if !strings.Contains(result.CustomResponseWriterOut, expectedOut) {
+		t.Errorf("Expected output to contain %s", expectedOut)
+	}
+	// test with different data
+	requestBody = "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 1111111},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
+	cohortDataController.RetrieveDataBySourceIdAndCohortIdAndVariables(requestContext)
+	// Params above are correct, so request should NOT abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	expectedOut = "sample.id,ID_1111111,ID_1_3\n1,NA,NA\n"
+	if !strings.Contains(result.CustomResponseWriterOut, expectedOut) {
+		t.Errorf("Expected output to contain %s", expectedOut)
 	}
 
 	// the same request should fail if the teamProject authorization fails:
@@ -742,11 +747,17 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndVariablesModelError(t *te
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "breakdownconceptid", Value: "1"})
 	requestContext.Request = new(http.Request)
-	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"ConceptIds\":[1234,5678]}"))
+	requestContext.Request.Body = io.NopCloser(strings.NewReader("{\"variables\":[]}"))
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	// set flag to let mock model layer return error instead of mock data:
 	dummyModelReturnError = true
 	conceptController.RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariables(requestContext)
+
+	// Expected response status is "500":
+	if requestContext.Writer.Status() != 500 {
+		t.Errorf("Expected status to start with '500', got '%d'", requestContext.Writer.Status())
+	}
+
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
 	}
@@ -903,7 +914,7 @@ func TestGenerateHeaderAndNonFilterRow(t *testing.T) {
 	}
 }
 
-func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
+func TestGetAttritionRowForConceptDefsAndCohortPairs(t *testing.T) {
 	setUp(t)
 	sourceId := 1
 	cohortId := 1
@@ -911,7 +922,7 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 	sortedConceptValues := []string{"value1", "value2", "value3"}
 
 	// mix of concept ids and CustomDichotomousVariableDef items:
-	conceptIdsAndCohortPairs := []interface{}{
+	conceptDefsAndCohortPairs := []interface{}{
 		utils.CustomConceptVariableDef{ConceptId: int64(1234)},
 		utils.CustomConceptVariableDef{ConceptId: int64(5678)},
 		utils.CustomDichotomousVariableDef{
@@ -925,10 +936,10 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 			ProvidedName:        "testB34"},
 	}
 
-	result, _ := conceptController.GetAttritionRowForConceptIdsAndCohortPairs(sourceId, cohortId, conceptIdsAndCohortPairs, breakdownConceptId, sortedConceptValues)
-	if len(result) != len(conceptIdsAndCohortPairs) {
+	result, _ := conceptController.GetAttritionRowForConceptDefsAndCohortPairs(sourceId, cohortId, conceptDefsAndCohortPairs, breakdownConceptId, sortedConceptValues)
+	if len(result) != len(conceptDefsAndCohortPairs) {
 		t.Errorf("Expected %d data lines, found %d lines in total",
-			len(conceptIdsAndCohortPairs),
+			len(conceptDefsAndCohortPairs),
 			len(result))
 		t.Errorf("Lines: %s", result)
 	}
@@ -1228,13 +1239,12 @@ func TestRetrieveStatsForCohortIdAndConceptIdWithCorrectParams(t *testing.T) {
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "conceptid", Value: "2000006885"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
-	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
+	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324},{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]},{\"variable_type\": \"concept\", \"concept_id\": 2000006885}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 	cohortDataController.RetrieveStatsForCohortIdAndConceptId(requestContext)
-	// Params above are correct, so request should NOT abort:
+	// Params above are correct, with the concept of interest as last variable, so request should NOT abort:
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect this request to abort")
 	}

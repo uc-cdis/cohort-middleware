@@ -9,10 +9,8 @@ import (
 )
 
 type CohortDataI interface {
-	RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error)
-	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, otherFilterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error)
+	RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int, filterConceptDefsAndCohortPairs []interface{}) (CohortOverlapStats, error)
 	RetrieveDataByOriginalCohortAndNewCohort(sourceId int, originalCohortDefinitionId int, cohortDefinitionId int) ([]*PersonIdAndCohort, error)
-	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIdsAndValues []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*PersonConceptAndValue, error)
 	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, conceptId int64) ([]*NominalGroupData, error)
 	RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error)
@@ -73,56 +71,29 @@ func (h CohortData) RetrieveDataByOriginalCohortAndNewCohort(sourceId int, origi
 	return personData, meta_result.Error
 }
 
-// Retrieves observation data.
-// Assumption is that both OMOP and RESULTS schemas
-// are on same DB.
-func (h CohortData) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*PersonConceptAndValue, error) {
-	log.Printf(">> Using inner join impl. for large cohorts")
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// get the observations for the subjects and the concepts, to build up the data rows to return:
-	var cohortData []*PersonConceptAndValue
-	query := omopDataSource.Db.Table(omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()).
-		Select("observation.person_id, observation.observation_concept_id as concept_id, concept.concept_class_id, value_as_concept.concept_name as observation_value_as_concept_name, observation.value_as_number as concept_value_as_number, observation.value_as_concept_id as concept_value_as_concept_id").
-		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort ON cohort.subject_id = observation.person_id").
-		Joins("INNER JOIN "+omopDataSource.Schema+".concept as concept ON concept.concept_id = observation.observation_concept_id").
-		Joins("LEFT JOIN "+omopDataSource.Schema+".concept as value_as_concept ON value_as_concept.concept_id = observation.value_as_concept_id").
-		Where("cohort.cohort_definition_id = ?", cohortDefinitionId).
-		Where("observation.observation_concept_id in (?)", conceptIds).
-		Order("observation.person_id asc") // this order is important!
-	query, cancel := utils.AddTimeoutToQuery(query)
-	defer cancel()
-	meta_result := query.Scan(&cohortData)
-	return cohortData, meta_result.Error
-}
-
 func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*PersonConceptAndValue, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	finalCohortAlias := "final_cohort_alias"
-	histogramConcept, err := utils.CheckAndGetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)
-	if err != nil {
-		log.Fatalf("failed: %v", err)
-		return nil, err
-	}
 	// get the observations for the subjects and the concepts, to build up the data rows to return:
 	var cohortData []*PersonConceptAndValue
 	session := resultsDataSource.Db.Session(&gorm.Session{})
-	err = session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
+	err := session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
 		query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalCohortAlias)
 		if tmpTableName != "" {
 			query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
 		} else {
+			histogramConcept, errGetLast := utils.CheckAndGetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)
+			if errGetLast != nil {
+				log.Fatalf("failed: %v", errGetLast)
+				return errGetLast
+			}
 			query = query.Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
 				Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalCohortAlias+".subject_id = observation.person_id").
 				Where("observation.observation_concept_id = ?", histogramConcept.ConceptId).
 				Where("observation.value_as_number is not null")
 		}
-
 		query, cancel := utils.AddTimeoutToQuery(query)
 		defer cancel()
 		meta_result := query.Scan(&cohortData)
@@ -133,27 +104,6 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 		return nil, err
 	}
 	return cohortData, err
-}
-
-// DEPRECATED - USE RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs instead.
-func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptDefs []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error) {
-	var dataSourceModel = new(Source)
-	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
-	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// get the observations for the subjects and the concepts, to build up the data rows to return:
-	var cohortData []*PersonConceptAndValue
-	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
-		Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-		Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
-		Where("observation.observation_concept_id = ?", histogramConceptId).
-		Where("observation.value_as_number is not null")
-
-	query = QueryFilterByConceptDefsHelper(query, sourceId, filterConceptDefs, omopDataSource, resultsDataSource.Schema, "unionAndIntersect")
-	query, cancel := utils.AddTimeoutToQuery(query)
-	defer cancel()
-	meta_result := query.Scan(&cohortData)
-	return cohortData, meta_result.Error
 }
 
 func (h CohortData) RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error) {
@@ -193,27 +143,28 @@ func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourc
 	return cohortData, meta_result.Error
 }
 
-// Basically the same as the method above, but without the extra filtering on filterConceptId and filterConceptValue:
 func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
-	filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
+	filterConceptDefsAndCohortPairs []interface{}) (CohortOverlapStats, error) {
 
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 
 	var cohortOverlapStats CohortOverlapStats
-	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, caseCohortId, "case_cohort_unionedAndIntersectedWithFilters").
-		Select("count(distinct(case_cohort_unionedAndIntersectedWithFilters.subject_id)) as case_control_overlap").
-		Joins("INNER JOIN " + resultsDataSource.Schema + ".cohort as control_cohort ON control_cohort.subject_id = case_cohort_unionedAndIntersectedWithFilters.subject_id") // this one allows for the intersection between case and control and the assessment of the overlap
+	session := resultsDataSource.Db.Session(&gorm.Session{})
+	err := session.Transaction(func(query *gorm.DB) error {
+		finalSetAlias := "case_cohort_unionedAndIntersectedWithFilters"
+		query, _ = QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, caseCohortId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
 
-	if len(filterConceptIds) > 0 {
-		query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "control_cohort.subject_id")
-	}
-	query = query.Where("control_cohort.cohort_definition_id = ?", controlCohortId)
-	query, cancel := utils.AddTimeoutToQuery(query)
-	defer cancel()
-	meta_result := query.Scan(&cohortOverlapStats)
-	return cohortOverlapStats, meta_result.Error
+		query = query.Select("count(distinct(case_cohort_unionedAndIntersectedWithFilters.subject_id)) as case_control_overlap").
+			Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort_unionedAndIntersectedWithFilters.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
+			Where("control_cohort.cohort_definition_id = ?", controlCohortId)
+		query, cancel := utils.AddTimeoutToQuery(query)
+		defer cancel()
+		meta_result := query.Scan(&cohortOverlapStats)
+		return meta_result.Error
+	})
+	return cohortOverlapStats, err
 }
 
 func (p *PersonConceptAndCount) String() string {

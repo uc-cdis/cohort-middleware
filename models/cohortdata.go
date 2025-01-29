@@ -104,7 +104,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 	finalSetAlias := "final_set_alias"
-	histogramConcept, err := utils.GetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)
+	histogramConcept, err := utils.CheckAndGetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
 		return nil, err

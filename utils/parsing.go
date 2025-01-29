@@ -480,8 +480,8 @@ func GenerateSynchronizedTimestampID() string {
 	return fmt.Sprintf("%x", time.Now().UnixNano())
 }
 
-// GetLastCustomConceptVariableDef checks if the last item is of type CustomConceptVariableDef and returns it
-func GetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs []interface{}) (*CustomConceptVariableDef, error) {
+// checks if the last item is of type CustomConceptVariableDef and returns it
+func CheckAndGetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs []interface{}) (*CustomConceptVariableDef, error) {
 	if len(filterConceptDefsAndCohortPairs) == 0 {
 		return nil, fmt.Errorf("the slice is empty")
 	}

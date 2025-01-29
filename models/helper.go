@@ -70,24 +70,24 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 		simpleFilterConceptDef := utils.CustomConceptVariableDef{ConceptId: filterConceptDef.ConceptId}
 		query.Select(fmt.Sprintf("%s.person_id, %s.observation_concept_id, %s.value_as_number ",
 			observationTableAlias+"_a", observationTableAlias+"_a", observationTableAlias+"_a"))
-		query := QueryFilterByConceptDefHelper2(query, sourceId, simpleFilterConceptDef,
-			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias+"_a")
+		query := queryJoinAndFilterByConceptDef(query, sourceId, simpleFilterConceptDef,
+			omopDataSource, personIdFieldForObservationJoin, "observation_continuous", observationTableAlias+"_a")
 		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
-		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries. TODO2 - ensure the transform method also filters....
-		query = QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef, //TODO - turn around
-			omopDataSource, "", personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b")
+		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries.
+		query = queryJoinAndFilterByConceptDef(query, sourceId, filterConceptDef,
+			omopDataSource, personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b")
 		return query, observationTableAlias + "_b", err
 
 	} else {
 		// simple filterConceptDef with no transformation
-		query := QueryFilterByConceptDefHelper2(query, sourceId, filterConceptDef,
-			omopDataSource, "", personIdFieldForObservationJoin, "observation_continuous", observationTableAlias)
+		query := queryJoinAndFilterByConceptDef(query, sourceId, filterConceptDef,
+			omopDataSource, personIdFieldForObservationJoin, "observation_continuous", observationTableAlias)
 		return query, "", nil
 	}
 }
 
-func QueryFilterByConceptDefHelper2(query *gorm.DB, sourceId int, filterConceptDef utils.CustomConceptVariableDef,
-	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string, observationDataSource string, observationTableAlias string) *gorm.DB {
+func queryJoinAndFilterByConceptDef(query *gorm.DB, sourceId int, filterConceptDef utils.CustomConceptVariableDef,
+	omopDataSource *utils.DbAndSchema, personIdFieldForObservationJoin string, observationDataSource string, observationTableAlias string) *gorm.DB {
 	log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
 	aliasedObservationDataSource := omopDataSource.Schema + "." + observationDataSource + " as " + observationTableAlias + omopDataSource.GetViewDirective()
 	// for temp table, the alias is slightly different:
@@ -131,7 +131,7 @@ func TransformDataIntoTempTable(omopDataSource *utils.DbAndSchema, query *gorm.D
 	// Generate a unique hash key based on the query and transformation
 	querySQL := utils.ToSQL(query)
 	queryKey := fmt.Sprintf("%s|%s", querySQL, filterConceptDef.Transformation)
-	cacheKey := utils.GenerateHash(queryKey) // TODO - review
+	cacheKey := utils.GenerateHash(queryKey)
 
 	// Check if the temporary table already exists in the cache
 	if cachedTableName, exists := utils.TempTableCache.Get(cacheKey); exists {
@@ -192,7 +192,7 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 		case "box_cox":
 			// Placeholder: implement Box-Cox transformation logic as per requirements
 			log.Printf("box_cox transformation logic needs to be implemented")
-			return ""
+			panic("error")
 		default:
 			log.Fatalf("Unsupported transformation type: %s", filterConceptDef.Transformation)
 			panic("error")
@@ -212,7 +212,7 @@ func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName s
 		tempTableName, selectStatement, fromSQL, extraWhereSQL,
 	)
 	if omopDataSource.Vendor == "sqlserver" {
-		finalTempTableName = "##" + tempTableName // Global temp table for MSSQL
+		finalTempTableName = "##" + tempTableName
 		tempTableSQL = fmt.Sprintf(
 			"SELECT %s INTO %s FROM (%s) T WHERE %s",
 			selectStatement, finalTempTableName, fromSQL, extraWhereSQL,
@@ -231,6 +231,7 @@ func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptD
 	return query
 }
 
+// DEPRECATED - use QueryFilterByConceptDefsPlusCohortPairsHelper instead
 // Helper function that adds extra filter clauses to the query, for the given filterCohortPairs, intersecting on the
 // right set of tables, excluding data where necessary, etc.
 // It basically iterates over the list of filterCohortPairs, adding relevant INTERSECT and EXCEPT clauses, so that the resulting set is the
@@ -247,7 +248,6 @@ func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousV
 	return query
 }
 
-// TODO - remove code duplication above
 func QueryFilterByCohortPairHelper(query *gorm.DB, filterCohortPair utils.CustomDichotomousVariableDef, resultsDataSource *utils.DbAndSchema, cohortDefinitionId int, personIdFieldForObservationJoin string, unionAndIntersectSQLAlias string) *gorm.DB {
 	unionAndIntersectSQL := "(" +
 		"SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? "

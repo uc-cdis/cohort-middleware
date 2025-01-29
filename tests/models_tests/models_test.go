@@ -258,7 +258,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	var subjectIds []*SubjectId
 	population := largestCohort
 	query := models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// ...so we expect overlap the size of the largestCohort:
 	if len(subjectIds) != largestCohort.CohortSize {
@@ -280,7 +280,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size of the largestCohort-6 (where 6 is the size of the overlap between extendedCopyOfSecondLargestCohort and largestCohort):
 	if len(subjectIds) != (largestCohort.CohortSize - 6) {
@@ -302,7 +302,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect same as previous test above:
 	if len(subjectIds) != (largestCohort.CohortSize - 6) {
@@ -320,7 +320,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = extendedCopyOfSecondLargestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size of the extendedCopyOfSecondLargestCohort.CohortSize - secondLargestCohort.CohortSize:
 	if len(subjectIds) != (extendedCopyOfSecondLargestCohort.CohortSize - secondLargestCohort.CohortSize) {
@@ -342,7 +342,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = extendedCopyOfSecondLargestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0, since all items remaining from first pair happen to overlap with largestCohort and are therefore excluded (pair overlap is excluded):
 	if len(subjectIds) != 0 {
@@ -354,7 +354,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0 as explained in comment above:
 	if len(subjectIds) != 0 {
@@ -367,7 +367,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be the size of the cohort, since there are no filtering pairs:
 	if len(subjectIds) != largestCohort.CohortSize {
@@ -385,7 +385,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0, since the pair is composed of the same cohort in CohortDefinitionId1 and CohortDefinitionId2 and their overlap is excluded:
 	if len(subjectIds) != 0 {
@@ -403,7 +403,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = smallestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("*")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0, since the cohorts in the pair do not overlap with the population:
 	if len(subjectIds) != 0 {

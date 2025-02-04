@@ -1,7 +1,4 @@
-ARG AZLINUX_BASE_VERSION=master
-
-FROM --platform=$BUILDPLATFORM 707767160287.dkr.ecr.us-east-1.amazonaws.com/gen3/golang-build-base:${AZLINUX_BASE_VERSION} AS base
-# FROM --platform=$BUILDPLATFORM quay.io/cdis/golang-build-base:${AZLINUX_BASE_VERSION} AS base
+FROM quay.io/cdis/golang:1.23-bookworm AS base
 
 ARG TARGETOS
 ARG TARGETARCH

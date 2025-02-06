@@ -202,23 +202,24 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 }
 
 func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName string, selectStatement string, fromSQL string, extraWhereSQL string) (string, string) {
-	var tempTableSQL string
 	if extraWhereSQL == "" {
 		extraWhereSQL = "1=1"
 	}
-	finalTempTableName := tempTableName
-	tempTableSQL = fmt.Sprintf(
-		"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T WHERE %s)",
-		tempTableName, selectStatement, fromSQL, extraWhereSQL,
-	)
 	if omopDataSource.Vendor == "sqlserver" {
-		finalTempTableName = "##" + tempTableName
-		tempTableSQL = fmt.Sprintf(
+		finalTempTableName := "##" + tempTableName
+		tempTableSQL := fmt.Sprintf(
 			"SELECT %s INTO %s FROM (%s) T WHERE %s",
 			selectStatement, finalTempTableName, fromSQL, extraWhereSQL,
 		)
+		return tempTableSQL, finalTempTableName
+	} else {
+		finalTempTableName := tempTableName
+		tempTableSQL := fmt.Sprintf(
+			"CREATE TEMPORARY TABLE %s AS (SELECT %s FROM (%s) AS T WHERE %s)",
+			tempTableName, selectStatement, fromSQL, extraWhereSQL,
+		)
+		return tempTableSQL, finalTempTableName
 	}
-	return tempTableSQL, finalTempTableName
 }
 
 func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptDefs []utils.CustomConceptVariableDef,

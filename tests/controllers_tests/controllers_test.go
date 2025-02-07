@@ -317,7 +317,7 @@ func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortidwrong", Value: "4"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	requestBody := "{\"variables\":[{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"

@@ -310,19 +310,6 @@ func ParseSourceIdAndConceptTypes(c *gin.Context) (int, []string, error) {
 	return sourceId, conceptTypes.ConceptTypes, nil
 }
 
-func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, error) {
-	// parse and validate all parameters:
-	sourceId, conceptIds, err1 := ParseSourceIdAndConceptIds(c)
-	if err1 != nil {
-		return -1, -1, nil, err1
-	}
-	cohortId, err2 := ParseNumericArg(c, "cohortid")
-	if err2 != nil {
-		return -1, -1, nil, err2
-	}
-	return sourceId, cohortId, conceptIds, nil
-}
-
 func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 	// parse and validate all parameters:
 	sourceId, err := ParseNumericArg(c, "sourceid")

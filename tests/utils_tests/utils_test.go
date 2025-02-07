@@ -376,3 +376,49 @@ func TestExtractConceptIdsFromCustomConceptVariablesDef(t *testing.T) {
 		t.Errorf("Expected %v but found %v", expectedResult, result)
 	}
 }
+
+func TestCheckAndGetLastCustomConceptVariableDef(t *testing.T) {
+	setUp(t)
+	testData := []interface{}{
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: 123,
+			CohortDefinitionId2: 456,
+			ProvidedName:        "test",
+		},
+		utils.CustomConceptVariableDef{
+			ConceptId: 1234,
+		},
+	}
+
+	result, err := utils.CheckAndGetLastCustomConceptVariableDef(testData)
+
+	if result == nil || err != nil {
+		t.Errorf("Expected a valid result and no error. Result: %v, Error: %v", result, err)
+	}
+
+	testData = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: 1234,
+		},
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: 123,
+			CohortDefinitionId2: 456,
+			ProvidedName:        "test",
+		},
+	}
+
+	result, err = utils.CheckAndGetLastCustomConceptVariableDef(testData)
+
+	if result != nil || err == nil {
+		t.Errorf("Expected NO result and an error. Result: %v, Error: %v", result, err)
+	}
+
+	testData = []interface{}{}
+
+	result, err = utils.CheckAndGetLastCustomConceptVariableDef(testData)
+
+	if result != nil || err == nil {
+		t.Errorf("Expected NO result and an error. Result: %v, Error: %v", result, err)
+	}
+
+}

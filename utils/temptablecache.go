@@ -25,9 +25,8 @@ func (c *CacheSimple) Get(key string) (interface{}, bool) {
 	defer c.mu.RUnlock()
 
 	value, exists := c.data[key]
-	// If the key already exists, update its value and move it to the end of the access order
+	// If the key already exists, update its position in the queue, so it is kept a bit longer:
 	if exists {
-		c.data[key] = value
 		c.moveToEnd(key)
 	}
 	return value, exists

@@ -89,6 +89,21 @@ func GetCount(dataSource *utils.DbAndSchema, tableName string) int64 {
 	return count
 }
 
+func GetCountTmpTable(query *gorm.DB, tableName string) int64 {
+	var count int64
+	result := query.Table(tableName)
+	result.Count(&count)
+	return count
+}
+
+func GetMaxFieldInTable(query *gorm.DB, tableName string, fieldName string) float64 {
+	var max float64
+	result := query.Table(tableName)
+	result = result.Select("max(" + fieldName + ")")
+	result.Scan(&max)
+	return max
+}
+
 func GetCountWhere(dataSource *utils.DbAndSchema, tableName string, whereClause string) int64 {
 	var count int64
 	result := dataSource.Db.Table(fmt.Sprintf("%s.%s where %s", dataSource.Schema, tableName, whereClause))

@@ -10,7 +10,7 @@ import (
 )
 
 func QueryFilterByConceptDefsPlusCohortPairsHelper(query *gorm.DB, sourceId int, mainCohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{},
-	omopDataSource *utils.DbAndSchema, resultsDataSource *utils.DbAndSchema, finalSetAlias string) (*gorm.DB, string) {
+	omopDataSource *utils.DbAndSchema, resultsDataSource *utils.DbAndSchema, finalCohortAlias string) (*gorm.DB, string) {
 	// filterConceptDefsAndCohortPairs is a list of utils.CustomConceptVariableDef (concept definitions type of filter)
 	// and utils.CustomDichotomousVariableDef (cohort pair type of filter) items.
 	//
@@ -21,20 +21,25 @@ func QueryFilterByConceptDefsPlusCohortPairsHelper(query *gorm.DB, sourceId int,
 	// Caching of temporary tables: for optimal performance, a temporary table dictionary / cache is updated, keeping a mapping
 	// of existing temporary table names vs underlying subsets of items in filterConceptDefsAndCohortPairs that gave rise to these
 	// tables.
-	query = query.Table(resultsDataSource.Schema+".cohort as "+finalSetAlias).
+	query = query.Table(resultsDataSource.Schema+".cohort as "+finalCohortAlias).
 		Select("*").
 		Where("cohort_definition_id=?", mainCohortDefinitionId)
 
 	tmpTableName := ""
+	var err error
 	for i, item := range filterConceptDefsAndCohortPairs {
-		tableAlias := fmt.Sprintf("filter_%d", i)
+		observationTableAlias := fmt.Sprintf("filter_%d", i)
 		switch convertedItem := item.(type) {
 		case utils.CustomConceptVariableDef:
-			query, tmpTableName, _ = QueryFilterByConceptDefHelper(query, sourceId, convertedItem, omopDataSource, finalSetAlias+".subject_id", tableAlias) // TODO - improve error handling.
+			query, tmpTableName, err = QueryFilterByConceptDefHelper(query, sourceId, convertedItem, omopDataSource, finalCohortAlias, observationTableAlias)
 		case utils.CustomDichotomousVariableDef:
-			query = QueryFilterByCohortPairHelper(query, convertedItem, resultsDataSource, mainCohortDefinitionId, finalSetAlias+".subject_id", tableAlias)
+			query = QueryFilterByCohortPairHelper(query, convertedItem, resultsDataSource, mainCohortDefinitionId, finalCohortAlias+".subject_id", observationTableAlias)
 			tmpTableName = ""
 		}
+	}
+	if err != nil {
+		log.Fatalf("Error: %s", err.Error())
+		panic("error")
 	}
 	return query, tmpTableName
 }
@@ -58,25 +63,28 @@ func QueryFilterByConceptIdsHelper(query *gorm.DB, sourceId int, filterConceptId
 }
 
 func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDef utils.CustomConceptVariableDef,
-	omopDataSource *utils.DbAndSchema, personIdFieldForObservationJoin string, observationTableAlias string) (*gorm.DB, string, error) {
+	omopDataSource *utils.DbAndSchema, finalCohortAlias string, observationTableAlias string) (*gorm.DB, string, error) {
 	// 1  - check if filterConceptDef has a transformation
 	// 2a - if it does, transform the data into a new tmp table.
 	//      Cache this by using the query definition so far as the key,
 	//      and the temp table name as the value.
 	//      Returns error if something fails.
 	// 2b - if not, just use "observation_continuous"
+	personIdFieldForObservationJoin := finalCohortAlias + ".subject_id"
 	if filterConceptDef.Transformation != "" {
 		// simple filterConceptDef with just the concept id
 		simpleFilterConceptDef := utils.CustomConceptVariableDef{ConceptId: filterConceptDef.ConceptId}
-		query.Select(fmt.Sprintf("%s.person_id, %s.observation_concept_id, %s.value_as_number ",
-			observationTableAlias+"_a", observationTableAlias+"_a", observationTableAlias+"_a"))
+		observationAliasSimpleQuery := observationTableAlias + "_a"
+		observationAliasFullQuery := observationTableAlias + "_b"
+		query.Select(fmt.Sprintf("%[1]s.person_id, %[1]s.observation_concept_id, %[1]s.value_as_number ",
+			observationAliasSimpleQuery))
 		query := queryJoinAndFilterByConceptDef(query, sourceId, simpleFilterConceptDef,
-			omopDataSource, personIdFieldForObservationJoin, "observation_continuous", observationTableAlias+"_a")
+			omopDataSource, personIdFieldForObservationJoin, "observation_continuous", observationAliasSimpleQuery)
 		tmpTransformedTable, err := TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 		// TODO - the resulting query should actually be Select * from temptable.... as this collapses all underlying queries.
 		query = queryJoinAndFilterByConceptDef(query, sourceId, filterConceptDef,
-			omopDataSource, personIdFieldForObservationJoin, tmpTransformedTable, observationTableAlias+"_b")
-		return query, observationTableAlias + "_b", err
+			omopDataSource, personIdFieldForObservationJoin, tmpTransformedTable, observationAliasFullQuery)
+		return query, observationAliasFullQuery, err
 
 	} else {
 		// simple filterConceptDef with no transformation
@@ -89,10 +97,11 @@ func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDe
 func queryJoinAndFilterByConceptDef(query *gorm.DB, sourceId int, filterConceptDef utils.CustomConceptVariableDef,
 	omopDataSource *utils.DbAndSchema, personIdFieldForObservationJoin string, observationDataSource string, observationTableAlias string) *gorm.DB {
 	log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-	aliasedObservationDataSource := omopDataSource.Schema + "." + observationDataSource + " as " + observationTableAlias + omopDataSource.GetViewDirective()
-	// for temp table, the alias is slightly different:
+	var aliasedObservationDataSource string
 	if strings.HasPrefix(observationDataSource, "tmp_") || strings.HasPrefix(observationDataSource, "##tmp_") {
 		aliasedObservationDataSource = observationDataSource + " as " + observationTableAlias
+	} else {
+		aliasedObservationDataSource = omopDataSource.Schema + "." + observationDataSource + " as " + observationTableAlias + omopDataSource.GetViewDirective()
 	}
 	query = query.Joins("INNER JOIN "+aliasedObservationDataSource+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
 		Where(observationTableAlias+".observation_concept_id = ?", filterConceptDef.ConceptId)
@@ -180,7 +189,7 @@ func CreateAndFillTempTable(omopDataSource *utils.DbAndSchema, query *gorm.DB, t
 			}
 			tempTableSQL, finalTempTableName := TempTableSQLAndFinalName(omopDataSource, tempTableName,
 				"person_id, observation_concept_id, (value_as_number-AVG(value_as_number) OVER ()) / "+stdDevFunc+"(value_as_number) OVER () as value_as_number",
-				querySQL, "")
+				querySQL, "value_as_number is not null")
 			log.Printf("Creating new temp table: %s", tempTableName)
 
 			// Execute the SQL to create and fill the temp table
@@ -223,11 +232,11 @@ func TempTableSQLAndFinalName(omopDataSource *utils.DbAndSchema, tempTableName s
 }
 
 func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptDefs []utils.CustomConceptVariableDef,
-	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string) *gorm.DB {
+	omopDataSource *utils.DbAndSchema, resultSchemaName string, finalCohortAlias string) *gorm.DB {
 	// iterate over the filterConceptDefs, adding a new filters for each:
 	for i, filterConceptDef := range filterConceptDefs {
 		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
-		query, _, _ = QueryFilterByConceptDefHelper(query, sourceId, filterConceptDef, omopDataSource, personIdFieldForObservationJoin, observationTableAlias)
+		query, _, _ = QueryFilterByConceptDefHelper(query, sourceId, filterConceptDef, omopDataSource, finalCohortAlias, observationTableAlias)
 	}
 	return query
 }
@@ -239,12 +248,12 @@ func QueryFilterByConceptDefsHelper(query *gorm.DB, sourceId int, filterConceptD
 // set of persons that are part of the intersections of cohortDefinitionId and of one of the cohorts in the filterCohortPairs. The EXCEPT
 // clauses exclude the persons that are found in both cohorts of a filterCohortPair.
 func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousVariableDef, resultsDataSource *utils.DbAndSchema, cohortDefinitionId int, unionAndIntersectSQLAlias string) *gorm.DB {
-	finalSetAlias := unionAndIntersectSQLAlias
-	finalSQL := "(SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? )" + " as " + finalSetAlias + " "
+	finalCohortAlias := unionAndIntersectSQLAlias
+	finalSQL := "(SELECT subject_id FROM " + resultsDataSource.Schema + ".cohort WHERE cohort_definition_id=? )" + " as " + finalCohortAlias + " "
 	query := resultsDataSource.Db.Table(finalSQL, cohortDefinitionId)
 	for i, item := range filterCohortPairs {
 		tableAlias := fmt.Sprintf("filter_%d", i)
-		query = QueryFilterByCohortPairHelper(query, item, resultsDataSource, cohortDefinitionId, finalSetAlias+".subject_id", tableAlias)
+		query = QueryFilterByCohortPairHelper(query, item, resultsDataSource, cohortDefinitionId, finalCohortAlias+".subject_id", tableAlias)
 	}
 	return query
 }

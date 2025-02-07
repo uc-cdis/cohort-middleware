@@ -81,12 +81,12 @@ func (h DbAndSchema) GetViewDirective() string {
 		return ""
 	}
 }
+
+// Use db.ToSQL to generate the SQL string for the existing query
 func ToSQL(query *gorm.DB) string {
-	// Use db.ToSQL to generate the SQL string for the existing query
 	sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB {
 		return tx.Session(&gorm.Session{DryRun: true}).Find([]interface{}{})
 	})
-
 	return sql
 }
 

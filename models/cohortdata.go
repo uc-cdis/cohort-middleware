@@ -103,7 +103,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-	finalSetAlias := "final_set_alias"
+	finalCohortAlias := "final_cohort_alias"
 	histogramConcept, err := utils.CheckAndGetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)
 	if err != nil {
 		log.Fatalf("failed: %v", err)
@@ -113,12 +113,12 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	var cohortData []*PersonConceptAndValue
 	session := resultsDataSource.Db.Session(&gorm.Session{})
 	err = session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
-		query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
+		query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalCohortAlias)
 		if tmpTableName != "" {
 			query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
 		} else {
 			query = query.Select("distinct(observation.person_id), observation.observation_concept_id as concept_id, observation.value_as_number as concept_value_as_number").
-				Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
+				Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalCohortAlias+".subject_id = observation.person_id").
 				Where("observation.observation_concept_id = ?", histogramConcept.ConceptId).
 				Where("observation.value_as_number is not null")
 		}
@@ -149,7 +149,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndC
 		Where("observation.observation_concept_id = ?", histogramConceptId).
 		Where("observation.value_as_number is not null")
 
-	query = QueryFilterByConceptDefsHelper(query, sourceId, filterConceptDefs, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
+	query = QueryFilterByConceptDefsHelper(query, sourceId, filterConceptDefs, omopDataSource, resultsDataSource.Schema, "unionAndIntersect")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&cohortData)

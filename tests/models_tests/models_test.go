@@ -968,7 +968,7 @@ func TestTransformDataIntoTempTable(t *testing.T) {
 	query = resultsDataSource.Db.Table(querySQL)
 	tmpTableName3, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
 	if tmpTableName1 == tmpTableName3 {
-		t.Errorf("tmp table should have a new one")
+		t.Errorf("tmp table should have been an new one")
 	}
 
 	// test log transformation
@@ -997,6 +997,173 @@ func TestTransformDataIntoTempTable(t *testing.T) {
 		t.Errorf("tmp table should have been created since log transformation filters out negative values and therefore does not crash")
 	}
 
+}
+
+func TestTransformationsOfTransformDataIntoTempTable(t *testing.T) {
+	// tests all the different transformations supported by TransformDataIntoTempTable
+
+	omopDataSource := tests.GetOmopDataSource()
+	resultsDataSource := tests.GetResultsDataSource()
+
+	// 1. test log transformation
+	filterConceptDef :=
+		utils.CustomConceptVariableDef{
+			ConceptId: 0, // this id doesn't matter as the TransformDataIntoTempTable does not use this nor the Filters
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(100000000.0), // this should be ignored in tests below
+				},
+			},
+			Transformation: "log",
+		}
+
+	querySQL := "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest "
+	query := resultsDataSource.Db.Table(querySQL)
+	tmpTableName1, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName1 == "" {
+		t.Errorf("tmp table should have been created")
+	}
+	// test that all records are found in temp table (so no filtering other than "value_as_number > 0"):
+	observationCount := tests.GetCountWhere(omopDataSource, "observation", "value_as_number > 0")
+	tmpTableCount := tests.GetCountTmpTable(query, tmpTableName1)
+	if tmpTableCount != observationCount {
+		t.Errorf("tmp table records count (%d) different from what was expected: %d", tmpTableCount, observationCount)
+	}
+	// verify that the values are transformed:
+	maxObservation := tests.GetMaxFieldInTable(query, omopDataSource.Schema+".observation", "value_as_number")
+	maxTmp1Observation := tests.GetMaxFieldInTable(query, tmpTableName1, "value_as_number")
+	if maxObservation <= maxTmp1Observation {
+		t.Errorf("values don't seem to be log transformed. Normal: %f, Transformed: %f", maxObservation, maxTmp1Observation)
+	}
+
+	// 2. test Z-SCORE transformation
+	filterConceptDef =
+		utils.CustomConceptVariableDef{
+			ConceptId:      0, // this id doesn't matter as the TransformDataIntoTempTable does not use this nor the Filters
+			Filters:        []utils.Filter{},
+			Transformation: "z_score",
+		}
+
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName2, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName2 == "" {
+		t.Errorf("tmp table should have been created")
+	}
+	// test that all records are found in temp table (so no filtering other than "value_as_number is not null"):
+	observationCount = tests.GetCountWhere(omopDataSource, "observation", "value_as_number is not null")
+	tmpTableCount = tests.GetCountTmpTable(query, tmpTableName2)
+	if tmpTableCount != observationCount {
+		t.Errorf("tmp table records count (%d) different from what was expected: %d", tmpTableCount, observationCount)
+	}
+	// verify that the values are transformed:
+	maxTmp2Observation := tests.GetMaxFieldInTable(query, tmpTableName2, "value_as_number")
+	if maxObservation <= maxTmp2Observation || maxTmp2Observation <= maxTmp1Observation {
+		t.Errorf("values don't seem to be z_socre transformed. Normal: %f, Transformed: %f", maxObservation, maxTmp2Observation)
+	}
+}
+
+func TestToSQL(t *testing.T) {
+	// test some of the most common "to SQL" scenarios we'll need,
+	// by running a query with many variables of various kinds:
+	// now filter on the extendedCopyOfSecondLargestCohort
+	filterConceptDefsPlusCohortPairs := []interface{}{}
+	expectedConstraints := []string{}
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test",
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", smallestCohort.Id))
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", extendedCopyOfSecondLargestCohort.Id))
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("filter_1.observation_concept_id = %d", histogramConceptId))
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.939519252),
+				},
+			},
+			Transformation: "log",
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, "INNER JOIN tmp_transformed_")
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: secondLargestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test",
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", secondLargestCohort.Id))
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", largestCohort.Id))
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(8.7),
+				},
+			},
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, "filter_4.value_as_number >= 8.7")
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000007027,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000007028},
+				},
+			},
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, "filter_5.value_as_concept_id IN (2000007028)")
+
+	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
+	query := tests.GetOmopDataSource().Db.Table(tests.GetResultsDataSource().Schema + ".cohort as cohort").
+		Select("cohort.subject_id")
+	query, _ = models.QueryFilterByConceptDefsPlusCohortPairsHelper(query, testSourceId, 99, filterConceptDefsPlusCohortPairs, tests.GetOmopDataSource(), tests.GetResultsDataSource(), "finalCohortAlias")
+
+	querySQL := utils.ToSQL(query)
+	// results should not be empty:
+	if querySQL == "" {
+		t.Errorf("query SQL not as expected: %s", querySQL)
+	}
+	// result should contain each of the constraints:
+	for _, constraint := range expectedConstraints {
+		if !strings.Contains(querySQL, constraint) {
+			t.Errorf("query SQL does not contain expected constraint: %s\nFull SQL:\n%s", constraint, querySQL)
+		}
+	}
+	// result should be a SQL that can run without error:
+	result := tests.ExecSQLString(querySQL, testSourceId)
+	if result.Error != nil {
+		t.Errorf("Generated SQL failed to execute: %v\nSQL: %s", result.Error, querySQL)
+	}
+	// negative test:
+	result = tests.ExecSQLString(querySQL+" abc", testSourceId)
+	if result.Error == nil {
+		t.Errorf("Expected error for invalid SQL")
+	}
 }
 
 func TestQueryFilterByConceptIdsHelper(t *testing.T) {
@@ -1036,23 +1203,24 @@ func TestQueryFilterByConceptDefsHelper(t *testing.T) {
 
 	setUp(t)
 	omopDataSource := tests.GetOmopDataSource()
+	resultsDataSource := tests.GetResultsDataSource()
 	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{{ConceptId: allConceptIds[0]}, {ConceptId: allConceptIds[1]}, {ConceptId: allConceptIds[2]}}
 	var personIds []struct {
 		PersonId int64
 	}
 
-	// Subtest1: correct alias "observation":
-	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("observation.person_id")
-	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	// Subtest1: correct alias "cohort":
+	query := omopDataSource.Db.Table(resultsDataSource.Schema + ".cohort as cohort").
+		Select("cohort.subject_id")
+	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "cohort")
 	meta_result := query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Did NOT expect an error")
 	}
-	// Subtest2: incorrect alias "observation"...should fail:
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
+	// Subtest2: incorrect alias "cohort"...should fail:
+	query = omopDataSource.Db.Table(resultsDataSource.Schema + ".cohort as cohortWRONG").
 		Select("*")
-	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "cohort")
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error == nil {
 		t.Errorf("Expected an error")
@@ -1069,9 +1237,9 @@ func TestQueryFilterByConceptDefsHelper(t *testing.T) {
 		},
 	}
 
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
+	query = omopDataSource.Db.Table(resultsDataSource.Schema + ".cohort as cohort").
 		Select("*")
-	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "cohort")
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Should have succeeded")

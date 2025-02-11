@@ -14,6 +14,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/tests"
 	"github.com/uc-cdis/cohort-middleware/utils"
 	"github.com/uc-cdis/cohort-middleware/version"
+	"gorm.io/gorm"
 )
 
 var testSourceId = tests.GetTestSourceId()
@@ -1602,4 +1603,17 @@ func TestExecSQLError(t *testing.T) {
 	tests.ExecSQLScript("invalidSql.sql", tests.GetTestSourceId())
 	t.Errorf("Panic should have occurred due to SQL Error")
 
+}
+
+func TestTableExists(t *testing.T) {
+	setUp(t)
+	session := tests.GetResultsDataSource().Db.Session(&gorm.Session{})
+	exists := utils.TableExists(session, tests.GetResultsDataSource().Schema+".cohort")
+	if !exists {
+		t.Errorf("Expected 'cohort' table to exist")
+	}
+	exists = utils.TableExists(session, "cohort_non_existing_table")
+	if exists {
+		t.Errorf("Did NOT expect 'cohort_non_existing_table' to exist")
+	}
 }

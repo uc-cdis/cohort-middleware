@@ -6,16 +6,16 @@ import (
 
 // TempTableCache is a thread-safe cache for storing temporary table mappings
 var TempTableCache = &CacheSimple{
-	data:        make(map[string]interface{}),
-	maxSize:     10,
+	Data:        make(map[string]interface{}),
+	MaxSize:     100, // Note: this might need some tweaking if in a highly concurrent space...which is not the case now. Setting it too high risks too many temp tables..filling db.
 	accessOrder: make([]string, 0),
 }
 
 // Defines a thread-safe in-memory cache
 type CacheSimple struct {
-	data        map[string]interface{}
+	Data        map[string]interface{}
+	MaxSize     int
 	mu          sync.RWMutex
-	maxSize     int
 	accessOrder []string // Keeps track of insertion order for cleanup
 }
 
@@ -24,7 +24,7 @@ func (c *CacheSimple) Get(key string) (interface{}, bool) {
 	c.mu.RLock()
 	defer c.mu.RUnlock()
 
-	value, exists := c.data[key]
+	value, exists := c.Data[key]
 	// If the key already exists, update its position in the queue, so it is kept a bit longer:
 	if exists {
 		c.moveToEnd(key)
@@ -38,24 +38,24 @@ func (c *CacheSimple) Set(key string, value interface{}) {
 	defer c.mu.Unlock()
 
 	// If the key already exists, update its value and move it to the end of the access order
-	if _, exists := c.data[key]; exists {
-		c.data[key] = value
+	if _, exists := c.Data[key]; exists {
+		c.Data[key] = value
 		c.moveToEnd(key)
 		return
 	}
 
 	// Add the new key-value pair
-	c.data[key] = value
+	c.Data[key] = value
 	c.accessOrder = append(c.accessOrder, key)
 
 	// If the cache exceeds its maximum size, remove the oldest / least recently accessed entry
-	if len(c.accessOrder) > c.maxSize {
+	if len(c.accessOrder) > c.MaxSize {
 		oldestKey := c.accessOrder[0]
 		c.accessOrder = c.accessOrder[1:]
-		delete(c.data, oldestKey)
-
+		delete(c.Data, oldestKey)
+		c.removeFromOrder(oldestKey)
 		// Optionally drop the corresponding table
-		dropTable(oldestKey)
+		// dropTable(key) - probably not necessary if DB cleans up tmp tables automatically when session closes
 	}
 }
 
@@ -64,9 +64,11 @@ func (c *CacheSimple) Delete(key string) {
 	c.mu.Lock()
 	defer c.mu.Unlock()
 
-	if _, exists := c.data[key]; exists {
-		delete(c.data, key)
+	if _, exists := c.Data[key]; exists {
+		delete(c.Data, key)
 		c.removeFromOrder(key)
+		// Optionally drop the corresponding table
+		// dropTable(key) - probably not necessary if DB cleans up tmp tables automatically when session closes
 	}
 }
 
@@ -89,10 +91,4 @@ func (c *CacheSimple) removeFromOrder(key string) {
 			break
 		}
 	}
-}
-
-// Drops a temporary table (to be implemented based on your database logic)
-func dropTable(key string) {
-	// Add logic to drop the temporary table associated with the key
-	// Example: db.Exec(fmt.Sprintf("DROP TABLE %s", key))
 }

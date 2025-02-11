@@ -422,3 +422,71 @@ func TestCheckAndGetLastCustomConceptVariableDef(t *testing.T) {
 	}
 
 }
+
+func TestTempTableCache(t *testing.T) {
+	setUp(t)
+	var tempTableCache = &utils.CacheSimple{
+		Data:    make(map[string]interface{}),
+		MaxSize: 3,
+	}
+	tempTableCache.Set("abc_key", "abc_value")
+	value, exists := tempTableCache.Get("abc_key")
+	if value == nil || !exists || value != "abc_value" {
+		t.Errorf("Expected abc_value but got: exists=%v, value=%s", exists, value)
+	}
+
+	// The cache has maxsize 3.
+	// Scenario 1: After adding 3 new items, the .Get("abc_key") should result in empty,
+	// as it will have been removed.
+	// Scenario 2: The cache will keep items that were re-set (.Set) or recently retrieved (with .Get) "warm",
+	// meaning that they get moved to the end of the queue of who gets dropped next from cache. So, in
+	// this scenario, we want to add 2 new items, then .Get("abc_key"), then add one more item, and
+	// assert that  "abc_key" is still in, while the older of the 2 new items got dropped.
+
+	// (Scenario 1) Add 3 new items; "abc_key" should be removed
+	tempTableCache.Set("key1", "value1")
+	tempTableCache.Set("key2", "value2")
+	tempTableCache.Set("key3", "value3")
+	value, exists = tempTableCache.Get("abc_key")
+	if exists {
+		t.Errorf("Expected abc_key to be evicted, but it still exists with value: %v", value)
+	}
+
+	// (Scenario 2) Keep "abc_key" warm and verify eviction order
+	tempTableCache.Set("abc_key", "abc_value")
+	tempTableCache.Set("key4", "value4")
+	tempTableCache.Set("key5", "value5")
+	_, _ = tempTableCache.Get("abc_key") // Access abc_key to keep it warm
+	tempTableCache.Set("key6", "value6") // Since abc_key is warm, key4 should be evicted at this point
+	value, exists = tempTableCache.Get("abc_key")
+	if !exists || value != "abc_value" {
+		t.Errorf("Expected abc_key to be retained, but it was evicted")
+	}
+	value, exists = tempTableCache.Get("key4")
+	if exists {
+		t.Errorf("Expected key4 to be evicted, but it still exists with value: %v", value)
+	}
+
+	// Scenario 3: like scenario 2, but with Set. The .Set method
+	// should be repeatable and also keeps the entry "warm"
+	// (Scenario 2) Keep "abc_key" warm and verify eviction order
+	tempTableCache.Set("abc_key", "abc_value")
+	tempTableCache.Set("key4", "value4")
+	tempTableCache.Set("key5", "value5")
+	tempTableCache.Set("abc_key", "new_value1") // Reset abc_key to keep it warm, updating its value at the same time
+	tempTableCache.Set("abc_key", "new_value2") // Reset abc_key to keep it warm, updating its value at the same time
+	tempTableCache.Set("abc_key", "new_value3") // Reset abc_key to keep it warm, updating its value at the same time
+	tempTableCache.Set("key6", "value6")        // Since abc_key is warm, key4 should be evicted at this point
+	value, exists = tempTableCache.Get("abc_key")
+	if !exists || value != "new_value3" {
+		t.Errorf("Expected abc_key to be retained, but it was evicted, or expected value does not match. Value: %s", value)
+	}
+	value, exists = tempTableCache.Get("key4")
+	if exists {
+		t.Errorf("Expected key4 to be evicted, but it still exists with value: %v", value)
+	}
+	value, exists = tempTableCache.Get("key5")
+	if !exists || value != "value5" {
+		t.Errorf("Expected abc_key to be retained, but it was evicted, or expected value does not match. Value: %s", value)
+	}
+}

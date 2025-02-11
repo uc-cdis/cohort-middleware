@@ -200,7 +200,7 @@ func ParseConceptDefsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface
 			conceptDefsAndDichotomousDefs = append(conceptDefsAndDichotomousDefs, dichotomousDef)
 		default:
 			log.Printf("Unsupported variable type: %s", variable.VariableType)
-			// return nil, errors.New("unsupported variable type in request body") - TODO - first fix frontend to stop sending empty variables {}
+			return nil, errors.New("unsupported variable type in request body")
 		}
 	}
 

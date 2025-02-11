@@ -51,7 +51,7 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	requestBody := "{\"variables\":[{\"variable_type\": \"concept\", \"concept_id\": 2000000324}," +
-		"{\"variable_type\": \"concept\", \"concept_id\": 2000000123, \"filters\": [{\"type\": \"in\", \"values_as_concept_ids\": [2000000237, 2000000238]}]}," +
+		"{\"variable_type\": \"concept\", \"concept_id\": 2000000123, \"values\": [2000000237, 2000000238]}," +
 		"{\"variable_type\": \"custom_dichotomous\", \"provided_name\": \"test\", \"cohort_ids\": [1, 3]}]}"
 	requestContext.Request.Body = io.NopCloser(strings.NewReader(requestBody))
 
@@ -60,20 +60,9 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 		t.Errorf("Did not expect this request to abort")
 	}
 
-	expectedPrefixedConceptDefs := []utils.CustomConceptVariableDef{
-		{ConceptId: 2000000324},
-		{ConceptId: 2000000123,
-			Filters: []utils.Filter{
-				{
-					Type:               "in",
-					ValuesAsConceptIds: []int64{2000000237, 2000000238},
-				},
-			},
-		},
-	}
-
+	expectedPrefixedConceptDefs := []utils.CustomConceptVariableDef{{ConceptId: 2000000324, ConceptValues: []int64{}}, {ConceptId: 2000000123, ConceptValues: []int64{2000000237, 2000000238}}}
 	if !reflect.DeepEqual(conceptDefs, expectedPrefixedConceptDefs) {
-		t.Errorf("Expected %v but found %v", expectedPrefixedConceptDefs, conceptDefs)
+		t.Errorf("Expected %d but found %d", expectedPrefixedConceptDefs, conceptDefs)
 	}
 
 	expectedCohortPairs := []utils.CustomDichotomousVariableDef{
@@ -347,7 +336,7 @@ func TestGenerateStatsData(t *testing.T) {
 func TestConvertConceptIdToCustomConceptVariablesDef(t *testing.T) {
 	setUp(t)
 
-	expectedResult := []utils.CustomConceptVariableDef{{ConceptId: 1234}, {ConceptId: 5678}}
+	expectedResult := []utils.CustomConceptVariableDef{{ConceptId: 1234, ConceptValues: []int64{}}, {ConceptId: 5678, ConceptValues: []int64{}}}
 	conceptIds := []int64{1234, 5678}
 	result := utils.ConvertConceptIdToCustomConceptVariablesDef(conceptIds)
 
@@ -359,134 +348,10 @@ func TestConvertConceptIdToCustomConceptVariablesDef(t *testing.T) {
 func TestExtractConceptIdsFromCustomConceptVariablesDef(t *testing.T) {
 	setUp(t)
 
-	var testData = []utils.CustomConceptVariableDef{
-		{ConceptId: 1234,
-			Filters: []utils.Filter{
-				{
-					Type:               "in",
-					ValuesAsConceptIds: []int64{7890},
-				},
-			},
-		},
-		{ConceptId: 5678},
-	}
+	var testData = []utils.CustomConceptVariableDef{{ConceptId: 1234, ConceptValues: []int64{7890}}, {ConceptId: 5678, ConceptValues: []int64{}}}
 	expectedResult := []int64{1234, 5678}
 	result := utils.ExtractConceptIdsFromCustomConceptVariablesDef(testData)
 	if !reflect.DeepEqual(expectedResult, result) {
 		t.Errorf("Expected %v but found %v", expectedResult, result)
-	}
-}
-
-func TestCheckAndGetLastCustomConceptVariableDef(t *testing.T) {
-	setUp(t)
-	testData := []interface{}{
-		utils.CustomDichotomousVariableDef{
-			CohortDefinitionId1: 123,
-			CohortDefinitionId2: 456,
-			ProvidedName:        "test",
-		},
-		utils.CustomConceptVariableDef{
-			ConceptId: 1234,
-		},
-	}
-
-	result, err := utils.CheckAndGetLastCustomConceptVariableDef(testData)
-
-	if result == nil || err != nil {
-		t.Errorf("Expected a valid result and no error. Result: %v, Error: %v", result, err)
-	}
-
-	testData = []interface{}{
-		utils.CustomConceptVariableDef{
-			ConceptId: 1234,
-		},
-		utils.CustomDichotomousVariableDef{
-			CohortDefinitionId1: 123,
-			CohortDefinitionId2: 456,
-			ProvidedName:        "test",
-		},
-	}
-
-	result, err = utils.CheckAndGetLastCustomConceptVariableDef(testData)
-
-	if result != nil || err == nil {
-		t.Errorf("Expected NO result and an error. Result: %v, Error: %v", result, err)
-	}
-
-	testData = []interface{}{}
-
-	result, err = utils.CheckAndGetLastCustomConceptVariableDef(testData)
-
-	if result != nil || err == nil {
-		t.Errorf("Expected NO result and an error. Result: %v, Error: %v", result, err)
-	}
-
-}
-
-func TestTempTableCache(t *testing.T) {
-	setUp(t)
-	var tempTableCache = &utils.CacheSimple{
-		Data:    make(map[string]interface{}),
-		MaxSize: 3,
-	}
-	tempTableCache.Set("abc_key", "abc_value")
-	value, exists := tempTableCache.Get("abc_key")
-	if value == nil || !exists || value != "abc_value" {
-		t.Errorf("Expected abc_value but got: exists=%v, value=%s", exists, value)
-	}
-
-	// The cache has maxsize 3.
-	// Scenario 1: After adding 3 new items, the .Get("abc_key") should result in empty,
-	// as it will have been removed.
-	// Scenario 2: The cache will keep items that were re-set (.Set) or recently retrieved (with .Get) "warm",
-	// meaning that they get moved to the end of the queue of who gets dropped next from cache. So, in
-	// this scenario, we want to add 2 new items, then .Get("abc_key"), then add one more item, and
-	// assert that  "abc_key" is still in, while the older of the 2 new items got dropped.
-
-	// (Scenario 1) Add 3 new items; "abc_key" should be removed
-	tempTableCache.Set("key1", "value1")
-	tempTableCache.Set("key2", "value2")
-	tempTableCache.Set("key3", "value3")
-	value, exists = tempTableCache.Get("abc_key")
-	if exists {
-		t.Errorf("Expected abc_key to be evicted, but it still exists with value: %v", value)
-	}
-
-	// (Scenario 2) Keep "abc_key" warm and verify eviction order
-	tempTableCache.Set("abc_key", "abc_value")
-	tempTableCache.Set("key4", "value4")
-	tempTableCache.Set("key5", "value5")
-	_, _ = tempTableCache.Get("abc_key") // Access abc_key to keep it warm
-	tempTableCache.Set("key6", "value6") // Since abc_key is warm, key4 should be evicted at this point
-	value, exists = tempTableCache.Get("abc_key")
-	if !exists || value != "abc_value" {
-		t.Errorf("Expected abc_key to be retained, but it was evicted")
-	}
-	value, exists = tempTableCache.Get("key4")
-	if exists {
-		t.Errorf("Expected key4 to be evicted, but it still exists with value: %v", value)
-	}
-
-	// Scenario 3: like scenario 2, but with Set. The .Set method
-	// should be repeatable and also keeps the entry "warm"
-	// (Scenario 2) Keep "abc_key" warm and verify eviction order
-	tempTableCache.Set("abc_key", "abc_value")
-	tempTableCache.Set("key4", "value4")
-	tempTableCache.Set("key5", "value5")
-	tempTableCache.Set("abc_key", "new_value1") // Reset abc_key to keep it warm, updating its value at the same time
-	tempTableCache.Set("abc_key", "new_value2") // Reset abc_key to keep it warm, updating its value at the same time
-	tempTableCache.Set("abc_key", "new_value3") // Reset abc_key to keep it warm, updating its value at the same time
-	tempTableCache.Set("key6", "value6")        // Since abc_key is warm, key4 should be evicted at this point
-	value, exists = tempTableCache.Get("abc_key")
-	if !exists || value != "new_value3" {
-		t.Errorf("Expected abc_key to be retained, but it was evicted, or expected value does not match. Value: %s", value)
-	}
-	value, exists = tempTableCache.Get("key4")
-	if exists {
-		t.Errorf("Expected key4 to be evicted, but it still exists with value: %v", value)
-	}
-	value, exists = tempTableCache.Get("key5")
-	if !exists || value != "value5" {
-		t.Errorf("Expected abc_key to be retained, but it was evicted, or expected value does not match. Value: %s", value)
 	}
 }

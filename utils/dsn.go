@@ -14,9 +14,6 @@ func GenerateDsn(sourceConnectionString string) string {
 	})
 	dbVendor := sourceConnectionParts[1]
 	log.Printf("Found db vendor %s", dbVendor)
-	if !(dbVendor == "postgresql" || dbVendor == "sqlserver") {
-		panic("db vendor not supported")
-	}
 	host := sourceConnectionParts[2]
 	port := sourceConnectionParts[3]
 	dbname := sourceConnectionParts[5]

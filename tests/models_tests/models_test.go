@@ -1154,39 +1154,9 @@ func TestToSQL(t *testing.T) {
 	}
 }
 
-func TestQueryFilterByConceptIdsHelper(t *testing.T) {
-	// This test checks whether the query succeeds when the mainObservationTableAlias
-	// argument passed to QueryFilterByConceptIdsHelper (last argument)
-	// matches the alias used in the main query, and whether it fails otherwise.
-
-	setUp(t)
-	omopDataSource := tests.GetOmopDataSource()
-	filterConceptIds := []int64{allConceptIds[0], allConceptIds[1], allConceptIds[2]}
-	var personIds []struct {
-		PersonId int64
-	}
-
-	// Subtest1: correct alias "observation":
-	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("observation.person_id")
-	query = models.QueryFilterByConceptIdsHelper(query, testSourceId, filterConceptIds, omopDataSource, "", "observation.person_id")
-	meta_result := query.Scan(&personIds)
-	if meta_result.Error != nil {
-		t.Errorf("Did NOT expect an error")
-	}
-	// Subtest2: incorrect alias "observation"...should fail:
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
-		Select("*")
-	query = models.QueryFilterByConceptIdsHelper(query, testSourceId, filterConceptIds, omopDataSource, "", "observation.person_id")
-	meta_result = query.Scan(&personIds)
-	if meta_result.Error == nil {
-		t.Errorf("Expected an error")
-	}
-}
-
 func TestQueryFilterByConceptDefsHelper(t *testing.T) {
 	// This test checks whether the query succeeds when the mainObservationTableAlias
-	// argument passed to QueryFilterByConceptIdsHelper (last argument)
+	// argument passed to QueryFilterByConceptDefsHelper (last argument)
 	// matches the alias used in the main query, and whether it fails otherwise.
 
 	setUp(t)

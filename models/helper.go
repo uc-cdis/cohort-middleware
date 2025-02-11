@@ -48,24 +48,9 @@ func QueryFilterByConceptDefsPlusCohortPairsHelper(query *gorm.DB, sourceId int,
 	return query, finalObservationTableAlias
 }
 
-// DEPRECATED - USE QueryFilterByConceptDefsHelper
 // Helper function that adds extra filter clauses to the query, joining on the right set of tables.
 //   - It was added here to make it reusable, given these filters need to be added to many of the queries that take in
-//     a list of filters in the form of concept ids.
-func QueryFilterByConceptIdsHelper(query *gorm.DB, sourceId int, filterConceptIds []int64,
-	omopDataSource *utils.DbAndSchema, resultSchemaName string, personIdFieldForObservationJoin string) *gorm.DB {
-	// iterate over the filterConceptIds, adding a new INNER JOIN and filters for each, so that the resulting set is the
-	// set of persons that have a non-null value for each and every one of the concepts:
-	for i, filterConceptId := range filterConceptIds {
-		observationTableAlias := fmt.Sprintf("observation_filter_%d", i)
-		log.Printf("Adding extra INNER JOIN with alias %s", observationTableAlias)
-		query = query.Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as "+observationTableAlias+omopDataSource.GetViewDirective()+" ON "+observationTableAlias+".person_id = "+personIdFieldForObservationJoin).
-			Where(observationTableAlias+".observation_concept_id = ?", filterConceptId).
-			Where(GetConceptValueNotNullCheckBasedOnConceptType(observationTableAlias, sourceId, filterConceptId))
-	}
-	return query
-}
-
+//     a list of filters in the form of concept definitions.
 func QueryFilterByConceptDefHelper(query *gorm.DB, sourceId int, filterConceptDef utils.CustomConceptVariableDef,
 	omopDataSource *utils.DbAndSchema, finalCohortAlias string, observationTableAlias string) (*gorm.DB, string, error) {
 	// 1  - check if filterConceptDef has a transformation

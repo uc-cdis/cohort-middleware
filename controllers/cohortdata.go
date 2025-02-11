@@ -29,28 +29,20 @@ func NewCohortDataController(cohortDataModel models.CohortDataI, dataDictionaryM
 }
 
 func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Context) {
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
-	histogramIdStr := c.Param("histogramid")
-	if sourceIdStr == "" || cohortIdStr == "" || histogramIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	sourceId, cohortId, conceptIdsAndCohortPairs, err := utils.ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
 
-	filterConceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
+	// parse cohortPairs separately as well, so we can validate permissions
+	_, cohortPairs := utils.GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
 		c.Abort()
 		return
 	}
-
-	sourceId, _ := strconv.Atoi(sourceIdStr)
-	cohortId, _ := strconv.Atoi(cohortIdStr)
-	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
-
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -59,9 +51,9 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 		return
 	}
 
-	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, histogramConceptId, filterConceptIdsAndValues, cohortPairs)
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId, cohortId, conceptIdsAndCohortPairs)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving histogram data", "error": err.Error()})
 		c.Abort()
 		return
 	}
@@ -102,7 +94,7 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 		return
 	}
 
-	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortId, conceptId, filterConceptIdsAndValues, cohortPairs)
+	cohortData, err := u.cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId, cohortId, conceptId, filterConceptIdsAndValues, cohortPairs)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
 		c.Abort()

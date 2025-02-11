@@ -75,8 +75,13 @@ func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrde
 	return cohortData, nil
 }
 
-func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIds []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*models.PersonConceptAndValue, error) {
 
+	cohortData := []*models.PersonConceptAndValue{}
+	return cohortData, nil
+}
+
+func (h dummyCohortDataModel) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}) ([]*models.PersonConceptAndValue, error) {
 	cohortData := []*models.PersonConceptAndValue{}
 	return cohortData, nil
 }
@@ -312,7 +317,7 @@ func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
 	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
-	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "4"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortidwrong", Value: "4"})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	requestBody := "{\"variables\":[{\"variable_type\": \"custom_dichotomous\", \"cohort_ids\": [1, 3]}]}"
@@ -907,13 +912,13 @@ func TestGetAttritionRowForConceptIdsAndCohortPairs(t *testing.T) {
 
 	// mix of concept ids and CustomDichotomousVariableDef items:
 	conceptIdsAndCohortPairs := []interface{}{
-		utils.CustomConceptVariableDef{ConceptId: int64(1234), ConceptValues: []int64{}},
-		utils.CustomConceptVariableDef{ConceptId: int64(5678), ConceptValues: []int64{}},
+		utils.CustomConceptVariableDef{ConceptId: int64(1234)},
+		utils.CustomConceptVariableDef{ConceptId: int64(5678)},
 		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: 1,
 			CohortDefinitionId2: 2,
 			ProvidedName:        "testA12"},
-		utils.CustomConceptVariableDef{ConceptId: int64(2090006880), ConceptValues: []int64{}},
+		utils.CustomConceptVariableDef{ConceptId: int64(2090006880)},
 		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: 3,
 			CohortDefinitionId2: 4,

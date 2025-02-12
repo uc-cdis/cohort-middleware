@@ -153,7 +153,9 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCo
 		query, finalObservationTableAlias := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
 		// count persons, grouping by concept value:
 		if finalObservationTableAlias != "" {
-			query = query.Select(finalObservationTableAlias + ".value_as_concept_id, count(distinct(" + finalObservationTableAlias + ".person_id)) as npersons_in_cohort_with_value").
+			query = query.Select(finalObservationTableAlias+".value_as_concept_id, count(distinct("+finalObservationTableAlias+".person_id)) as npersons_in_cohort_with_value").
+				Where(finalObservationTableAlias+".observation_concept_id = ?", breakdownConceptId).
+				Where(GetConceptValueNotNullCheckBasedOnConceptType(finalObservationTableAlias, sourceId, breakdownConceptId)).
 				Group(finalObservationTableAlias + ".value_as_concept_id")
 		} else {
 			query = query.Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").

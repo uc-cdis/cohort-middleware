@@ -531,6 +531,42 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPair
 	if countPersons != 2 {
 		t.Errorf("Expected only two persons in resultset, found %d", countPersons)
 	}
+
+	// test with a different concept:
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: tests.GetTestHistogramConceptId(),
+		},
+	}
+	stats4, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
+	if !(len(stats4) > 1) {
+		t.Errorf("Expected >1 stats. Got %d, Error: %v", len(stats4), err)
+	}
+	for _, stat := range stats4 {
+		// some very basic checks, making sure fields are not empty, repeated in next row, etc:
+		if len(stat.ConceptValue) == len(stat.ValueName) ||
+			len(stat.ConceptValue) == 0 ||
+			len(stat.ValueName) == 0 ||
+			stat.ValueAsConceptId == 0 ||
+			stat.ValueName == prevName {
+			t.Errorf("Invalid results")
+		}
+		if stat.ValueAsConceptId == 2000007028 && stat.NpersonsInCohortWithValue != 2 {
+			t.Errorf("Invalid results. Expected count of persons == 2, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		if stat.ValueAsConceptId == 2000007029 && stat.NpersonsInCohortWithValue != 3 {
+			t.Errorf("Invalid results. Expected count of persons == 3, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		if stat.ValueAsConceptId == 2000007030 && stat.NpersonsInCohortWithValue != 2 {
+			t.Errorf("Invalid results. Expected count of persons == 2, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		if stat.ValueAsConceptId == 2000007031 && stat.NpersonsInCohortWithValue != 1 {
+			t.Errorf("Invalid results. Expected count of persons == 1, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		prevName = stat.ValueName
+	}
+
 }
 
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {

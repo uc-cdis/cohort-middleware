@@ -152,18 +152,19 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCo
 	err := session.Transaction(func(query *gorm.DB) error {
 		query, finalObservationTableAlias := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
 		// count persons, grouping by concept value:
+		var joinField string
 		if finalObservationTableAlias != "" {
-			query = query.Select(finalObservationTableAlias+".value_as_concept_id, count(distinct("+finalObservationTableAlias+".person_id)) as npersons_in_cohort_with_value").
-				Where(finalObservationTableAlias+".observation_concept_id = ?", breakdownConceptId).
-				Where(GetConceptValueNotNullCheckBasedOnConceptType(finalObservationTableAlias, sourceId, breakdownConceptId)).
-				Group(finalObservationTableAlias + ".value_as_concept_id")
+			// this will be the case if the last variable is concept/numeric:
+			joinField = finalObservationTableAlias + ".person_id"
 		} else {
-			query = query.Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
-				Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
-				Where("observation.observation_concept_id = ?", breakdownConceptId).
-				Where(GetConceptValueNotNullCheckBasedOnConceptType("observation", sourceId, breakdownConceptId)).
-				Group("observation.value_as_concept_id")
+			// this will be the case if the last variable is dichotomous:
+			joinField = finalSetAlias + ".subject_id"
 		}
+		query = query.Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
+			Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+joinField+" = observation.person_id").
+			Where("observation.observation_concept_id = ?", breakdownConceptId).
+			Where(GetConceptValueNotNullCheckBasedOnConceptType("observation", sourceId, breakdownConceptId)).
+			Group("observation.value_as_concept_id")
 		query, cancel := utils.AddTimeoutToQuery(query)
 		defer cancel()
 		meta_result := query.Scan(&conceptBreakdownList)

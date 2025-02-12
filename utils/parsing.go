@@ -175,7 +175,11 @@ func ParseConceptDefsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface
 		log.Printf("Error decoding request body: %v", err)
 		return nil, errors.New("failed to parse JSON request body")
 	}
-
+	// Check if the "variables" field is absent (nil)
+	if requestBody.Variables == nil {
+		log.Println("Missing 'variables' field in the request body")
+		return nil, errors.New("'variables' field must be present in the request body")
+	}
 	conceptDefsAndDichotomousDefs := make([]interface{}, 0)
 
 	for _, variable := range requestBody.Variables {
@@ -196,7 +200,7 @@ func ParseConceptDefsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface
 			conceptDefsAndDichotomousDefs = append(conceptDefsAndDichotomousDefs, dichotomousDef)
 		default:
 			log.Printf("Unsupported variable type: %s", variable.VariableType)
-			// return nil, errors.New("unsupported variable type in request body") - TODO - first fix frontend to stop sending empty variables {}
+			return nil, errors.New("unsupported variable type in request body")
 		}
 	}
 

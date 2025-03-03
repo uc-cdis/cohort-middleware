@@ -156,8 +156,8 @@ func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, c
 		finalSetAlias := "case_cohort_unionedAndIntersectedWithFilters"
 		query, _ = QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, caseCohortId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
 
-		query = query.Select("count(distinct(case_cohort_unionedAndIntersectedWithFilters.subject_id)) as case_control_overlap").
-			Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = case_cohort_unionedAndIntersectedWithFilters.subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
+		query = query.Select("count(distinct("+finalSetAlias+".subject_id)) as case_control_overlap").
+			Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as control_cohort ON control_cohort.subject_id = "+finalSetAlias+".subject_id"). // this one allows for the intersection between case and control and the assessment of the overlap
 			Where("control_cohort.cohort_definition_id = ?", controlCohortId)
 		query, cancel := utils.AddTimeoutToQuery(query)
 		defer cancel()

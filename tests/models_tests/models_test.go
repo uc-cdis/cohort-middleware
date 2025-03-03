@@ -540,9 +540,11 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPair
 	}
 	stats4, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
 		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
-	if !(len(stats4) > 1) {
-		t.Errorf("Expected >1 stats. Got %d, Error: %v", len(stats4), err)
+	// expecting counts on all 4 HARE codes:
+	if len(stats4) != 4 {
+		t.Errorf("Expected 4 stats. Got %d, Error: %v", len(stats4), err)
 	}
+	// check counts for each HARE code:
 	for _, stat := range stats4 {
 		// some very basic checks, making sure fields are not empty, repeated in next row, etc:
 		if len(stat.ConceptValue) == len(stat.ValueName) ||
@@ -566,7 +568,25 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPair
 		}
 		prevName = stat.ValueName
 	}
-
+	// test below is identical to above, but with a transformation and a filter:
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: tests.GetTestHistogramConceptId(),
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.871), // we have 2 records (each one on a different HARE) in extendedCopyOfSecondLargestCohort where the value is >= than this
+				},
+			},
+			Transformation: "log",
+		},
+	}
+	stats5, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
+	// expecting 2 records as commented above:
+	if len(stats5) != 2 {
+		t.Errorf("Expected 2 stats. Got %d, Error: %v", len(stats5), err)
+	}
 }
 
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdWithResults(t *testing.T) {
@@ -1307,6 +1327,27 @@ func TestRetrieveCohortOverlapStats(t *testing.T) {
 		filterConceptDefsAndCohortPairs)
 	if stats3.CaseControlOverlap != 0 {
 		t.Errorf("Expected nr persons to be 0, found %d. Error: %v", stats3.CaseControlOverlap, err)
+	}
+
+	// test with filter and transformation. These 2 cohorts will have 6 overlapping persons:
+	caseCohortId = largestCohort.Id
+	controlCohortId = extendedCopyOfSecondLargestCohort.Id
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: tests.GetTestHistogramConceptId(),
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.871), // we have 2 records in the overlapping population where the value is >= than this
+				},
+			},
+			Transformation: "log",
+		},
+	}
+	stats4, err := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptDefsAndCohortPairs)
+	if stats4.CaseControlOverlap != 2 {
+		t.Errorf("Expected nr persons to be 2, found %d. Error: %v", stats4.CaseControlOverlap, err)
 	}
 }
 

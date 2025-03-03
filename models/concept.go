@@ -150,18 +150,10 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCo
 	var conceptBreakdownList []*ConceptBreakdown
 	session := resultsDataSource.Db.Session(&gorm.Session{})
 	err := session.Transaction(func(query *gorm.DB) error {
-		query, finalObservationTableAlias := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
+		query, _ = QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
 		// count persons, grouping by concept value:
-		var joinField string
-		if finalObservationTableAlias != "" {
-			// this will be the case if the last variable is concept/numeric:
-			joinField = finalObservationTableAlias + ".person_id"
-		} else {
-			// this will be the case if the last variable is dichotomous:
-			joinField = finalSetAlias + ".subject_id"
-		}
 		query = query.Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
-			Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+joinField+" = observation.person_id").
+			Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
 			Where("observation.observation_concept_id = ?", breakdownConceptId).
 			Where(GetConceptValueNotNullCheckBasedOnConceptType("observation", sourceId, breakdownConceptId)).
 			Group("observation.value_as_concept_id")

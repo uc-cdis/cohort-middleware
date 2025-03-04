@@ -175,7 +175,11 @@ func ParseConceptDefsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface
 		log.Printf("Error decoding request body: %v", err)
 		return nil, errors.New("failed to parse JSON request body")
 	}
-
+	// Check if the "variables" field is absent (nil)
+	if requestBody.Variables == nil {
+		log.Println("Missing 'variables' field in the request body")
+		return nil, errors.New("'variables' field must be present in the request body")
+	}
 	conceptDefsAndDichotomousDefs := make([]interface{}, 0)
 
 	for _, variable := range requestBody.Variables {
@@ -196,7 +200,7 @@ func ParseConceptDefsAndDichotomousDefsAsSingleList(c *gin.Context) ([]interface
 			conceptDefsAndDichotomousDefs = append(conceptDefsAndDichotomousDefs, dichotomousDef)
 		default:
 			log.Printf("Unsupported variable type: %s", variable.VariableType)
-			// return nil, errors.New("unsupported variable type in request body") - TODO - first fix frontend to stop sending empty variables {}
+			return nil, errors.New("unsupported variable type in request body")
 		}
 	}
 
@@ -323,11 +327,11 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 	return sourceId, cohortId, nil
 }
 
-// separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list
-func GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
+// separates a conceptDefsAndCohortPairs into a conceptDefs list and a cohortPairs list
+func GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptDefsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
 	conceptDefsAndValues := []CustomConceptVariableDef{}
 	cohortPairs := []CustomDichotomousVariableDef{}
-	for _, item := range conceptIdsAndCohortPairs {
+	for _, item := range conceptDefsAndCohortPairs {
 		switch convertedItem := item.(type) {
 		case CustomConceptVariableDef:
 			conceptDefsAndValues = append(conceptDefsAndValues, convertedItem)
@@ -340,16 +344,16 @@ func GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPai
 
 // deprecated: returns the conceptIds and cohortPairs as separate lists (for backwards compatibility)
 func ParseSourceIdAndCohortIdAndVariablesList(c *gin.Context) (int, int, []int64, []CustomDichotomousVariableDef, error) {
-	sourceId, cohortId, conceptIdsAndCohortPairs, err := ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
+	sourceId, cohortId, conceptDefsAndCohortPairs, err := ParseSourceIdAndCohortIdAndVariablesAsSingleList(c)
 	if err != nil {
 		return -1, -1, nil, nil, err
 	}
-	conceptIdsAndValues, cohortPairs := GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
+	conceptIdsAndValues, cohortPairs := GetConceptDefsAndValuesAndCohortPairsAsSeparateLists(conceptDefsAndCohortPairs)
 	conceptIds := ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 	return sourceId, cohortId, conceptIds, cohortPairs, nil
 }
 
-// returns sourceid, cohortid, list of variables (formed by concept ids and/or of cohort tuples which are also known as custom dichotomous variables)
+// returns sourceid, cohortid, list of variables (formed by concept defs and/or of cohort tuples which are also known as custom dichotomous variables)
 func ParseSourceIdAndCohortIdAndVariablesAsSingleList(c *gin.Context) (int, int, []interface{}, error) {
 	// parse and validate all parameters:
 	sourceId, cohortId, err := ParseSourceAndCohortId(c)

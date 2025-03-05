@@ -81,7 +81,7 @@ func (h CohortData) RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlus
 	session := resultsDataSource.Db.Session(&gorm.Session{})
 	err := session.Transaction(func(query *gorm.DB) error { // TODO - rename query?
 		query, tmpTableName := QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalCohortAlias)
-		if tmpTableName != "" {
+		if tmpTableName != "" { // TODO - get rid of this distinction and then stop returning tmpTableName - see also https://github.com/uc-cdis/cohort-middleware/pull/126#discussion_r1978018822
 			query = query.Select("distinct(" + tmpTableName + ".person_id), " + tmpTableName + ".observation_concept_id as concept_id, " + tmpTableName + ".value_as_number as concept_value_as_number")
 		} else {
 			histogramConcept, errGetLast := utils.CheckAndGetLastCustomConceptVariableDef(filterConceptDefsAndCohortPairs)

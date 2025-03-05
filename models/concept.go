@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/uc-cdis/cohort-middleware/utils"
+	"gorm.io/gorm"
 )
 
 type ConceptI interface {
@@ -12,7 +13,7 @@ type ConceptI interface {
 	RetrieveInfoBySourceIdAndConceptIds(sourceId int, conceptIds []int64) ([]*ConceptSimple, error)
 	RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptTypes []string) ([]*ConceptSimple, error)
 	RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error)
-	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*ConceptBreakdown, error)
+	RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}, breakdownConceptId int64) ([]*ConceptBreakdown, error)
 }
 type Concept struct {
 	ConceptId   int64  `json:"concept_id"`
@@ -127,39 +128,40 @@ func (h Concept) RetrieveInfoBySourceIdAndConceptTypes(sourceId int, conceptType
 //	{ConceptValue: "B", NPersonsInCohortWithValue: N-M},
 func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	// this is identical to the result of the function below if called with empty filterConceptIds[] and empty filterCohortPairs... so call that:
-	filterConceptIds := []int64{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId, cohortDefinitionId, filterConceptIds, filterCohortPairs, breakdownConceptId)
+	var filterConceptDefsAndCohortPairs []interface{}
+	return h.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, breakdownConceptId)
 }
 
 // Basically same goal as described in function above, but only count persons that have a non-null value for each
-// of the ids in the given filterConceptIds. So, using the example documented in the function above, it will
+// of the given filters. So, using the example documented in the function above, it will
 // return something like:
 //
 //	{ConceptValue: "A", NPersonsInCohortWithValue: M-X},
 //	{ConceptValue: "B", NPersonsInCohortWithValue: N-M-X},
 //
-// where X is the number of persons that have NO value or just a "null" value for one or more of the ids in the given filterConceptIds.
-func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
-
+// where X is the number of persons that have NO value or just a "null" value for one or more of the concepts in the given filters.
+// Also supports cohort pairs in filters, filtering out persons that don't pass the cohort pair filter (drill down to that method for detais).
+// Furthermore, this method also applies transformations and filtering, if these items are specified for the given concept definitions.
+func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(sourceId int, cohortDefinitionId int, filterConceptDefsAndCohortPairs []interface{}, breakdownConceptId int64) ([]*ConceptBreakdown, error) {
 	var dataSourceModel = new(Source)
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
-
-	// count persons, grouping by concept value:
+	finalSetAlias := "final_set_alias"
 	var conceptBreakdownList []*ConceptBreakdown
-	query := QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, cohortDefinitionId, "unionAndIntersect").
-		Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
-		Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON unionAndIntersect.subject_id = observation.person_id").
-		Where("observation.observation_concept_id = ?", breakdownConceptId).
-		Where(GetConceptValueNotNullCheckBasedOnConceptType("observation", sourceId, breakdownConceptId))
-
-	query = QueryFilterByConceptIdsHelper(query, sourceId, filterConceptIds, omopDataSource, resultsDataSource.Schema, "unionAndIntersect.subject_id")
-
-	query, cancel := utils.AddTimeoutToQuery(query)
-	defer cancel()
-	meta_result := query.Group("observation.value_as_concept_id").
-		Scan(&conceptBreakdownList)
+	session := resultsDataSource.Db.Session(&gorm.Session{})
+	err := session.Transaction(func(query *gorm.DB) error {
+		query, _ = QueryFilterByConceptDefsPlusCohortPairsHelper(query, sourceId, cohortDefinitionId, filterConceptDefsAndCohortPairs, omopDataSource, resultsDataSource, finalSetAlias)
+		// count persons, grouping by concept value:
+		query = query.Select("observation.value_as_concept_id, count(distinct(observation.person_id)) as npersons_in_cohort_with_value").
+			Joins("INNER JOIN "+omopDataSource.Schema+".observation_continuous as observation"+omopDataSource.GetViewDirective()+" ON "+finalSetAlias+".subject_id = observation.person_id").
+			Where("observation.observation_concept_id = ?", breakdownConceptId).
+			Where(GetConceptValueNotNullCheckBasedOnConceptType("observation", sourceId, breakdownConceptId)).
+			Group("observation.value_as_concept_id")
+		query, cancel := utils.AddTimeoutToQuery(query)
+		defer cancel()
+		meta_result := query.Scan(&conceptBreakdownList)
+		return meta_result.Error
+	})
 
 	// Add concept value (coded value) and concept name for each of the value_as_concept_id values:
 	for _, conceptBreakdownItem := range conceptBreakdownList {
@@ -170,5 +172,5 @@ func (h Concept) RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCoho
 		conceptBreakdownItem.ConceptValue = conceptInfo.ConceptCode
 		conceptBreakdownItem.ValueName = conceptInfo.ConceptName
 	}
-	return conceptBreakdownList, meta_result.Error
+	return conceptBreakdownList, err
 }

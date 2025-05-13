@@ -748,6 +748,38 @@ func TestGetCohortName(t *testing.T) {
 
 }
 
+func TestGetCohortDefinitionStatsByObservationWindow(t *testing.T) {
+	setUp(t)
+	cohortDefinitionAndStats, _ := cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(testSourceId, secondLargestCohort.Id, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// middle scenario - some filtered out:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(testSourceId, secondLargestCohort.Id, 365)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if !(cohortDefinitionAndStats.CohortSize > 0 && cohortDefinitionAndStats.CohortSize < secondLargestCohort.CohortSize) {
+		t.Errorf("Expected cohort size > 0 and < %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// extreme scenario - all filtered out:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(testSourceId, secondLargestCohort.Id, 30000)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != 0 {
+		t.Errorf("Expected cohort size == 0, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+}
+
 func TestGetCohortDefinitionByName(t *testing.T) {
 	setUp(t)
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(smallestCohort.Name)

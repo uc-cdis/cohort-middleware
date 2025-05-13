@@ -126,6 +126,22 @@ values
     (nextval('observation_id_seq'),         11,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
 ;
 
+-- insert `observation_period` records:
+insert into omop.observation_period
+(observation_period_id, person_id, observation_period_start_date, observation_period_end_date, period_type_concept_id)
+values
+    (nextval('observation_period_id_seq'), 1, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 2, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 3, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 4, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 5, '2019-01-02', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 6, '2019-01-02', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 7, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 8, '2004-01-31', '2024-01-31', 44814724)
+;
+
+
+
 -- ========================================================
 -- Populate results schema
 -- ========================================================

@@ -32,7 +32,9 @@ func NewRouter() *gin.Engine {
 			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
 		authorized.GET("/cohortdefinition/by-id/:id", cohortdefinitions.RetriveById)
 
+		// cohort definition statistics:
 		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-team-project", cohortdefinitions.RetriveStatsBySourceIdAndTeamProject)
+		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/by-observation-window/:observationwindow", cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow)
 
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition),

@@ -128,6 +128,10 @@ func (h dummyCohortDefinitionDataModel) GetAllCohortDefinitions() ([]*models.Coh
 	return nil, nil
 }
 
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWindow(sourceId int, cohortId int, observationWindow int) (*models.CohortDefinitionStats, error) {
+	return nil, nil
+}
+
 func TestTeamProjectValidationForCohort(t *testing.T) {
 	setUp(t)
 	config.Init("mocktest")

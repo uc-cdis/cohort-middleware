@@ -114,3 +114,39 @@ func MakeUniqueListOfCohortStats(input []*models.CohortDefinitionStats) []*model
 	}
 	return uniqueList
 }
+
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservationWindow(c *gin.Context) {
+	// This method returns the cohortdefinition details and filtered size for a
+	// given cohort_definition Id and observation window (aka "look back window").
+
+	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
+	observationWindow, err := utils.ParseNumericArg(c, "observationwindow")
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
+	cohortDefinitionAndStats, err := u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(sourceId, cohortId, observationWindow)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition stats/details", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_definition_and_stats": cohortDefinitionAndStats})
+}

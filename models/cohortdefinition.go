@@ -17,6 +17,7 @@ type CohortDefinitionI interface {
 	GetCohortName(cohortId int) (string, error)
 	GetCohortDefinitionIdsForTeamProject(teamProject string) ([]int, error)
 	GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error)
+	GetCohortDefinitionStatsByObservationWindow(sourceId int, cohortId int, observationWindow int) (*CohortDefinitionStats, error)
 }
 
 type CohortDefinition struct {
@@ -134,4 +135,27 @@ func (h CohortDefinition) GetCohortName(cohortId int) (string, error) {
 	}
 
 	return cohortDefinition.Name, nil
+}
+
+// Get the number of persons in a cohort that have an observation period equal or longer than
+// the given observationWindow (aka "look back window").
+func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow(sourceId int, cohortId int, observationWindow int) (*CohortDefinitionStats, error) {
+	var cohortStats CohortDefinitionStats
+	var dataSourceModel = new(Source)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+
+	// Query to filter and count persons in cohort:
+	query := QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource, omopDataSource, cohortId, observationWindow)
+
+	// Execute the query and map the results to a CohortDefinitionStats struct:
+	err := query.Scan(&cohortStats).Error
+	if err != nil {
+		return nil, err
+	}
+	cohortStats.Name, err = h.GetCohortName(cohortId)
+	if err != nil {
+		return nil, err
+	}
+	return &cohortStats, nil
 }

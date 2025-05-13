@@ -8,8 +8,8 @@ CREATE TABLE results.COHORT
 (
     cohort_definition_id integer NOT NULL,
     subject_id integer NOT NULL,  -- this is person_id in cdm schema below!
-    cohort_start_date date NOT NULL DEFAULT DATE('2020-01-01'),
-    cohort_end_date date NOT NULL DEFAULT DATE('2099-01-01')
+    cohort_start_date date NOT NULL,
+    cohort_end_date date NOT NULL
 );
 
 -- This table can be present in future CDM schemas. Currently it is not filled by Atlas (per conversation with Andrew),

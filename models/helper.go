@@ -87,14 +87,13 @@ func QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource *utils.Db
 	// Query to filter and count persons in cohort:
 	query := resultsDataSource.Db.Model(&Cohort{}).
 		Select("count(cohort.*) AS cohort_size").
-		Joins("JOIN " + omopDataSource.Schema + ".person ON cohort.subject_id = person.person_id").
-		Joins("JOIN " + omopDataSource.Schema + ".observation_period ON person.person_id = observation_period.person_id")
+		Joins("JOIN " + omopDataSource.Schema + ".observation_period ON cohort.subject_id = observation_period.person_id")
 
 	switch resultsDataSource.Db.Dialector.Name() {
 	case "sqlserver":
 		query = query.Where("observation_period.observation_period_start_date <= DATEADD(DAY, ?, cohort.cohort_start_date)", -observationWindow)
 	case "postgres":
-		query = query.Where("observation_period.observation_period_start_date <= (cohort.cohort_start_date - (? * INTERVAL '1 day'))", observationWindow)
+		query = query.Where("observation_period.observation_period_start_date <= ((INTERVAL '1 day' * ?) + cohort.cohort_start_date)", -observationWindow)
 	default:
 		log.Fatal("Unsupported dialect")
 	}

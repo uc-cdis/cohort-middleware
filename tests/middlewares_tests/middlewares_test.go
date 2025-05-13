@@ -136,6 +136,10 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWin
 	return nil, nil
 }
 
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int, outcomeWindow2ndCohort int) (*models.CohortDefinitionStats, error) {
+	return nil, nil
+}
+
 func TestTeamProjectValidationForCohort(t *testing.T) {
 	setUp(t)
 	config.Init("mocktest")

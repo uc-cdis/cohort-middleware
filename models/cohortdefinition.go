@@ -19,6 +19,7 @@ type CohortDefinitionI interface {
 	GetTeamProjectsThatMatchAllCohortDefinitionIds(uniqueCohortDefinitionIdsList []int) ([]string, error)
 	GetCohortDefinitionStatsByObservationWindow(sourceId int, cohortId int, observationWindow int) (*CohortDefinitionStats, error)
 	GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int) (*CohortDefinitionStats, error)
+	GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int, outcomeWindow2ndCohort int) (*CohortDefinitionStats, error)
 }
 
 type CohortDefinition struct {
@@ -163,8 +164,8 @@ func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow(sourceId i
 	return &cohortStats, nil
 }
 
-// Assesses the overlap between cohort1 and cohort2, after filtering and keeping only the persons that have an
-// observation period (relative to cohort1 start date) equal or longer than the given observationWindow (aka "look back window").
+// Get the number of persons in a cohort1 that have an observation period equal or longer than
+// the given observationWindow (aka "look back window"), and are also present in cohort2.
 func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int) (*CohortDefinitionStats, error) {
 
 	var dataSourceModel = new(Source)
@@ -176,6 +177,48 @@ func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAn
 	query := QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource, omopDataSource, cohort1Id, observationWindow1stCohort)
 	query = query.Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort2 ON cohort2.subject_id = cohort.subject_id").
 		Where("cohort2.cohort_definition_id = ?", cohort2Id)
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortStats)
+	if meta_result.Error != nil {
+		return nil, meta_result.Error
+	}
+	var err error
+	cohortStats.Name, err = h.GetCohortName(cohort1Id)
+	if err != nil {
+		return nil, err
+	}
+	return &cohortStats, nil
+}
+
+// Get the number of persons in a cohort1 that have an observation period equal or longer than
+// the given observationWindow (aka "look back window"), and are also present in cohort2 with a cohort2 start date that is
+// in the period between cohort1 start date and the given outcomeWindow2ndCohort.
+func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int, outcomeWindow2ndCohort int) (*CohortDefinitionStats, error) {
+
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	var cohortStats CohortDefinitionStats
+
+	query := QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource, omopDataSource, cohort1Id, observationWindow1stCohort)
+	query = query.Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort2 ON cohort2.subject_id = cohort.subject_id").
+		Where("cohort2.cohort_definition_id = ?", cohort2Id)
+
+	// Outcome must occur within "outcomeWindow2ndCohort days" of cohort1Id start:
+	switch resultsDataSource.Db.Dialector.Name() {
+	case "sqlserver":
+		query = query.Where("cohort2.cohort_start_date < DATEADD(DAY, ?, cohort.cohort_start_date)", outcomeWindow2ndCohort).
+			Where("cohort2.cohort_start_date >= cohort.cohort_start_date") // TODO - plus 0 or more days when we later add "outcome observation window start, relative to cohort1 entry"
+
+	case "postgres":
+		query = query.Where("cohort2.cohort_start_date < ((INTERVAL '1 day' * ?) + cohort.cohort_start_date)", outcomeWindow2ndCohort).
+			Where("cohort2.cohort_start_date >= cohort.cohort_start_date") // TODO - plus 0 or more days when we later add "outcome observation window start, relative to cohort1 entry"
+	default:
+		log.Fatal("Unsupported dialect")
+	}
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

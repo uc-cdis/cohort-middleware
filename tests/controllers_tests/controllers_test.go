@@ -169,6 +169,10 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWin
 	return nil, nil
 }
 
+func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int) (*models.CohortDefinitionStats, error) {
+	return nil, nil
+}
+
 type dummyTeamProjectAuthz struct{}
 
 func (h dummyTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {

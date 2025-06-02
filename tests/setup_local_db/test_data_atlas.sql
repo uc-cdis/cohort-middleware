@@ -3,9 +3,10 @@
 -- ========================================================
 
 insert into atlas.source
-(source_id,source_name,source_connection,source_dialect,username,password)
+(source_id,source_name,source_connection,source_dialect,username,password, deleted_date)
 values
-    (1,'results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434;databaseName=postgres;user=postgres;password=mysecretpassword', 'postgres', 'postgres', 'mysecretpassword') -- pragma: allowlist secret
+    (1,'results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434;databaseName=postgres;user=postgres;password=mysecretpassword', 'postgres', 'postgres', 'mysecretpassword', null), -- pragma: allowlist secret
+    (99,'other_DB', 'jdbc:postgresql://localhost:5434;databaseName=otherDB;user=postgres;password=mysecretpassword', 'postgres', 'postgres', 'mysecretpassword', '2025-06-02 14:30:00') -- pragma: allowlist secret
 ;
 
 insert into atlas.source_daimon

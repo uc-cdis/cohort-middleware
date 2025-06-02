@@ -19,7 +19,8 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 	var dataSource *Source
 	query := db2.Model(&Source{}).
 		Select("source_id, source_name").
-		Where("source_id = ?", id)
+		Where("source_id = ?", id).
+		Where("deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	query.Scan(&dataSource)
@@ -31,7 +32,8 @@ func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
 	var dataSource *Source
 	query := db2.Model(&Source{}).
 		Select("source_id, source_name, source_connection, source_dialect, username, password").
-		Where("source_id = ?", id)
+		Where("source_id = ?", id).
+		Where("deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	query.Scan(&dataSource)
@@ -60,7 +62,8 @@ func (h Source) GetSourceSchemaNameBySourceIdAndSourceType(id int, sourceType So
 		Select("source_daimon.table_qualifier as schema_name").
 		Joins("INNER JOIN "+atlasDb.Schema+".source_daimon ON source.source_id = source_daimon.source_id").
 		Where("source.source_id = ?", id).
-		Where("source_daimon.daimon_type = ?", sourceType)
+		Where("source_daimon.daimon_type = ?", sourceType).
+		Where("source.deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	query.Scan(&sourceSchema)
@@ -94,7 +97,8 @@ func (h Source) GetSourceByName(name string) (*Source, error) {
 	var dataSource *Source
 	query := db2.Model(&Source{}).
 		Select("source_id, source_name").
-		Where("source_name = ?", name)
+		Where("source_name = ?", name).
+		Where("deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	query.Scan(&dataSource)
@@ -105,7 +109,8 @@ func (h Source) GetAllSources() ([]*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource []*Source
 	query := db2.Model(&Source{}).
-		Select("source_id, source_name")
+		Select("source_id, source_name").
+		Where("deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	query.Scan(&dataSource)

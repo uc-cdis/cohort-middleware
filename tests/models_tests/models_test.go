@@ -28,6 +28,7 @@ var dummyContinuousConceptId = tests.GetTestDummyContinuousConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
 var defaultTeamProject = "defaultteamproject"
+var deletedSourceId = 99
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -1204,11 +1205,27 @@ func TestGetSourceByName(t *testing.T) {
 	}
 }
 
+func TestGetAllSources(t *testing.T) {
+	allSources, _ := sourceModel.GetAllSources()
+	if len(allSources) > 1 {
+		t.Errorf("Expected data not found. Expected 1 source, found: %d",
+			len(allSources))
+	}
+}
+
 func TestGetSourceById(t *testing.T) {
 	allSources, _ := sourceModel.GetAllSources()
 	foundSource, _ := sourceModel.GetSourceById(allSources[0].SourceId)
 	if allSources[0].SourceId != foundSource.SourceId {
-		t.Errorf("Expected data not found")
+		t.Errorf("Expected data not found. Expected sourceId = %d, found: %d",
+			allSources[0].SourceId, foundSource.SourceId)
+	}
+}
+
+func TestGetSourceById2(t *testing.T) {
+	foundSource, _ := sourceModel.GetSourceById(deletedSourceId)
+	if foundSource != nil {
+		t.Errorf("Expected not to find data, but found something.")
 	}
 }
 

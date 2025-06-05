@@ -35,7 +35,10 @@ func NewRouter() *gin.Engine {
 		// cohort definition statistics:
 		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-team-project", cohortdefinitions.RetriveStatsBySourceIdAndTeamProject)
 		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/by-observation-window/:observationwindow", cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow)
-		authorized.POST("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-ids/:cohort1/:cohort2/by-observation-window-1st-cohort/:observationwindow1stcohort", cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort)
+		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-ids/:cohort1/:cohort2/by-observation-window-1st-cohort/:observationwindow1stcohort",
+			cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort)
+		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-ids/:cohort1/:cohort2/by-observation-window-1st-cohort/:observationwindow1stcohort/by-outcome-window-2nd-cohort/:outcomeWindow2ndCohort",
+			cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort)
 
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition),

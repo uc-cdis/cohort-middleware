@@ -1,8 +1,0 @@
-name: "CodeQL Scan"
-
-on: [push, pull_request]
-
-jobs:
-  codeql-scan:
-    name: CodeQL Scan
-    uses: uc-cdis/.github/.github/workflows/codeql-scan.yaml@master

@@ -85,10 +85,13 @@ const (
 func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndSchema {
 	dataSource, _ := h.GetSourceByIdWithConnection(sourceId)
 
-	sourceConnectionString := dataSource.SourceConnection
 	dbSchema, _ := h.GetSourceSchemaNameBySourceIdAndSourceType(sourceId, sourceType)
 	dbSchemaName := dbSchema.SchemaName
-	dbAndSchema := utils.GetDataSourceDB(sourceConnectionString, dbSchemaName)
+	sourceConnection := utils.SourceConnection{SourceConnection: dataSource.SourceConnection,
+		Username: dataSource.Username,
+		Password: dataSource.Password, // pragma: allowlist secret
+	}
+	dbAndSchema := utils.GetDataSourceDB(sourceConnection, dbSchemaName)
 	return dbAndSchema
 }
 

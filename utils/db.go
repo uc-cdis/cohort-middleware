@@ -18,18 +18,24 @@ type DbAndSchema struct {
 	Vendor string
 }
 
+type SourceConnection struct {
+	SourceConnection string `json:",omitempty"`
+	Username         string `json:",omitempty"`
+	Password         string `json:",omitempty"`
+}
+
 var dataSourceDbMap = make(map[string]*DbAndSchema)
 
-func GetDataSourceDB(sourceConnectionString string, dbSchema string) *DbAndSchema {
-	sourceAndSchemaKey := "source:" + sourceConnectionString + ",schema:" + dbSchema
+func GetDataSourceDB(source SourceConnection, dbSchema string) *DbAndSchema {
+	sourceAndSchemaKey := "source:" + source.SourceConnection + ",schema:" + dbSchema
 	if dataSourceDbMap[sourceAndSchemaKey] != nil {
 		// return the already initialized object:
 		return dataSourceDbMap[sourceAndSchemaKey]
 	}
 	// otherwise, open a new connection:
-	dsn := GenerateDsn(sourceConnectionString)
+	dsn := GenerateDsn(source)
 	dataSourceDb := new(DbAndSchema)
-	if strings.Contains(sourceConnectionString, "postgresql") {
+	if strings.Contains(source.SourceConnection, "postgresql") {
 		log.Printf("connecting to cohorts 'postgresql' db...")
 		// workaround for schema names in postgres (can't be uppercase):
 		dbSchema = strings.ToLower(dbSchema)

@@ -326,6 +326,39 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"cohort_overlap": overlapStats})
 }
 
+// Simplified version of RetrieveCohortOverlapStats above, for assessing just the overlap
+// between two cohorts, without any other filters.
+func (u CohortDataController) RetrieveCohortOverlapStatsSimple(c *gin.Context) {
+	errors := make([]error, 3)
+	var sourceId, caseCohortId, controlCohortId int
+	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
+	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
+	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
+
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{caseCohortId, controlCohortId})
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
+	// call RetrieveCohortOverlapStats with last two filters as empty lists:
+	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId,
+		controlCohortId, []int64{}, []utils.CustomDichotomousVariableDef{})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_overlap": overlapStats})
+}
+
 func convertCohortPeopleDataToMap(cohortPeopleData []*models.PersonIdAndCohort) map[int64]int64 {
 	personIdToCohortDefinitionId := make(map[int64]int64)
 

@@ -83,6 +83,25 @@ func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousV
 	return query
 }
 
+func QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource *utils.DbAndSchema, omopDataSource *utils.DbAndSchema, cohortId int, observationWindow int) *gorm.DB {
+	// Query to filter and count persons in cohort:
+	query := resultsDataSource.Db.Model(&Cohort{}).
+		Select("count(cohort.*) AS cohort_size").
+		Joins("JOIN " + omopDataSource.Schema + ".observation_period ON cohort.subject_id = observation_period.person_id")
+
+	switch resultsDataSource.Db.Dialector.Name() {
+	case "sqlserver":
+		query = query.Where("observation_period.observation_period_start_date <= DATEADD(DAY, ?, cohort.cohort_start_date)", -observationWindow)
+	case "postgres":
+		query = query.Where("observation_period.observation_period_start_date <= ((INTERVAL '1 day' * ?) + cohort.cohort_start_date)", -observationWindow)
+	default:
+		log.Fatal("Unsupported dialect")
+	}
+	query = query.Where("observation_period.observation_period_end_date > cohort.cohort_start_date").
+		Where("cohort.cohort_definition_id = ?", cohortId)
+	return query
+}
+
 // This function will get the concept information for given conceptId, and
 // return the best SQL to use for doing a "not null" check on its value in the
 // observation table.

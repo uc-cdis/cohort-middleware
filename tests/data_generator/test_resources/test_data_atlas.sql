@@ -7,7 +7,7 @@
 insert into atlas2.source
 (source_id,source_name,source_connection,source_dialect,username,password)
 values
-    (1,'results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434;databaseName=postgres;user=postgres;password=mysecretpassword', 'postgres', 'postgres', 'mysecretpassword') -- pragma: allowlist secret
+    (1,'results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434/postgres', 'postgres', 'postgres', 'mysecretpassword') -- pragma: allowlist secret
 ;
 
 insert into atlas2.source_daimon

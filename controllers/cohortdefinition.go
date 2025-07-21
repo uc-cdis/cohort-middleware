@@ -114,3 +114,105 @@ func MakeUniqueListOfCohortStats(input []*models.CohortDefinitionStats) []*model
 	}
 	return uniqueList
 }
+
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservationWindow(c *gin.Context) {
+	// This method returns the cohortdefinition details and filtered size for a
+	// given cohort_definition Id and observation window (aka "look back window").
+
+	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
+	observationWindow, err := utils.ParseNumericArg(c, "observationwindow")
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
+	cohortDefinitionAndStats, err := u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(sourceId, cohortId, observationWindow)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition stats/details", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_definition_and_stats": cohortDefinitionAndStats})
+}
+
+// Retrieve stats for  number of persons in cohort1 that have the given observation window and also
+// are present in cohort2
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(c *gin.Context) {
+	errors := make([]error, 4)
+	var sourceId, cohort1Id, cohort2Id, observationWindow1stCohort int
+	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
+	cohort1Id, errors[1] = utils.ParseNumericArg(c, "cohort1")
+	cohort2Id, errors[2] = utils.ParseNumericArg(c, "cohort2")
+	observationWindow1stCohort, errors[3] = utils.ParseNumericArg(c, "observationwindow1stcohort")
+
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
+	cohortDefinitionAndStats, err := u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId, cohort1Id, cohort2Id, observationWindow1stCohort)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_definition_and_stats": cohortDefinitionAndStats})
+}
+
+// Retrieve stats for  number of persons in cohort1 that have the given observation window and also
+// are present in cohort2, but enter cohort2 only in the "outcome window" timeframe (number of days after cohort1 start).
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(c *gin.Context) {
+	errors := make([]error, 5)
+	var sourceId, cohort1Id, cohort2Id, observationWindow1stCohort, outcomeWindow2ndCohort int
+	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
+	cohort1Id, errors[1] = utils.ParseNumericArg(c, "cohort1")
+	cohort2Id, errors[2] = utils.ParseNumericArg(c, "cohort2")
+	observationWindow1stCohort, errors[3] = utils.ParseNumericArg(c, "observationwindow1stcohort")
+	outcomeWindow2ndCohort, errors[4] = utils.ParseNumericArg(c, "outcomeWindow2ndCohort")
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
+	cohortDefinitionAndStats, err := u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(
+		sourceId, cohort1Id, cohort2Id, observationWindow1stCohort, outcomeWindow2ndCohort)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"cohort_definition_and_stats": cohortDefinitionAndStats})
+}

@@ -12,6 +12,7 @@ CREATE TABLE atlas.source
     source_dialect character varying(100),
     username character varying(100),
     password character varying(100),
+    deleted_date timestamp(3),
     PRIMARY KEY (source_id)
 );
 

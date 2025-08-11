@@ -28,6 +28,7 @@ var dummyContinuousConceptId = tests.GetTestDummyContinuousConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
 var defaultTeamProject = "defaultteamproject"
+var deletedSourceId = 99
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -748,6 +749,136 @@ func TestGetCohortName(t *testing.T) {
 
 }
 
+func TestGetCohortDefinitionStatsByObservationWindow(t *testing.T) {
+	setUp(t)
+	cohortDefinitionAndStats, _ := cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(testSourceId, secondLargestCohort.Id, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// middle scenario - some filtered out:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(testSourceId, secondLargestCohort.Id, 365)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if !(cohortDefinitionAndStats.CohortSize > 0 && cohortDefinitionAndStats.CohortSize < secondLargestCohort.CohortSize) {
+		t.Errorf("Expected cohort size > 0 and < %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// edge-case scenario - all filtered out:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow(testSourceId, secondLargestCohort.Id, 30000)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != 0 {
+		t.Errorf("Expected cohort size == 0, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+}
+
+func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(t *testing.T) {
+	setUp(t)
+
+	// start with overlap of a cohort with itself...should result in cohort size:
+	cohortDefinitionAndStats, _ := cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(testSourceId, secondLargestCohort.Id, secondLargestCohort.Id, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// now overlap with a different cohort...should result in smaller size:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(testSourceId, secondLargestCohort.Id, thirdLargestCohort.Id, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != thirdLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", thirdLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// edge-case scenario - all filtered out because of no overlap:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(testSourceId, smallestCohort.Id, thirdLargestCohort.Id, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != smallestCohort.Name {
+		t.Errorf("Expected %s", smallestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != 0 {
+		t.Errorf("Expected cohort size == 0, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+}
+
+func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(t *testing.T) {
+	setUp(t)
+
+	// start with overlap of a cohort with itself...should result in cohort size:
+	cohortDefinitionAndStats, _ := cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, secondLargestCohort.Id, 300, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// now increase the requirement for the firt time window...should result in smaller set:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, secondLargestCohort.Id, 365, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize >= secondLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size < %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// now overlap with a different cohort...should result in smaller size:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, thirdLargestCohort.Id, 300, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != thirdLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", thirdLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// now tighten the outcome window...should result in smaller size:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, thirdLargestCohort.Id, 300, 30)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize >= thirdLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size < %d, got %d", thirdLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// edge-case scenario - all filtered out because of no outcome in time window (by making the window negative on the same cohort):
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, secondLargestCohort.Id, 300, -3)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != 0 {
+		t.Errorf("Expected cohort size == 0, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+
+	// edge-case scenario - all filtered out because of no overlap:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, smallestCohort.Id, thirdLargestCohort.Id, 300, 300)
+
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != smallestCohort.Name {
+		t.Errorf("Expected %s", smallestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != 0 {
+		t.Errorf("Expected cohort size == 0, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+}
+
 func TestGetCohortDefinitionByName(t *testing.T) {
 	setUp(t)
 	cohortDefinition, _ := cohortDefinitionModel.GetCohortDefinitionByName(smallestCohort.Name)
@@ -1074,11 +1205,27 @@ func TestGetSourceByName(t *testing.T) {
 	}
 }
 
+func TestGetAllSources(t *testing.T) {
+	allSources, _ := sourceModel.GetAllSources()
+	if len(allSources) > 1 {
+		t.Errorf("Expected data not found. Expected 1 source, found: %d",
+			len(allSources))
+	}
+}
+
 func TestGetSourceById(t *testing.T) {
 	allSources, _ := sourceModel.GetAllSources()
 	foundSource, _ := sourceModel.GetSourceById(allSources[0].SourceId)
 	if allSources[0].SourceId != foundSource.SourceId {
-		t.Errorf("Expected data not found")
+		t.Errorf("Expected data not found. Expected sourceId = %d, found: %d",
+			allSources[0].SourceId, foundSource.SourceId)
+	}
+}
+
+func TestGetSourceById2(t *testing.T) {
+	foundSource, _ := sourceModel.GetSourceById(deletedSourceId)
+	if foundSource != nil {
+		t.Errorf("Expected not to find data, but found something.")
 	}
 }
 

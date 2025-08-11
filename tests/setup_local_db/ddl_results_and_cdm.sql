@@ -8,8 +8,8 @@ CREATE TABLE results.COHORT
 (
     cohort_definition_id integer NOT NULL,
     subject_id integer NOT NULL,  -- this is person_id in cdm schema below!
-    cohort_start_date date NOT NULL DEFAULT now(),
-    cohort_end_date date NOT NULL DEFAULT DATE('2099-01-01')
+    cohort_start_date date NOT NULL,
+    cohort_end_date date NOT NULL
 );
 
 -- This table can be present in future CDM schemas. Currently it is not filled by Atlas (per conversation with Andrew),
@@ -80,6 +80,19 @@ CREATE TABLE omop.observation
 ALTER TABLE omop.observation  ADD CONSTRAINT xpk_observation PRIMARY KEY ( observation_id ) ;
 drop sequence if exists observation_id_seq;
 create sequence observation_id_seq start with 1;
+
+CREATE TABLE omop.observation_period
+(
+    observation_period_id integer NOT NULL,
+    person_id integer NOT NULL,
+    observation_period_start_date date NOT NULL,
+    observation_period_end_date date NOT NULL,
+    period_type_concept_id integer NOT NULL
+);
+ALTER TABLE omop.observation_period  ADD CONSTRAINT xpk_observation_period PRIMARY KEY ( observation_period_id ) ;
+drop sequence if exists observation_period_id_seq;
+create sequence observation_period_id_seq start with 1;
+
 
 CREATE TABLE omop.concept
 (

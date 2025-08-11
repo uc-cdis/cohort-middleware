@@ -154,7 +154,8 @@ func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourc
 	return cohortData, meta_result.Error
 }
 
-// Basically the same as the method above, but without the extra filtering on filterConceptId and filterConceptValue:
+// Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only
+// the persons that have data for each of the selected filterConceptIds and filterCohortPairs.
 func (h CohortData) RetrieveCohortOverlapStats(sourceId int, caseCohortId int, controlCohortId int,
 	filterConceptIds []int64, filterCohortPairs []utils.CustomDichotomousVariableDef) (CohortOverlapStats, error) {
 

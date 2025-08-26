@@ -14,6 +14,7 @@ import (
 	"github.com/uc-cdis/cohort-middleware/tests"
 	"github.com/uc-cdis/cohort-middleware/utils"
 	"github.com/uc-cdis/cohort-middleware/version"
+	"gorm.io/gorm"
 )
 
 var testSourceId = tests.GetTestSourceId()
@@ -221,13 +222,13 @@ func TestRetrieveInfoBySourceIdAndConceptTypesWrongType(t *testing.T) {
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsNoResults(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairsNoResults(t *testing.T) {
 	setUp(t)
 	// empty:
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
+	var filterConceptDefsAndCohortPairs []interface{}
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
 		smallestCohort.Id,
-		allConceptIds, filterCohortPairs, allConceptIds[0])
+		filterConceptDefsAndCohortPairs, allConceptIds[0])
 	// none of the subjects has a value in all the concepts, so we expect len==0 here:
 	if len(stats) != 0 {
 		t.Errorf("Expected no results, found %d", len(stats))
@@ -258,7 +259,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	var subjectIds []*SubjectId
 	population := largestCohort
 	query := models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// ...so we expect overlap the size of the largestCohort:
 	if len(subjectIds) != largestCohort.CohortSize {
@@ -280,7 +281,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size of the largestCohort-6 (where 6 is the size of the overlap between extendedCopyOfSecondLargestCohort and largestCohort):
 	if len(subjectIds) != (largestCohort.CohortSize - 6) {
@@ -302,7 +303,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect same as previous test above:
 	if len(subjectIds) != (largestCohort.CohortSize - 6) {
@@ -320,7 +321,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = extendedCopyOfSecondLargestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size of the extendedCopyOfSecondLargestCohort.CohortSize - secondLargestCohort.CohortSize:
 	if len(subjectIds) != (extendedCopyOfSecondLargestCohort.CohortSize - secondLargestCohort.CohortSize) {
@@ -342,7 +343,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = extendedCopyOfSecondLargestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0, since all items remaining from first pair happen to overlap with largestCohort and are therefore excluded (pair overlap is excluded):
 	if len(subjectIds) != 0 {
@@ -354,7 +355,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0 as explained in comment above:
 	if len(subjectIds) != 0 {
@@ -367,7 +368,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be the size of the cohort, since there are no filtering pairs:
 	if len(subjectIds) != largestCohort.CohortSize {
@@ -385,7 +386,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = largestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0, since the pair is composed of the same cohort in CohortDefinitionId1 and CohortDefinitionId2 and their overlap is excluded:
 	if len(subjectIds) != 0 {
@@ -403,7 +404,7 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 	population = smallestCohort
 	resultsDataSource = tests.GetResultsDataSource()
 	query = models.QueryFilterByCohortPairsHelper(filterCohortPairs, resultsDataSource, population.Id, "unionAndIntersect").
-		Select("subject_id")
+		Select("unionAndIntersect.subject_id")
 	_ = query.Scan(&subjectIds)
 	// in this case we expect overlap the size to be 0, since the cohorts in the pair do not overlap with the population:
 	if len(subjectIds) != 0 {
@@ -413,18 +414,21 @@ func TestQueryFilterByCohortPairsHelper(t *testing.T) {
 
 func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPairsWithResults(t *testing.T) {
 	setUp(t)
-	filterIds := []int64{hareConceptId}
 	populationCohort := largestCohort
 	// setting the largest and smallest cohorts here as a pair:
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{
-		{
+	filterConceptDefsAndCohortPairs := []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: hareConceptId,
+		},
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: smallestCohort.Id,
 			CohortDefinitionId2: largestCohort.Id,
 			ProvidedName:        "test"},
 	}
+
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		populationCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		populationCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
 	// we expect results, and we expect the total of persons to be 6, since only 6 of the persons
 	// in largestCohort have a HARE value (and smallestCohort does not overlap with largest):
 	countPersons := 0
@@ -438,18 +442,18 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPai
 	// then we should expect a reduction in the number of persons found. The reduction in this case
 	// will take place because of a smaller intersection of the new cohorts with the population cohort,
 	// and because of an overlaping person found in the two cohorts of the new pair.
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{
-		{
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: smallestCohort.Id,
 			CohortDefinitionId2: largestCohort.Id,
 			ProvidedName:        "test"},
-		{
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: secondLargestCohort.Id,
 			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
 			ProvidedName:        "test2"},
 	}
-	stats, _ = conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		populationCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	stats, _ = conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		populationCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
 	countPersons = 0
 	for _, stat := range stats {
 		countPersons += stat.NpersonsInCohortWithValue
@@ -459,22 +463,24 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndTwoCohortPai
 	}
 }
 
-func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsWithResults(t *testing.T) {
+func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairsWithResults(t *testing.T) {
 	setUp(t)
-	filterIds := []int64{hareConceptId}
-	// setting the same cohort id here (artificial...but just to check if that returns the same value as when this filter is not there):
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{
-		{
+	// setting the same extendedCopyOfSecondLargestCohort.Id here (artificial...but just to check if that returns the same value as when this filter is not there):
+	filterConceptDefsAndCohortPairs := []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: hareConceptId,
+		},
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: secondLargestCohort.Id,
 			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
 			ProvidedName:        "test"},
 	}
 	breakdownConceptId := hareConceptId // not normally the case...but we'll use the same here just for the test...
-	stats, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		extendedCopyOfSecondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	stats, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
 	// we expect values since secondLargestCohort has multiple subjects with hare info:
 	if len(stats) < 4 {
-		t.Errorf("Expected at least 4 results, found %d", len(stats))
+		t.Errorf("Expected at least 4 results, found %d. Error: %v", len(stats), err)
 	}
 	prevName := ""
 	for _, stat := range stats {
@@ -488,26 +494,33 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 		}
 		prevName = stat.ValueName
 	}
-	// test without the filterCohortPairs, should return the same result:
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-	stats2, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		extendedCopyOfSecondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	// test without the CustomDichotomousVariableDefs, should return the same result:
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: hareConceptId,
+		},
+	}
+	stats2, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
 	// very rough check (ideally we would check the individual stats as well...TODO?):
 	if len(stats) > len(stats2) {
-		t.Errorf("First query is more restrictive, so its stats should not be larger than stats2 of second query. Got %d and %d", len(stats), len(stats2))
+		t.Errorf("First query is more restrictive, so its stats should not be larger than stats2 of second query. Got %d and %d. Error: %v", len(stats), len(stats2), err)
 	}
 
 	// test filtering with secondLargestCohort, smallest and largestCohort.
 	// Lenght of result set should be 2 persons (one HIS, one ASN), since there is a overlap of 1 between secondLargestCohort and smallest cohort,
 	// and overlap of 2 between secondLargestCohort and largestCohort, BUT only 1 has a HARE value:
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{
-		{
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: hareConceptId,
+		},
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: smallestCohort.Id,
 			CohortDefinitionId2: largestCohort.Id,
 			ProvidedName:        "test"},
 	}
-	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId,
-		secondLargestCohort.Id, filterIds, filterCohortPairs, breakdownConceptId)
+	stats3, _ := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		secondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
 	if len(stats3) != 2 {
 		t.Errorf("Expected only two items in resultset, found %d", len(stats3))
 	}
@@ -517,6 +530,62 @@ func TestRetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptIdsAndCohortPairsW
 	}
 	if countPersons != 2 {
 		t.Errorf("Expected only two persons in resultset, found %d", countPersons)
+	}
+
+	// test with a different concept:
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: tests.GetTestHistogramConceptId(),
+		},
+	}
+	stats4, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
+	// expecting counts on all 4 HARE codes:
+	if len(stats4) != 4 {
+		t.Errorf("Expected 4 stats. Got %d, Error: %v", len(stats4), err)
+	}
+	// check counts for each HARE code:
+	for _, stat := range stats4 {
+		// some very basic checks, making sure fields are not empty, repeated in next row, etc:
+		if len(stat.ConceptValue) == len(stat.ValueName) ||
+			len(stat.ConceptValue) == 0 ||
+			len(stat.ValueName) == 0 ||
+			stat.ValueAsConceptId == 0 ||
+			stat.ValueName == prevName {
+			t.Errorf("Invalid results")
+		}
+		if stat.ValueAsConceptId == 2000007028 && stat.NpersonsInCohortWithValue != 2 {
+			t.Errorf("Invalid results. Expected count of persons == 2, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		if stat.ValueAsConceptId == 2000007029 && stat.NpersonsInCohortWithValue != 3 {
+			t.Errorf("Invalid results. Expected count of persons == 3, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		if stat.ValueAsConceptId == 2000007030 && stat.NpersonsInCohortWithValue != 2 {
+			t.Errorf("Invalid results. Expected count of persons == 2, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		if stat.ValueAsConceptId == 2000007031 && stat.NpersonsInCohortWithValue != 1 {
+			t.Errorf("Invalid results. Expected count of persons == 1, got: %d", stat.NpersonsInCohortWithValue)
+		}
+		prevName = stat.ValueName
+	}
+	// test below is identical to above, but with a transformation and a filter:
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: tests.GetTestHistogramConceptId(),
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.871), // we have 2 records (each one on a different HARE) in extendedCopyOfSecondLargestCohort where the value is >= than this
+				},
+			},
+			Transformation: "log",
+		},
+	}
+	stats5, err := conceptModel.RetrieveBreakdownStatsBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId,
+		extendedCopyOfSecondLargestCohort.Id, filterConceptDefsAndCohortPairs, breakdownConceptId)
+	// expecting 2 records as commented above:
+	if len(stats5) != 2 {
+		t.Errorf("Expected 2 stats. Got %d, Error: %v", len(stats5), err)
 	}
 }
 
@@ -756,27 +825,147 @@ func TestGetCohortDefinitionByName(t *testing.T) {
 	}
 }
 
-func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(t *testing.T) {
+func TestRetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(t *testing.T) {
 	setUp(t)
-	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	data, _ := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIdsAndValues, filterCohortPairs)
+	filterConceptDefsPlusCohortPairs := []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
+	}
+	data, error := cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
+	if error != nil {
+		t.Errorf("Got error: %s", error)
+	}
 	// everyone in the largestCohort has the histogramConceptId, but one person has NULL in the value_as_number:
 	if len(data) != largestCohort.CohortSize-1 {
-		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize, len(data))
+		t.Errorf("expected %d histogram data but got %d", largestCohort.CohortSize-1, len(data))
 	}
 
 	// now filter on the extendedCopyOfSecondLargestCohort
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{
-		{
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: smallestCohort.Id,
 			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName:        "test"},
+			ProvidedName:        "test",
+		},
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
 	}
 	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
-	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(testSourceId, largestCohort.Id, histogramConceptId, filterConceptIdsAndValues, filterCohortPairs)
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
 	if len(data) != 5 {
 		t.Errorf("expected 5 histogram data but got %d", len(data))
+	}
+
+	// now add a concept filter:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000007027,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000007028},
+				},
+			},
+		},
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
+	if len(data) != 1 {
+		t.Errorf("expected 1 histogram data but got %d", len(data))
+	}
+
+	// another concept filter:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(8.7),
+				},
+			},
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
+	if len(data) != 2 {
+		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
+
+	// now with a filter and a transformation:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.939519252),
+				},
+			},
+			Transformation: "log",
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
+	// make sure the filter worked on transformed values:
+	if len(data) != 2 {
+		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
+	// check if the values in the returned data buckets are transformed:
+	if *data[0].ConceptValueAsNumber > 1 || *data[1].ConceptValueAsNumber > 1.0 {
+		t.Errorf("expected log transformed values but got values that look untransformed")
+	}
+
+	// now with a Z-score filter and transformation:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "z_score",
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
+	// make sure the filter worked on transformed values:
+	if len(data) != 2 {
+		t.Errorf("expected 2 histogram data but got %d", len(data))
+	}
+
+	// now filter repeated twice:
+	filterConceptDefsPlusCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "z_score",
+		}, // ^ this filter will narrow down to 2 records
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.7),
+				},
+			},
+			Transformation: "z_score", // > a subsequent transformation of z_score on the remaining 2 records, will result
+			// in different values compared to the first filter above, as the scores are now
+			// calculated over two values only
+		},
+	}
+	data, _ = cohortDataModel.RetrieveHistogramDataBySourceIdAndCohortIdAndConceptDefsPlusCohortPairs(testSourceId, largestCohort.Id, filterConceptDefsPlusCohortPairs)
+	// make sure the filter worked on transformed values:
+	if len(data) != 1 {
+		t.Errorf("expected 1 histogram data but got %d", len(data))
 	}
 
 }
@@ -790,70 +979,281 @@ func TestRetrieveHistogramDataBySourceIdAndConceptId(t *testing.T) {
 	}
 }
 
-func TestQueryFilterByConceptIdsHelper(t *testing.T) {
-	// This test checks whether the query succeeds when the mainObservationTableAlias
-	// argument passed to QueryFilterByConceptIdsHelper (last argument)
-	// matches the alias used in the main query, and whether it fails otherwise.
+func TestTransformDataIntoTempTable(t *testing.T) {
+	// This test checks whether the TransformDataIntoTempTable successfully
+	// caches temp tables based on query definitions
 
-	setUp(t)
+	filterConceptDef :=
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000006885,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "z_score",
+		}
 	omopDataSource := tests.GetOmopDataSource()
-	filterConceptIds := []int64{allConceptIds[0], allConceptIds[1], allConceptIds[2]}
-	var personIds []struct {
-		PersonId int64
+	resultsDataSource := tests.GetResultsDataSource()
+
+	// run a simple query:
+	querySQL := "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest "
+	query := resultsDataSource.Db.Table(querySQL)
+
+	tmpTableName1, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	// repeat the exact same query...it should return the same temp table:
+	tmpTableName2, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName1 != tmpTableName2 {
+		t.Errorf("tmp table should have been reused")
+	}
+	// do a slightly different query...and the temp table should be a different one:
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest2 "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName3, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName1 == tmpTableName3 {
+		t.Errorf("tmp table should have been an new one")
 	}
 
-	// Subtest1: correct alias "observation":
-	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("observation.person_id")
-	query = models.QueryFilterByConceptIdsHelper(query, testSourceId, filterConceptIds, omopDataSource, "", "observation.person_id")
-	meta_result := query.Scan(&personIds)
-	if meta_result.Error != nil {
-		t.Errorf("Did NOT expect an error")
+	// test log transformation
+	filterConceptDef =
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000006885,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(1.0),
+				},
+			},
+			Transformation: "log",
+		}
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest3 "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName4, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName4 == "" {
+		t.Errorf("tmp table should have been created")
 	}
-	// Subtest2: incorrect alias "observation"...should fail:
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
-		Select("*")
-	query = models.QueryFilterByConceptIdsHelper(query, testSourceId, filterConceptIds, omopDataSource, "", "observation.person_id")
-	meta_result = query.Scan(&personIds)
-	if meta_result.Error == nil {
-		t.Errorf("Expected an error")
+	// what happens if values are negative:
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number*(-1) as value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest4 "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName5, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName5 == "" {
+		t.Errorf("tmp table should have been created since log transformation filters out negative values and therefore does not crash")
+	}
+
+}
+
+func TestTransformationsOfTransformDataIntoTempTable(t *testing.T) {
+	// tests all the different transformations supported by TransformDataIntoTempTable
+
+	omopDataSource := tests.GetOmopDataSource()
+	resultsDataSource := tests.GetResultsDataSource()
+
+	// 1. test log transformation
+	filterConceptDef :=
+		utils.CustomConceptVariableDef{
+			ConceptId: 0, // this id doesn't matter as the TransformDataIntoTempTable does not use this nor the Filters
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(100000000.0), // this should be ignored in tests below
+				},
+			},
+			Transformation: "log",
+		}
+
+	querySQL := "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest "
+	query := resultsDataSource.Db.Table(querySQL)
+	tmpTableName1, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName1 == "" {
+		t.Errorf("tmp table should have been created")
+	}
+	// test that all records are found in temp table (so no filtering other than "value_as_number > 0"):
+	observationCount := tests.GetCountWhere(omopDataSource, "observation", "value_as_number > 0")
+	tmpTableCount := tests.GetCountTmpTable(query, tmpTableName1)
+	if tmpTableCount != observationCount {
+		t.Errorf("tmp table records count (%d) different from what was expected: %d", tmpTableCount, observationCount)
+	}
+	// verify that the values are transformed:
+	maxObservation := tests.GetMaxFieldInTable(query, omopDataSource.Schema+".observation", "value_as_number")
+	maxTmp1Observation := tests.GetMaxFieldInTable(query, tmpTableName1, "value_as_number")
+	if maxObservation <= maxTmp1Observation {
+		t.Errorf("values don't seem to be log transformed. Normal: %f, Transformed: %f", maxObservation, maxTmp1Observation)
+	}
+
+	// 2. test Z-SCORE transformation
+	filterConceptDef =
+		utils.CustomConceptVariableDef{
+			ConceptId:      0, // this id doesn't matter as the TransformDataIntoTempTable does not use this nor the Filters
+			Filters:        []utils.Filter{},
+			Transformation: "z_score",
+		}
+
+	querySQL = "(SELECT person_id, observation_concept_id, value_as_number FROM " + omopDataSource.Schema + ".observation_continuous) as tmpTest "
+	query = resultsDataSource.Db.Table(querySQL)
+	tmpTableName2, _ := models.TransformDataIntoTempTable(omopDataSource, query, filterConceptDef)
+	if tmpTableName2 == "" {
+		t.Errorf("tmp table should have been created")
+	}
+	// test that all records are found in temp table (so no filtering other than "value_as_number is not null"):
+	observationCount = tests.GetCountWhere(omopDataSource, "observation", "value_as_number is not null")
+	tmpTableCount = tests.GetCountTmpTable(query, tmpTableName2)
+	if tmpTableCount != observationCount {
+		t.Errorf("tmp table records count (%d) different from what was expected: %d", tmpTableCount, observationCount)
+	}
+	// verify that the values are transformed:
+	maxTmp2Observation := tests.GetMaxFieldInTable(query, tmpTableName2, "value_as_number")
+	if maxObservation <= maxTmp2Observation || maxTmp2Observation <= maxTmp1Observation {
+		t.Errorf("values don't seem to be z_socre transformed. Normal: %f, Transformed: %f", maxObservation, maxTmp2Observation)
 	}
 }
 
-func TestQueryFilterByConceptIdsAndValuesHelper(t *testing.T) {
+func TestToSQL(t *testing.T) {
+	// test some of the most common "to SQL" scenarios we'll need,
+	// by running a query with many variables of various kinds:
+	// now filter on the extendedCopyOfSecondLargestCohort
+	filterConceptDefsPlusCohortPairs := []interface{}{}
+	expectedConstraints := []string{}
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: smallestCohort.Id,
+			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
+			ProvidedName:        "test",
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", smallestCohort.Id))
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", extendedCopyOfSecondLargestCohort.Id))
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("filter_1.observation_concept_id = %d", histogramConceptId))
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.939519252),
+				},
+			},
+			Transformation: "log",
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, "INNER JOIN tmp_transformed_")
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomDichotomousVariableDef{
+			CohortDefinitionId1: secondLargestCohort.Id,
+			CohortDefinitionId2: largestCohort.Id,
+			ProvidedName:        "test",
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", secondLargestCohort.Id))
+	expectedConstraints = append(expectedConstraints, fmt.Sprintf("WHERE cohort_definition_id=%d", largestCohort.Id))
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(8.7),
+				},
+			},
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, "filter_4.value_as_number >= 8.7")
+
+	filterConceptDefsPlusCohortPairs = append(filterConceptDefsPlusCohortPairs,
+		utils.CustomConceptVariableDef{
+			ConceptId: 2000007027,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000007028},
+				},
+			},
+		})
+	// some unique part of the expected SQL in this case:
+	expectedConstraints = append(expectedConstraints, "filter_5.value_as_concept_id IN (2000007028)")
+
+	// then we expect histogram data for the overlapping population only (which is 5 for extendedCopyOfSecondLargestCohort and largestCohort):
+	query := tests.GetOmopDataSource().Db.Table(tests.GetResultsDataSource().Schema + ".cohort as cohort").
+		Select("cohort.subject_id")
+	query, _ = models.QueryFilterByConceptDefsPlusCohortPairsHelper(query, testSourceId, 99, filterConceptDefsPlusCohortPairs, tests.GetOmopDataSource(), tests.GetResultsDataSource(), "finalCohortAlias")
+
+	querySQL := utils.ToSQL(query)
+	// results should not be empty:
+	if querySQL == "" {
+		t.Errorf("query SQL not as expected: %s", querySQL)
+	}
+	// result should contain each of the constraints:
+	for _, constraint := range expectedConstraints {
+		if !strings.Contains(querySQL, constraint) {
+			t.Errorf("query SQL does not contain expected constraint: %s\nFull SQL:\n%s", constraint, querySQL)
+		}
+	}
+	// result should be a SQL that can run without error:
+	result := tests.ExecSQLString(querySQL, testSourceId)
+	if result.Error != nil {
+		t.Errorf("Generated SQL failed to execute: %v\nSQL: %s", result.Error, querySQL)
+	}
+	// negative test:
+	result = tests.ExecSQLString(querySQL+" abc", testSourceId)
+	if result.Error == nil {
+		t.Errorf("Expected error for invalid SQL")
+	}
+}
+
+func TestQueryFilterByConceptDefsHelper(t *testing.T) {
 	// This test checks whether the query succeeds when the mainObservationTableAlias
-	// argument passed to QueryFilterByConceptIdsHelper (last argument)
+	// argument passed to QueryFilterByConceptDefsHelper (last argument)
 	// matches the alias used in the main query, and whether it fails otherwise.
 
 	setUp(t)
 	omopDataSource := tests.GetOmopDataSource()
-	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{{ConceptId: allConceptIds[0], ConceptValues: []int64{}}, {ConceptId: allConceptIds[1], ConceptValues: []int64{}}, {ConceptId: allConceptIds[2], ConceptValues: []int64{}}}
+	resultsDataSource := tests.GetResultsDataSource()
+	filterConceptIdsAndValues := []utils.CustomConceptVariableDef{{ConceptId: allConceptIds[0]}, {ConceptId: allConceptIds[1]}, {ConceptId: allConceptIds[2]}}
 	var personIds []struct {
 		PersonId int64
 	}
 
-	// Subtest1: correct alias "observation":
-	query := omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation" + omopDataSource.GetViewDirective()).
-		Select("observation.person_id")
-	query = models.QueryFilterByConceptIdsAndValuesHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	// Subtest1: correct alias "cohort":
+	query := omopDataSource.Db.Table(resultsDataSource.Schema + ".cohort as cohort").
+		Select("cohort.subject_id")
+	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "cohort")
 	meta_result := query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Did NOT expect an error")
 	}
-	// Subtest2: incorrect alias "observation"...should fail:
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observationWRONG").
+	// Subtest2: incorrect alias "cohort"...should fail:
+	query = omopDataSource.Db.Table(resultsDataSource.Schema + ".cohort as cohortWRONG").
 		Select("*")
-	query = models.QueryFilterByConceptIdsAndValuesHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "cohort")
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error == nil {
 		t.Errorf("Expected an error")
 	}
 	// Subtest3: limit result set by concept value:
-	filterConceptIdsAndValues = []utils.CustomConceptVariableDef{{ConceptId: 2000007027, ConceptValues: []int64{2000007028}}}
+	filterConceptIdsAndValues = []utils.CustomConceptVariableDef{
+		{ConceptId: 2000007027,
+			Filters: []utils.Filter{
+				{
+					Type:               "in",
+					ValuesAsConceptIds: []int64{2000007028},
+				},
+			},
+		},
+	}
 
-	query = omopDataSource.Db.Table(omopDataSource.Schema + ".observation_continuous as observation").
+	query = omopDataSource.Db.Table(resultsDataSource.Schema + ".cohort as cohort").
 		Select("*")
-	query = models.QueryFilterByConceptIdsAndValuesHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "observation.person_id")
+	query = models.QueryFilterByConceptDefsHelper(query, testSourceId, filterConceptIdsAndValues, omopDataSource, "", "cohort")
 	meta_result = query.Scan(&personIds)
 	if meta_result.Error != nil {
 		t.Errorf("Should have succeeded")
@@ -865,157 +1265,89 @@ func TestQueryFilterByConceptIdsAndValuesHelper(t *testing.T) {
 	}
 }
 
-func TestRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
-	setUp(t)
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
-	var sumNumeric float32 = 0
-	textConcat := ""
-	classIdConcat := ""
-	foundConceptValueAsNumberAsNil := false
-	for _, cohortDefinition := range cohortDefinitions {
-
-		cohortData, _ := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
-			testSourceId, cohortDefinition.Id, allConceptIds)
-
-		// count nr observation records for cohort through an independent simpler query:
-		totalObservationsCohort := tests.GetCountWhere(tests.GetOmopDataSourceForSourceId(tests.GetTestSourceId()), "observation",
-			fmt.Sprintf("observation_concept_id > 0 and person_id in (Select b.subject_id from %s.cohort b where b.cohort_definition_id = %d)",
-				tests.GetResultsDataSource().Schema, cohortDefinition.Id))
-
-		// 1- the number of items in cohortsData and totalObservationsCohort should match:
-		if int64(len(cohortData)) != totalObservationsCohort {
-			t.Errorf("Expected %d observations, found %d", totalObservationsCohort, len(cohortData))
-		}
-
-		// 2- cohortData items > 0, assuming each cohort has a person wit at least one observation
-		if len(cohortData) <= 0 {
-			t.Errorf("Expected some cohort data")
-		}
-		// 3- check data size. Max size, if all persons have data for each concept, is cohort size x len(allConceptIds):
-		if len(cohortData) > cohortDefinition.CohortSize*len(allConceptIds) {
-			t.Errorf("Cohort data size larger than expected. Expected < %d, got %d",
-				cohortDefinition.CohortSize*len(allConceptIds), len(cohortData))
-		}
-
-		var previousPersonId int64 = -1
-		defaultHareValue := map[string]bool{"non-Hispanic Asian": true, "non-Hispanic Black": true, "non-Hispanic White": true, "Hispanic": true}
-		emptyDataCounter := 0
-		for _, cohortDatum := range cohortData {
-			// check for order: person_id is not smaller than previous person_id
-			if cohortDatum.PersonId < previousPersonId {
-				t.Errorf("Data not ordered by person_id!")
-			}
-
-			if cohortDatum.ConceptId == 2000007027 {
-				//Only one row has empty data
-				if !defaultHareValue[cohortDatum.ObservationValueAsConceptName] {
-					if emptyDataCounter == 0 && cohortDatum.ObservationValueAsConceptName == "" {
-						emptyDataCounter++
-					} else {
-						t.Errorf("Did not get concept value name correctly!")
-					}
-				}
-			}
-
-			previousPersonId = cohortDatum.PersonId
-			if cohortDatum.ConceptValueAsNumber != nil {
-				sumNumeric += *cohortDatum.ConceptValueAsNumber
-			} else {
-				foundConceptValueAsNumberAsNil = true
-			}
-			textConcat += cohortDatum.ObservationValueAsConceptName
-			classIdConcat += cohortDatum.ConceptClassId
-		}
-	}
-	// check for data: sum of all numeric values > 0
-	if sumNumeric == 0 {
-		t.Errorf("Expected some numeric cohort data")
-	}
-	// check for data: concat of all string values != ""
-	if textConcat == "" {
-		t.Errorf("Expected some string cohort data")
-	}
-	// check for data: some concepts have class id, so this should not be empty
-	if classIdConcat == "" {
-		t.Errorf("Expected query to return concept class id information")
-	}
-	// check if some numeric values were nil as expected:
-	if foundConceptValueAsNumberAsNil == false {
-		t.Errorf("Expected query to return some nil values for ConceptValueAsNumber")
-	}
-
-}
-
-func TestErrorForRetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(t *testing.T) {
-	// Tests if the method returns an error when query fails.
-
-	cohortDefinitions, _ := cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(testSourceId, defaultTeamProject)
-
-	// break something in the Results schema to cause a query failure in the next method:
-	tests.BreakSomething(models.Results, "cohort", "cohort_definition_id")
-	// set last action to restore back:
-	// run test:
-	_, error := cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(
-		testSourceId, cohortDefinitions[0].Id, allConceptIds)
-	if error == nil {
-		t.Errorf("Expected error")
-	}
-	// revert the broken part:
-	tests.FixSomething(models.Results, "cohort", "cohort_definition_id")
-}
-
 func TestRetrieveCohortOverlapStats(t *testing.T) {
 	// Tests if we get the expected overlap
 	setUp(t)
 	caseCohortId := secondLargestCohort.Id
 	controlCohortId := secondLargestCohort.Id // to ensure we get some overlap, just repeat the same here...
-	otherFilterConceptIds := []int64{}
-	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	stats, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		otherFilterConceptIds, filterCohortPairs)
+	filterConceptDefsAndCohortPairs := []interface{}{}
+	stats, err := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptDefsAndCohortPairs)
 	// basic test:
 	if stats.CaseControlOverlap != int64(secondLargestCohort.CohortSize) {
-		t.Errorf("Expected nr persons to be %d, found %d", secondLargestCohort.CohortSize, stats.CaseControlOverlap)
+		t.Errorf("Expected nr persons to be %d, found %d. Error: %v", secondLargestCohort.CohortSize, stats.CaseControlOverlap, err)
 	}
 
 	// now use largestCohort as background and filter on the extendedCopyOfSecondLargestCohort
 	caseCohortId = largestCohort.Id
 	controlCohortId = largestCohort.Id // to ensure we get largestCohort as initial overlap, just repeat the same here...
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{
-		{
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomDichotomousVariableDef{
 			CohortDefinitionId1: smallestCohort.Id,
 			CohortDefinitionId2: extendedCopyOfSecondLargestCohort.Id,
-			ProvidedName:        "test"},
+			ProvidedName:        "test",
+		},
 	}
 	// then we expect overlap of 6 for extendedCopyOfSecondLargestCohort and largestCohort:
-	stats, _ = cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		otherFilterConceptIds, filterCohortPairs)
+	stats, err = cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptDefsAndCohortPairs)
 	if stats.CaseControlOverlap != 6 {
-		t.Errorf("Expected nr persons to be %d, found %d", 6, stats.CaseControlOverlap)
+		t.Errorf("Expected nr persons to be %d, found %d. Error: %v", 6, stats.CaseControlOverlap, err)
 	}
 
 	// extra test: different parameters that should return the same as above ^:
 	caseCohortId = largestCohort.Id
 	controlCohortId = extendedCopyOfSecondLargestCohort.Id
-	filterCohortPairs = []utils.CustomDichotomousVariableDef{}
-	otherFilterConceptIds = []int64{histogramConceptId} // extra filter, to cover this part of the code...
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
+	} // extra filter, to cover this part of the code...
 	// then we expect overlap of 5 for extendedCopyOfSecondLargestCohort and largestCohort (the filter on histogramConceptId should not matter
 	// since all in largestCohort have an observation for this concept id except one person who has it but has value_as_number as NULL):
-	stats2, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		otherFilterConceptIds, filterCohortPairs)
+	stats2, err := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptDefsAndCohortPairs)
 	if stats2.CaseControlOverlap != stats.CaseControlOverlap-1 {
-		t.Errorf("Expected nr persons to be %d, found %d", stats.CaseControlOverlap, stats2.CaseControlOverlap)
+		t.Errorf("Expected nr persons to be %d, found. %d Error: %v", stats.CaseControlOverlap, stats2.CaseControlOverlap, err)
 	}
 
 	// test for otherFilterConceptIds by filtering above on dummyContinuousConceptId, which is NOT
 	// found in any observations of the largestCohort:
-	otherFilterConceptIds = []int64{histogramConceptId, dummyContinuousConceptId}
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: histogramConceptId,
+		},
+		utils.CustomConceptVariableDef{
+			ConceptId: dummyContinuousConceptId,
+		},
+	}
 	// all other arguments are the same as test above, and we expect overlap of 0, showing the otherFilterConceptIds
 	// had the expected effect:
-	stats3, _ := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
-		otherFilterConceptIds, filterCohortPairs)
+	stats3, err := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptDefsAndCohortPairs)
 	if stats3.CaseControlOverlap != 0 {
-		t.Errorf("Expected nr persons to be 0, found %d", stats3.CaseControlOverlap)
+		t.Errorf("Expected nr persons to be 0, found %d. Error: %v", stats3.CaseControlOverlap, err)
+	}
+
+	// test with filter and transformation. These 2 cohorts will have 6 overlapping persons:
+	caseCohortId = largestCohort.Id
+	controlCohortId = extendedCopyOfSecondLargestCohort.Id
+	filterConceptDefsAndCohortPairs = []interface{}{
+		utils.CustomConceptVariableDef{
+			ConceptId: tests.GetTestHistogramConceptId(),
+			Filters: []utils.Filter{
+				{
+					Type:  ">=",
+					Value: utils.Float64Ptr(0.871), // we have 2 records in the overlapping population where the value is >= than this
+				},
+			},
+			Transformation: "log",
+		},
+	}
+	stats4, err := cohortDataModel.RetrieveCohortOverlapStats(testSourceId, caseCohortId, controlCohortId,
+		filterConceptDefsAndCohortPairs)
+	if stats4.CaseControlOverlap != 2 {
+		t.Errorf("Expected nr persons to be 2, found %d. Error: %v", stats4.CaseControlOverlap, err)
 	}
 }
 
@@ -1216,4 +1548,17 @@ func TestExecSQLError(t *testing.T) {
 	tests.ExecSQLScript("invalidSql.sql", tests.GetTestSourceId())
 	t.Errorf("Panic should have occurred due to SQL Error")
 
+}
+
+func TestTableExists(t *testing.T) {
+	setUp(t)
+	session := tests.GetResultsDataSource().Db.Session(&gorm.Session{})
+	exists := utils.TableExists(session, tests.GetResultsDataSource().Schema+".cohort")
+	if !exists {
+		t.Errorf("Expected 'cohort' table to exist")
+	}
+	exists = utils.TableExists(session, "cohort_non_existing_table")
+	if exists {
+		t.Errorf("Did NOT expect 'cohort_non_existing_table' to exist")
+	}
 }

@@ -138,7 +138,7 @@ curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"
 
 Histogram endpoint:
 ```bash
-curl -d '{"variables":[{"variable_type": "custom_dichotomous", "cohort_ids": [1, 4]}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/histogram/by-source-id/1/by-cohort-definition-id/4/by-histogram-concept-id/2000006885
+curl -d '{"variables":[{"variable_type": "custom_dichotomous", "cohort_ids": [1, 4]}, {"variable_type": "concept", "concept_id": 2000006885}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/histogram/by-source-id/1/by-cohort-definition-id/4
 ```
 
 # Deployment steps

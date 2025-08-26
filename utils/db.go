@@ -2,6 +2,7 @@ package utils
 
 import (
 	"context"
+	"fmt"
 	"log"
 	"strings"
 	"time"
@@ -79,4 +80,24 @@ func (h DbAndSchema) GetViewDirective() string {
 	} else {
 		return ""
 	}
+}
+
+// Use db.ToSQL to generate the SQL string for the existing query
+func ToSQL(query *gorm.DB) string {
+	sql := query.ToSQL(func(tx *gorm.DB) *gorm.DB {
+		return tx.Session(&gorm.Session{DryRun: true}).Find([]interface{}{})
+	})
+	return sql
+}
+
+func TableExists(tx *gorm.DB, tableName string) bool {
+	query := fmt.Sprintf("SELECT 1 FROM %s WHERE 1 = 2", tableName)
+	err := tx.Exec(query).Error
+	if err != nil {
+		log.Printf("TableExists check failed for: %s, error: %v", tableName, err)
+		tx.Error = nil
+		return false
+	}
+	// If the query succeeds, the table exists:
+	return true
 }

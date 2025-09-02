@@ -605,6 +605,100 @@ func TestRetriveStatsBySourceIdAndTeamProject(t *testing.T) {
 	}
 }
 
+func TestRetriveStatsBySourceIdAndCohortIdAndObservationWindow(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "observationwindow", Value: "100"})
+
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveStatsBySourceIdAndCohortIdAndObservationWindow(requestContext)
+	// should not abort:
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect aborted request")
+	}
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "cohort_definition_and_stats") {
+		t.Errorf("Expected data in result, got %q", result.CustomResponseWriterOut)
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	cohortDefinitionControllerWithFailingTeamProjectAuthz.RetriveStatsBySourceIdAndCohortIdAndObservationWindow(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
+}
+
+func TestRetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohort1", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohort2", Value: "2"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "observationwindow1stcohort", Value: "100"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(requestContext)
+	// should not abort:
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect aborted request")
+	}
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "cohort_definition_and_stats") {
+		t.Errorf("Expected data in result, got %q", result.CustomResponseWriterOut)
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	cohortDefinitionControllerWithFailingTeamProjectAuthz.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
+}
+
+func TestRetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohort1", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohort2", Value: "2"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "observationwindow1stcohort", Value: "100"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "outcomeWindow2ndCohort", Value: "100"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(requestContext)
+	// should not abort:
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect aborted request")
+	}
+	// expect result with dummy data:
+	if !strings.Contains(result.CustomResponseWriterOut, "cohort_definition_and_stats") {
+		t.Errorf("Expected data in result, got %q", result.CustomResponseWriterOut)
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	cohortDefinitionControllerWithFailingTeamProjectAuthz.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
+}
+
 func TestMakeUniqueListOfCohortStats(t *testing.T) {
 	setUp(t)
 	testInput := []*models.CohortDefinitionStats{}

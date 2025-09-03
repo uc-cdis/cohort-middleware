@@ -414,6 +414,37 @@ func TestRetrieveDataBySourceIdAndCohortIdAndVariablesCorrectParams(t *testing.T
 	}
 }
 
+func TestRetrieveCohortOverlapStatsSimple(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "casecohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "controlcohortid", Value: "2"})
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+
+	cohortDataController.RetrieveCohortOverlapStatsSimple(requestContext)
+	// Params above are correct, so request should NOT abort:
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !strings.Contains(result.CustomResponseWriterOut, "case_control_overlap") {
+		t.Errorf("Expected output containing 'case_control_overlap...'")
+	}
+
+	// the same request should fail if the teamProject authorization fails:
+	cohortDataControllerWithFailingTeamProjectAuthz.RetrieveCohortOverlapStatsSimple(requestContext)
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	// expect error:
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' as result")
+	}
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected request to be aborted")
+	}
+}
+
 func TestRetrieveCohortOverlapStats(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)

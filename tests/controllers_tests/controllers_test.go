@@ -660,10 +660,26 @@ func TestRetriveStatsBySourceIdAndCohortIdAndObservationWindow(t *testing.T) {
 	result = requestContext.Writer.(*tests.CustomResponseWriter)
 	// expect error:
 	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
-		t.Errorf("Expected 'access denied' as result")
+		t.Errorf("Expected 'access denied' as result, got %q", result.CustomResponseWriterOut)
 	}
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected request to be aborted")
+	}
+
+	requestContext = new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "cohortid", Value: "1"})
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "observationwindow", Value: "sometext"})
+
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	cohortDefinitionController.RetriveStatsBySourceIdAndCohortIdAndObservationWindow(requestContext)
+	// should abort:
+	result = requestContext.Writer.(*tests.CustomResponseWriter)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "should be a number") {
+		t.Errorf("Expected error with 'should be a number' as result, got %q", result.CustomResponseWriterOut)
 	}
 }
 

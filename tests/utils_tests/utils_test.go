@@ -2,6 +2,7 @@ package utils_tests
 
 import (
 	"encoding/json"
+	"fmt"
 	"io"
 	"log"
 	"math"
@@ -352,6 +353,26 @@ func TestExtractConceptIdsFromCustomConceptVariablesDef(t *testing.T) {
 	expectedResult := []int64{1234, 5678}
 	result := utils.ExtractConceptIdsFromCustomConceptVariablesDef(testData)
 	if !reflect.DeepEqual(expectedResult, result) {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
+}
+
+func TestGenerateDsn2(t *testing.T) {
+	setUp(t)
+	sourceConnectionString := "jdbc:postgresql://localhost:5434/mydbname"
+	var testInput = utils.SourceConnection{SourceConnection: sourceConnectionString,
+		Username: "postgresuser",
+		Password: "mysecretpassword", // pragma: allowlist secret
+	}
+	result := utils.GenerateDsn(testInput)
+	expectedResult := fmt.Sprintf("%s://%s:%s@%s:%s?database=%s", // pragma: allowlist secret
+		"postgresql",
+		"postgresuser",
+		"mysecretpassword", // pragma: allowlist secret
+		"localhost",
+		"5434",
+		"mydbname")
+	if result != expectedResult {
 		t.Errorf("Expected %v but found %v", expectedResult, result)
 	}
 }

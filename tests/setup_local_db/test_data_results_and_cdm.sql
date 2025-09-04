@@ -126,51 +126,67 @@ values
     (nextval('observation_id_seq'),         11,           2000007027,           2000007030,            'AFR',           'AFR',                    38000276)
 ;
 
+-- insert `observation_period` records:
+insert into omop.observation_period
+(observation_period_id, person_id, observation_period_start_date, observation_period_end_date, period_type_concept_id)
+values
+    (nextval('observation_period_id_seq'), 1, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 2, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 3, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 4, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 5, '2019-01-02', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 6, '2019-01-02', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 7, '2004-01-31', '2024-01-31', 44814724),
+    (nextval('observation_period_id_seq'), 8, '2004-01-31', '2024-01-31', 44814724)
+;
+
+
+
 -- ========================================================
 -- Populate results schema
 -- ========================================================
 
 insert into results.COHORT
-(cohort_definition_id,subject_id)
+(cohort_definition_id,subject_id, cohort_start_date, cohort_end_date)
 values
 -- small cohort: 1 person: (aka "smallestCohort" in models_test.go script)
-    (1,1),
+    (1,1,'2020-01-01', '2099-01-01'),
 -- medium cohort: 2 persons: (aka "thirdLargestCohort" in models_test.go script)
-    (2,2),
-    (2,3),
+    (2,2,'2020-06-30', '2099-01-01'),
+    (2,3,'2020-06-30', '2099-01-01'),
 -- large cohort: 6 persons: (aka "secondLargestCohort" in models_test.go script)
-    (3,1),
-    (3,2),
-    (3,3),
-    (3,4),
-    (3,5),
-    (3,6),
+    (3,1,'2020-01-01', '2099-01-01'),
+    (3,2,'2020-01-01', '2099-01-01'),
+    (3,3,'2020-01-01', '2099-01-01'),
+    (3,4,'2020-01-01', '2099-01-01'),
+    (3,5,'2020-01-01', '2099-01-01'),
+    (3,6,'2020-01-01', '2099-01-01'),
 -- copy of large cohort above plus some extra persons: (aka "extendedCopyOfSecondLargestCohort" in models_test.go script)
-    (32,1),
-    (32,2),
-    (32,3),
-    (32,4),
-    (32,5),
-    (32,6),
-    (32,7),
-    (32,8),
-    (32,9),
-    (32,10),
+    (32,1,'2020-01-01', '2099-01-01'),
+    (32,2,'2020-01-01', '2099-01-01'),
+    (32,3,'2020-01-01', '2099-01-01'),
+    (32,4,'2020-01-01', '2099-01-01'),
+    (32,5,'2020-01-01', '2099-01-01'),
+    (32,6,'2020-01-01', '2099-01-01'),
+    (32,7,'2020-01-01', '2099-01-01'),
+    (32,8,'2020-01-01', '2099-01-01'),
+    (32,9,'2020-01-01', '2099-01-01'),
+    (32,10,'2020-01-01', '2099-01-01'),
 -- extra large cohort for testing histogram: (aka "largestCohort" in models_test.go script)
-    (4,5),
-    (4,6),
-    (4,7),
-    (4,8),
-    (4,9),
-    (4,10),
-    (4,11),
-    (4,12),
-    (4,13),
-    (4,14),
-    (4,15),
-    (4,16),
-    (4,17),
-    (4,18)
+    (4,5,'2020-01-01', '2099-01-01'),
+    (4,6,'2020-01-01', '2099-01-01'),
+    (4,7,'2020-01-01', '2099-01-01'),
+    (4,8,'2020-01-01', '2099-01-01'),
+    (4,9,'2020-01-01', '2099-01-01'),
+    (4,10,'2020-01-01', '2099-01-01'),
+    (4,11,'2020-01-01', '2099-01-01'),
+    (4,12,'2020-01-01', '2099-01-01'),
+    (4,13,'2020-01-01', '2099-01-01'),
+    (4,14,'2020-01-01', '2099-01-01'),
+    (4,15,'2020-01-01', '2099-01-01'),
+    (4,16,'2020-01-01', '2099-01-01'),
+    (4,17,'2020-01-01', '2099-01-01'),
+    (4,18,'2020-01-01', '2099-01-01')
 ;
 
 INSERT INTO dbo.VersionInfo

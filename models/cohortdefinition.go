@@ -211,11 +211,11 @@ func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAn
 	switch resultsDataSource.Db.Dialector.Name() {
 	case "sqlserver":
 		query = query.Where("cohort2.cohort_start_date < DATEADD(DAY, ?, cohort.cohort_start_date)", outcomeWindow2ndCohort).
-			Where("cohort2.cohort_start_date >= cohort.cohort_start_date") // TODO - plus 0 or more days when we later add "outcome observation window start, relative to cohort1 entry"
+			Where("cohort2.cohort_start_date > cohort.cohort_start_date") // TODO - plus 1 or more days when we later add "outcome observation window start, relative to cohort1 entry"
 
 	case "postgres":
 		query = query.Where("cohort2.cohort_start_date < ((INTERVAL '1 day' * ?) + cohort.cohort_start_date)", outcomeWindow2ndCohort).
-			Where("cohort2.cohort_start_date >= cohort.cohort_start_date") // TODO - plus 0 or more days when we later add "outcome observation window start, relative to cohort1 entry"
+			Where("cohort2.cohort_start_date > cohort.cohort_start_date") // TODO - plus 1 or more days when we later add "outcome observation window start, relative to cohort1 entry"
 	default:
 		log.Fatal("Unsupported dialect")
 	}

@@ -86,7 +86,7 @@ func QueryFilterByCohortPairsHelper(filterCohortPairs []utils.CustomDichotomousV
 func QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource *utils.DbAndSchema, omopDataSource *utils.DbAndSchema, cohortId int, observationWindow int) *gorm.DB {
 	// Query to filter and count persons in cohort:
 	query := resultsDataSource.Db.Model(&Cohort{}).
-		Select("count(cohort.*) AS cohort_size").
+		Select("count(distinct(cohort.subject_id)) AS cohort_size").
 		Joins("JOIN " + omopDataSource.Schema + ".observation_period ON cohort.subject_id = observation_period.person_id")
 
 	switch resultsDataSource.Db.Dialector.Name() {

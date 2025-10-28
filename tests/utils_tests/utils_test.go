@@ -357,7 +357,7 @@ func TestExtractConceptIdsFromCustomConceptVariablesDef(t *testing.T) {
 	}
 }
 
-func TestGenerateDsn2(t *testing.T) {
+func TestGenerateDsn(t *testing.T) {
 	setUp(t)
 	sourceConnectionString := "jdbc:postgresql://localhost:5434/mydbname"
 	var testInput = utils.SourceConnection{SourceConnection: sourceConnectionString,
@@ -371,6 +371,26 @@ func TestGenerateDsn2(t *testing.T) {
 		"mysecretpassword", // pragma: allowlist secret
 		"localhost",
 		"5434",
+		"mydbname")
+	if result != expectedResult {
+		t.Errorf("Expected %v but found %v", expectedResult, result)
+	}
+}
+
+func TestGenerateDsn2(t *testing.T) {
+	setUp(t)
+	sourceConnectionString := "jdbc:sqlserver://localhost:1433;databaseName=mydbname"
+	var testInput = utils.SourceConnection{SourceConnection: sourceConnectionString,
+		Username: "username",
+		Password: "mysecretpassword", // pragma: allowlist secret
+	}
+	result := utils.GenerateDsn(testInput)
+	expectedResult := fmt.Sprintf("%s://%s:%s@%s:%s?database=%s", // pragma: allowlist secret
+		"sqlserver",
+		"username",
+		"mysecretpassword", // pragma: allowlist secret
+		"localhost",
+		"1433",
 		"mydbname")
 	if result != expectedResult {
 		t.Errorf("Expected %v but found %v", expectedResult, result)

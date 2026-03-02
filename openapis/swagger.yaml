@@ -6,7 +6,7 @@ info:
   contact:
     name: CTDS
     url: 'https://ctds.uchicago.edu'
-    email: ctds@uchicag.edu
+    email: ctds@uchicago.edu
   license:
     name: Apache 2.0
 servers:

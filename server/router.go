@@ -39,6 +39,8 @@ func NewRouter() *gin.Engine {
 			cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort)
 		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-ids/:cohort1/:cohort2/by-observation-window-1st-cohort/:observationwindow1stcohort/by-outcome-window-2nd-cohort/:outcomeWindow2ndCohort",
 			cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort)
+		authorized.GET("/cohortdefinition-stats/by-source-id/:sourceid/by-cohort-definition-ids/:cohort1/:cohort2/by-observation-window-1st-cohort/:observationwindow1stcohort/and-cohort2-entry-first",
+			cohortdefinitions.RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst)
 
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition),

@@ -154,6 +154,16 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservat
 // Retrieve stats for  number of persons in cohort1 that have the given observation window and also
 // are present in cohort2
 func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(c *gin.Context) {
+	u.retriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(c, false)
+}
+
+// Retrieve stats for  number of persons in cohort1 that have the given observation window and also
+// are present in cohort2, and entered cohort2 before entering cohort1
+func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(c *gin.Context) {
+	u.retriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(c, true)
+}
+
+func (u CohortDefinitionController) retriveStatsBySourceIdAndCohortIdAndObservationWindow1stCohortAndOverlap2ndCohort(c *gin.Context, filterOn2ndCohortEntryFirst bool) {
 	errors := make([]error, 4)
 	var sourceId, cohort1Id, cohort2Id, observationWindow1stCohort int
 	sourceId, errors[0] = utils.ParseNumericArg(c, "sourceid")
@@ -174,7 +184,13 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservat
 		c.Abort()
 		return
 	}
-	cohortDefinitionAndStats, err := u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId, cohort1Id, cohort2Id, observationWindow1stCohort)
+	var cohortDefinitionAndStats *models.CohortDefinitionStats
+	var err error
+	if filterOn2ndCohortEntryFirst {
+		cohortDefinitionAndStats, err = u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(sourceId, cohort1Id, cohort2Id, observationWindow1stCohort)
+	} else {
+		cohortDefinitionAndStats, err = u.cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId, cohort1Id, cohort2Id, observationWindow1stCohort)
+	}
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving stats", "error": err.Error()})
 		c.Abort()

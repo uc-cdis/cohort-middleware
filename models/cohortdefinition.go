@@ -20,6 +20,7 @@ type CohortDefinitionI interface {
 	GetCohortDefinitionStatsByObservationWindow(sourceId int, cohortId int, observationWindow int) (*CohortDefinitionStats, error)
 	GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int) (*CohortDefinitionStats, error)
 	GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int, outcomeWindow2ndCohort int) (*CohortDefinitionStats, error)
+	GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int) (*CohortDefinitionStats, error)
 }
 
 type CohortDefinition struct {
@@ -219,6 +220,36 @@ func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAn
 	default:
 		log.Fatal("Unsupported dialect")
 	}
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	meta_result := query.Scan(&cohortStats)
+	if meta_result.Error != nil {
+		return nil, meta_result.Error
+	}
+	var err error
+	cohortStats.Name, err = h.GetCohortName(cohort1Id)
+	if err != nil {
+		return nil, err
+	}
+	return &cohortStats, nil
+}
+
+// Get the number of persons in a cohort1 that have an observation period equal or longer than
+// the given observationWindow (aka "look back window"), and are also present in cohort2 with a cohort2 start date that is
+// in the period BEFORE cohort1 start date.
+func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(sourceId int, cohort1Id int, cohort2Id int, observationWindow1stCohort int) (*CohortDefinitionStats, error) {
+
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	var cohortStats CohortDefinitionStats
+
+	query := QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource, omopDataSource, cohort1Id, observationWindow1stCohort)
+	query = query.Joins("INNER JOIN "+resultsDataSource.Schema+".cohort as cohort2 ON cohort2.subject_id = cohort.subject_id").
+		Where("cohort2.cohort_definition_id = ?", cohort2Id).
+		Where("cohort2.cohort_start_date <= cohort.cohort_start_date") // Outcome must occur before (up to at) cohort1Id start
 
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

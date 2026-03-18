@@ -121,9 +121,9 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 // Generate Data Dictionary Json
 func (u DataDictionary) GenerateDataDictionary() {
 	conf := config.GetConfig()
-	var maxWorkerSize int = conf.GetInt("worker_pool_size")
+	var maxWorkerSize = conf.GetInt("worker_pool_size")
 	log.Printf("maxWorkerSize is %v", maxWorkerSize)
-	var batchSize int = conf.GetInt("batch_size")
+	var batchSize = conf.GetInt("batch_size")
 	log.Printf("Batch Size is %v", batchSize)
 
 	entryCh := make(chan *DataDictionaryResult, maxWorkerSize)
@@ -160,7 +160,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 
 		log.Printf("Get all histogram/bar graph data")
 		var partialDataList []*DataDictionaryEntry
-		var resultDataList []*DataDictionaryResult = []*DataDictionaryResult{}
+		var resultDataList = []*DataDictionaryResult{}
 		for len(dataDictionaryEntries) > 0 {
 			wg := sync.WaitGroup{}
 			partialResultList := []*DataDictionaryResult{}

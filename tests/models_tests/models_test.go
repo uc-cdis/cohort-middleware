@@ -818,7 +818,7 @@ func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort
 func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(t *testing.T) {
 	setUp(t)
 
-	// start with overlap of a cohort with itself...should result in 0 size:
+	// start with overlap of a cohort with itself in different time windows...should result in 0 size:
 	cohortDefinitionAndStats, _ := cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, secondLargestCohort.Id, 300, 300)
 
 	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
@@ -828,17 +828,17 @@ func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort
 		t.Errorf("Expected cohort size 0, got %d", cohortDefinitionAndStats.CohortSize)
 	}
 
-	// use extendedCopyOfSecondLargestCohort as 2nd cohort. It has a slightly later start date, so should result in full overlap (secondLargestCohort size):
+	// use extendedCopyOfSecondLargestCohort as 2nd cohort. It has a slightly later start date (except for 1 person), so should result in full overlap-1 (secondLargestCohort size-1):
 	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, extendedCopyOfSecondLargestCohort.Id, 300, 300)
 
 	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
 		t.Errorf("Expected %s", secondLargestCohort.Name)
 	}
-	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize {
-		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize-1 {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize-1, cohortDefinitionAndStats.CohortSize)
 	}
 
-	// now increase the requirement for the firt time window...should result in smaller set:
+	// now increase the requirement for the first time window...should result in smaller set:
 	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAndOutcomeWindow2ndCohort(testSourceId, secondLargestCohort.Id, extendedCopyOfSecondLargestCohort.Id, 365, 300)
 
 	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
@@ -886,6 +886,39 @@ func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohort
 	}
 	if cohortDefinitionAndStats.CohortSize != 0 {
 		t.Errorf("Expected cohort size == 0, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+}
+
+func TestGetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(t *testing.T) {
+	setUp(t)
+
+	// start with overlap of a cohort with itself...should result in cohort's own size:
+	cohortDefinitionAndStats, _ := cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(testSourceId, secondLargestCohort.Id, secondLargestCohort.Id, 300)
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize, cohortDefinitionAndStats.CohortSize)
+	}
+
+	// now find a cohort where there is overlap and 2nd cohort entry is first ("first" here means before or on same date as entry in 1st cohort)...
+	// ...we know that secondLargestCohort and extendedCopyOfSecondLargestCohort overlap by all of secondLargestCohort, and that all persons in extendedCopyOfSecondLargestCohort (except 1) entered
+	// extendedCopyOfSecondLargestCohort at a later date...So: if secondLargestCohort is 1st cohort and extendedCopyOfSecondLargestCohort is 2nd cohort, overlap should be 1,
+	// and overlap should be secondLargestCohort.CohortSize-1 otherwise.
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(testSourceId, secondLargestCohort.Id, extendedCopyOfSecondLargestCohort.Id, 300)
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != secondLargestCohort.Name {
+		t.Errorf("Expected %s", secondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != 1 {
+		t.Errorf("Expected cohort size 1, got %d", cohortDefinitionAndStats.CohortSize)
+	}
+	// switch:
+	cohortDefinitionAndStats, _ = cohortDefinitionModel.GetCohortDefinitionStatsByObservationWindow1stCohortAndOverlap2ndCohortAnd2ndCohortEntryFirst(testSourceId, extendedCopyOfSecondLargestCohort.Id, secondLargestCohort.Id, 300)
+	if cohortDefinitionAndStats == nil || cohortDefinitionAndStats.Name != extendedCopyOfSecondLargestCohort.Name {
+		t.Errorf("Expected %s", extendedCopyOfSecondLargestCohort.Name)
+	}
+	if cohortDefinitionAndStats.CohortSize != secondLargestCohort.CohortSize-1 {
+		t.Errorf("Expected cohort size %d, got %d", secondLargestCohort.CohortSize-1, cohortDefinitionAndStats.CohortSize)
 	}
 }
 

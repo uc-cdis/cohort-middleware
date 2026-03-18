@@ -209,7 +209,7 @@ func (h CohortDefinition) GetCohortDefinitionStatsByObservationWindow1stCohortAn
 		Where("cohort2.cohort_definition_id = ?", cohort2Id)
 
 	// Outcome must occur within "outcomeWindow2ndCohort days" of cohort1Id start:
-	switch resultsDataSource.Db.Dialector.Name() {
+	switch resultsDataSource.Db.Name() {
 	case "sqlserver":
 		query = query.Where("cohort2.cohort_start_date < DATEADD(DAY, ?, cohort.cohort_start_date)", outcomeWindow2ndCohort).
 			Where("cohort2.cohort_start_date > cohort.cohort_start_date") // TODO - plus 1 or more days when we later add "outcome observation window start, relative to cohort1 entry"

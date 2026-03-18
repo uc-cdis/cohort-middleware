@@ -89,7 +89,7 @@ func QueryFilterByCohortIdAndObservationWindowHelper(resultsDataSource *utils.Db
 		Select("count(distinct(cohort.subject_id)) AS cohort_size").
 		Joins("JOIN " + omopDataSource.Schema + ".observation_period ON cohort.subject_id = observation_period.person_id")
 
-	switch resultsDataSource.Db.Dialector.Name() {
+	switch resultsDataSource.Db.Name() {
 	case "sqlserver":
 		query = query.Where("observation_period.observation_period_start_date <= DATEADD(DAY, ?, cohort.cohort_start_date)", -observationWindow)
 	case "postgres":

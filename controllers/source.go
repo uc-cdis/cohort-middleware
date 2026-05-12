@@ -5,10 +5,13 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 )
 
-type SourceController struct{}
+type SourceController struct {
+	teamProjectAuthz middlewares.TeamProjectAuthzI
+}
 
 var sourceModel = new(models.Source)
 
@@ -47,6 +50,24 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 
 func (u SourceController) RetriveAll(c *gin.Context) {
 	source, err := sourceModel.GetAllSources()
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"sources": source})
+}
+
+func (u SourceController) RetriveAllWithTeamProject(c *gin.Context) {
+	teamProject := c.Query("team-project")
+	if teamProject == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
+		c.Abort()
+		return
+	}
+
+	hasAccess := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
+	source, err := sourceModel.GetAllSourcesWithTeamProject(teamProject, hasAccess)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 		c.Abort()

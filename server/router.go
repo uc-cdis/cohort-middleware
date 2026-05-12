@@ -27,6 +27,7 @@ func NewRouter() *gin.Engine {
 		authorized.GET("/source/by-id/:id", source.RetriveById)
 		authorized.GET("/source/by-name/:name", source.RetriveByName)
 		authorized.GET("/sources", source.RetriveAll)
+		authorized.GET("/sources/team-project", source.RetriveAllWithTeamProject)
 
 		cohortdefinitions := controllers.NewCohortDefinitionController(*new(models.CohortDefinition),
 			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))

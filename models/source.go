@@ -6,12 +6,14 @@ import (
 )
 
 type Source struct {
-	SourceId         int    `json:"source_id"`
-	SourceName       string `json:"source_name"`
-	SourceConnection string `json:",omitempty"`
-	SourceDialect    string `json:",omitempty"`
-	Username         string `json:",omitempty"`
-	Password         string `json:",omitempty"`
+	SourceId                     int    `json:"source_id"`
+	SourceName                   string `json:"source_name"`
+	SourceConnection             string `json:",omitempty"`
+	SourceDialect                string `json:",omitempty"`
+	Username                     string `json:",omitempty"`
+	Password                     string `json:",omitempty"`
+	TeamProject                  string `json:",omitempty" gorm:"column:team_project"`
+	CurrentTeamProjectAccessible string `json:",omitempty" gorm:"column:current_team_project_accessible"`
 }
 
 func (h Source) GetSourceById(id int) (*Source, error) {
@@ -113,6 +115,36 @@ func (h Source) GetAllSources() ([]*Source, error) {
 	var dataSource []*Source
 	query := db2.Model(&Source{}).
 		Select("source_id, source_name").
+		Where("deleted_date is null")
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	query.Scan(&dataSource)
+	return dataSource, nil
+}
+
+func (h Source) GetAllSourcesWithTeamProject(teamName string, hasAccess bool) ([]*Source, error) {
+	db2 := db.GetAtlasDB().Db
+	var dataSource []*Source
+	query := db2.Model(&Source{}).
+		Select(`
+			s.source_id AS source_id,
+			s.source_name AS source_name,
+			s.name AS team_project,
+			(s.source_key = ?) AS current_team_project_accessible
+		`, teamName).
+		Joins(`
+			JOIN ohdsi.sec_permission sp
+			  ON s.source_key = SUBSTRING(sp.value FROM 'generate:(.*?):get')
+		`).
+		Joins(`
+			JOIN ohdsi.sec_role_permission srp
+			  ON sp.id = srp.permission_id
+		`).
+		Joins(`
+			JOIN ohdsi.sec_role sr
+			  ON srp.role_id = sr.id
+		`).
+		Where("sr.name LIKE ?", "/gwas-projects/%").
 		Where("deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()

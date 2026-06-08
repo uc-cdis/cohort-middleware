@@ -23,7 +23,8 @@ func NewRouter() *gin.Engine {
 	authorized := r.Group("/")
 	authorized.Use(middlewares.AuthMiddleware())
 	{
-		source := new(controllers.SourceController)
+		source := controllers.NewSourceController(*new(models.Source),
+			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
 		authorized.GET("/source/by-id/:id", source.RetriveById)
 		authorized.GET("/source/by-name/:name", source.RetriveByName)
 		authorized.GET("/sources", source.RetriveAll)

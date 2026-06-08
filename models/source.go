@@ -8,12 +8,20 @@ import (
 type Source struct {
 	SourceId                     int    `json:"source_id"`
 	SourceName                   string `json:"source_name"`
+	Description                  string `json:"description,omitempty" gorm:"column:description"`
 	SourceConnection             string `json:",omitempty"`
 	SourceDialect                string `json:",omitempty"`
 	Username                     string `json:",omitempty"`
 	Password                     string `json:",omitempty"`
 	TeamProject                  string `json:",omitempty" gorm:"column:team_project"`
 	CurrentTeamProjectAccessible string `json:",omitempty" gorm:"column:current_team_project_accessible"`
+}
+
+type SourceI interface {
+	GetSourceById(id int) (*Source, error)
+	GetSourceByName(name string) (*Source, error)
+	GetAllSources() ([]*Source, error)
+	GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 }
 
 func (h Source) GetSourceById(id int) (*Source, error) {
@@ -122,10 +130,11 @@ func (h Source) GetAllSources() ([]*Source, error) {
 	return dataSource, nil
 }
 
-func (h Source) GetAllSourcesWithTeamProject(teamName string, hasAccess bool) ([]*Source, error) {
-	db2 := db.GetAtlasDB().Db
+func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error) {
+	atlasDb := db.GetAtlasDB()
+	db2 := atlasDb.Db
 	var dataSource []*Source
-	query := db2.Model(&Source{}).
+	query := db2.Table(atlasDb.Schema+".source AS s").
 		Select(`
 			s.source_id AS source_id,
 			s.source_name AS source_name,
@@ -133,21 +142,38 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string, hasAccess bool) ([
 			(s.source_key = ?) AS current_team_project_accessible
 		`, teamName).
 		Joins(`
-			JOIN ohdsi.sec_permission sp
+			JOIN `+atlasDb.Schema+`.sec_permission sp
 			  ON s.source_key = SUBSTRING(sp.value FROM 'generate:(.*?):get')
 		`).
 		Joins(`
-			JOIN ohdsi.sec_role_permission srp
+			JOIN `+atlasDb.Schema+`.sec_role_permission srp
 			  ON sp.id = srp.permission_id
 		`).
 		Joins(`
-			JOIN ohdsi.sec_role sr
+			JOIN `+atlasDb.Schema+`.sec_role sr
 			  ON srp.role_id = sr.id
 		`).
 		Where("sr.name LIKE ?", "/gwas-projects/%").
-		Where("deleted_date is null")
+		Where("s.deleted_date is null")
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
-	query.Scan(&dataSource)
+	metaResult := query.Scan(&dataSource)
+	if metaResult.Error != nil {
+		return nil, metaResult.Error
+	}
+
+	for _, source := range dataSource {
+		omopDataSource := h.GetDataSource(source.SourceId, Omop)
+		query := omopDataSource.Db.Table(omopDataSource.Schema + ".cdm_source").
+			Select("source_description as description").
+			Limit(1)
+		query, cancel := utils.AddTimeoutToQuery(query)
+		metaResult := query.Scan(source)
+		cancel()
+		if metaResult.Error != nil {
+			return nil, metaResult.Error
+		}
+	}
+
 	return dataSource, nil
 }

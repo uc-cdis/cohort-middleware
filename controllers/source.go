@@ -1,6 +1,7 @@
 package controllers
 
 import (
+	"log"
 	"net/http"
 	"strconv"
 
@@ -10,16 +11,22 @@ import (
 )
 
 type SourceController struct {
+	sourceModel      models.SourceI
 	teamProjectAuthz middlewares.TeamProjectAuthzI
 }
 
-var sourceModel = new(models.Source)
+func NewSourceController(sourceModel models.SourceI, teamProjectAuthz middlewares.TeamProjectAuthzI) SourceController {
+	return SourceController{
+		sourceModel:      sourceModel,
+		teamProjectAuthz: teamProjectAuthz,
+	}
+}
 
 func (u SourceController) RetriveById(c *gin.Context) {
 	sourceId := c.Param("id")
 	if sourceId != "" {
 		sourceId, _ := strconv.Atoi(c.Param("id"))
-		source, err := sourceModel.GetSourceById(sourceId)
+		source, err := u.sourceModel.GetSourceById(sourceId)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 			c.Abort()
@@ -35,7 +42,7 @@ func (u SourceController) RetriveById(c *gin.Context) {
 func (u SourceController) RetriveByName(c *gin.Context) {
 	sourceName := c.Param("name")
 	if sourceName != "" {
-		source, err := sourceModel.GetSourceByName(sourceName)
+		source, err := u.sourceModel.GetSourceByName(sourceName)
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 			c.Abort()
@@ -49,7 +56,7 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 }
 
 func (u SourceController) RetriveAll(c *gin.Context) {
-	source, err := sourceModel.GetAllSources()
+	source, err := u.sourceModel.GetAllSources()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 		c.Abort()
@@ -66,8 +73,16 @@ func (u SourceController) RetriveAllWithTeamProject(c *gin.Context) {
 		return
 	}
 
-	hasAccess := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
-	source, err := sourceModel.GetAllSourcesWithTeamProject(teamProject, hasAccess)
+	// validate teamproject access permission:
+	validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
+	source, err := u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 		c.Abort()

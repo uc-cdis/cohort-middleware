@@ -139,7 +139,7 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 			s.source_id AS source_id,
 			s.source_name AS source_name,
 			sr.name AS team_project,
-			(s.source_key = ?) AS current_team_project_accessible
+			(sr.name = ?) AS current_team_project_accessible
 		`, teamName).
 		Joins(`
 			JOIN `+atlasDb.Schema+`.sec_permission sp

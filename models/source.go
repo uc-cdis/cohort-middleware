@@ -163,16 +163,25 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 	}
 
 	for _, source := range dataSource {
+		var meta struct {
+			Description string `gorm:"column:description"`
+		}
+
 		omopDataSource := h.GetDataSource(source.SourceId, Omop)
+
 		query := omopDataSource.Db.Table(omopDataSource.Schema + ".cdm_source").
 			Select("source_description as description").
 			Limit(1)
+
 		query, cancel := utils.AddTimeoutToQuery(query)
-		metaResult := query.Scan(source)
+		metaResult := query.Scan(&meta)
 		cancel()
+
 		if metaResult.Error != nil {
 			return nil, metaResult.Error
 		}
+
+		source.Description = meta.Description
 	}
 
 	return dataSource, nil

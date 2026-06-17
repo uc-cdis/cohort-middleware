@@ -72,9 +72,9 @@ func (u SourceController) RetriveAll(c *gin.Context) {
 			return
 		}
 
-		source, err := u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
+		source, err = u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
 	} else {
-		source, err := u.sourceModel.GetAllSources()
+		source, err = u.sourceModel.GetAllSources()
 	}
 
 	if err != nil {

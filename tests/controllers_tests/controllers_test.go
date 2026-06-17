@@ -548,7 +548,8 @@ func TestRetriveAllSourcesWithTeamProjectAuthorizationError(t *testing.T) {
 	requestContext.Request = &http.Request{URL: &url.URL{}}
 	teamProject := "/test/dummyname/dummy-team-project"
 	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
-	requestContext.Writer = new(tests.CustomResponseWriter(requestContext)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	sourceControllerWithFailingTeamProjectAuthz.RetriveAll(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")

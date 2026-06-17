@@ -57,6 +57,11 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 
 func (u SourceController) RetriveAll(c *gin.Context) {
 	teamProject := c.Query("team-project")
+	if teamProject == "" {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
+		c.Abort()
+		return
+	}
 	var (
 		source interface{}
 		err    error

@@ -11,9 +11,8 @@ type Source struct {
 	Description                  string `json:"description,omitempty" gorm:"column:description"`
 	SourceConnection             string `json:",omitempty"`
 	SourceDialect                string `json:",omitempty"`
-	Username                     string `json:",omitempty"`
-	Password                     string `json:",omitempty"`
-	TeamProject                  string `json:",omitempty" gorm:"column:team_project"`
+	Username                     string `json:"-"` // never included
+	Password                     string `json:"-"` // never included
 	CurrentTeamProjectAccessible string `json:",omitempty" gorm:"column:current_team_project_accessible"`
 }
 
@@ -143,7 +142,7 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 		`, teamName).
 		Joins(`
 			JOIN `+atlasDb.Schema+`.sec_permission sp
-			  ON s.source_key = SUBSTRING(sp.value FROM 'generate:(.*?):get')
+			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:*:generate:(.*?):get')
 		`).
 		Joins(`
 			JOIN `+atlasDb.Schema+`.sec_role_permission srp

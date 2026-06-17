@@ -90,7 +90,6 @@ func (h dummySourceModel) GetAllSourcesWithTeamProject(teamName string) ([]*mode
 		{
 			SourceId:                     1,
 			SourceName:                   "source for " + teamName,
-			TeamProject:                  teamName,
 			CurrentTeamProjectAccessible: "true",
 		},
 	}, nil

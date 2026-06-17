@@ -62,25 +62,17 @@ func (u SourceController) RetriveAll(c *gin.Context) {
 		c.Abort()
 		return
 	}
-	var (
-		source interface{}
-		err    error
-	)
 
-	if teamProject != "" {
-		// validate teamproject access permission:
-		validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
-		if !validAccessRequest {
-			log.Printf("Error: invalid request")
-			c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-			c.Abort()
-			return
-		}
-
-		source, err = u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
-	} else {
-		source, err = u.sourceModel.GetAllSources()
+	// validate teamproject access permission:
+	validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
 	}
+
+	source, err := u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
 
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})

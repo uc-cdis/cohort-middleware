@@ -137,7 +137,7 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 		Select(`
 			s.source_id AS source_id,
 			s.source_name AS source_name,
-			(sr.name = ?) AS current_team_project_accessible
+			bool_or(sr.name = ?) AS current_team_project_accessible
 		`, teamName).
 		Joins(`
 			JOIN `+atlasDb.Schema+`.sec_permission sp
@@ -152,7 +152,9 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 			  ON srp.role_id = sr.id
 		`).
 		Where("sr.name LIKE ?", "/gwas_projects/%").
-		Where("s.deleted_date is null")
+		Where("s.deleted_date is null").
+		Group("s.source_id, s.source_name")
+
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	metaResult := query.Scan(&dataSource)

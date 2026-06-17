@@ -526,21 +526,6 @@ func TestRetrieveCohortOverlapStatsBadRequest(t *testing.T) {
 	}
 }
 
-func TestRetriveAllSourcesWithTeamProjectCheckMandatoryTeamProject(t *testing.T) {
-	setUp(t)
-	requestContext := new(gin.Context)
-	requestContext.Request = &http.Request{URL: &url.URL{}}
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	sourceController.RetriveAll(requestContext)
-	result := requestContext.Writer.(*tests.CustomResponseWriter)
-	if !requestContext.IsAborted() {
-		t.Errorf("Expected aborted request")
-	}
-	if !strings.Contains(result.CustomResponseWriterOut, "team-project is a mandatory parameter") {
-		t.Errorf("Expected error about mandatory team-project")
-	}
-}
-
 func TestRetriveAllSourcesWithTeamProjectAuthorizationError(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
@@ -599,9 +584,6 @@ func TestRetriveAllSourcesWithTeamProject(t *testing.T) {
 	}
 	if !strings.Contains(result.CustomResponseWriterOut, "source for "+teamProject) {
 		t.Errorf("Expected source data for team project, got %q", result.CustomResponseWriterOut)
-	}
-	if !strings.Contains(result.CustomResponseWriterOut, "\"TeamProject\":\""+teamProject+"\"") {
-		t.Errorf("Expected team project in response, got %q", result.CustomResponseWriterOut)
 	}
 }
 

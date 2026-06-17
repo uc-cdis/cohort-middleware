@@ -137,7 +137,6 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 		Select(`
 			s.source_id AS source_id,
 			s.source_name AS source_name,
-			sr.name AS team_project,
 			(sr.name = ?) AS current_team_project_accessible
 		`, teamName).
 		Joins(`

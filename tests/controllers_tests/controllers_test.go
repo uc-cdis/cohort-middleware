@@ -532,7 +532,7 @@ func TestRetriveAllSourcesWithTeamProjectCheckMandatoryTeamProject(t *testing.T)
 	requestContext := new(gin.Context)
 	requestContext.Request = &http.Request{URL: &url.URL{}}
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	sourceController.RetriveAllWithTeamProject(requestContext)
+	sourceController.RetriveAll(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
@@ -548,8 +548,7 @@ func TestRetriveAllSourcesWithTeamProjectAuthorizationError(t *testing.T) {
 	requestContext.Request = &http.Request{URL: &url.URL{}}
 	teamProject := "/test/dummyname/dummy-team-project"
 	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
-	requestContext.Writer = new(tests.CustomResponseWriter)
-	sourceControllerWithFailingTeamProjectAuthz.RetriveAllWithTeamProject(requestContext)
+	requestContext.Writer = new(tests.CustomResponseWriter(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
@@ -570,7 +569,7 @@ func TestRetriveAllSourcesWithTeamProjectModelError(t *testing.T) {
 	teamProject := "/test/dummyname/dummy-team-project"
 	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	sourceController.RetriveAllWithTeamProject(requestContext)
+	sourceController.RetriveAll(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected aborted request")
@@ -590,7 +589,7 @@ func TestRetriveAllSourcesWithTeamProject(t *testing.T) {
 	teamProject := "/test/dummyname/dummy-team-project"
 	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
 	requestContext.Writer = new(tests.CustomResponseWriter)
-	sourceController.RetriveAllWithTeamProject(requestContext)
+	sourceController.RetriveAll(requestContext)
 	result := requestContext.Writer.(*tests.CustomResponseWriter)
 	if requestContext.IsAborted() {
 		t.Errorf("Did not expect aborted request")

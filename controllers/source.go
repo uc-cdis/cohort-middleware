@@ -56,37 +56,32 @@ func (u SourceController) RetriveByName(c *gin.Context) {
 }
 
 func (u SourceController) RetriveAll(c *gin.Context) {
-	source, err := u.sourceModel.GetAllSources()
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
-		c.Abort()
-		return
-	}
-	c.JSON(http.StatusOK, gin.H{"sources": source})
-}
-
-func (u SourceController) RetriveAllWithTeamProject(c *gin.Context) {
 	teamProject := c.Query("team-project")
-	if teamProject == "" {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
-		c.Abort()
-		return
+	var (
+		source interface{}
+		err    error
+	)
+
+	if teamProject != "" {
+		// validate teamproject access permission:
+		validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
+		if !validAccessRequest {
+			log.Printf("Error: invalid request")
+			c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+			c.Abort()
+			return
+		}
+
+		source, err := u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
+	} else {
+		source, err := u.sourceModel.GetAllSources()
 	}
 
-	// validate teamproject access permission:
-	validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-
-	source, err := u.sourceModel.GetAllSourcesWithTeamProject(teamProject)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error to retrieve source", "error": err.Error()})
 		c.Abort()
 		return
 	}
+
 	c.JSON(http.StatusOK, gin.H{"sources": source})
 }

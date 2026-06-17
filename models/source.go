@@ -141,7 +141,7 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 		`, teamName).
 		Joins(`
 			JOIN `+atlasDb.Schema+`.sec_permission sp
-			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:*:generate:(.*?):get')
+			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:\*:generate:(.*?):get')
 		`).
 		Joins(`
 			JOIN `+atlasDb.Schema+`.sec_role_permission srp

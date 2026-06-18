@@ -58,12 +58,42 @@ var cohortDataController = controllers.NewCohortDataController(*new(dummyCohortD
 var cohortDataControllerWithFailingTeamProjectAuthz = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyDataDictionaryModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
 var cohortDataControllerWithFailingDataDictionary = controllers.NewCohortDataController(*new(dummyCohortDataModel), *new(dummyFailingDataDictionaryModel), *new(dummyTeamProjectAuthz))
 
+var sourceController = controllers.NewSourceController(*new(dummySourceModel), *new(dummyTeamProjectAuthz))
+var sourceControllerWithFailingTeamProjectAuthz = controllers.NewSourceController(*new(dummySourceModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
+
 // instance of the controller that talks to the regular model implementation (that needs a real DB):
 var cohortDefinitionControllerNeedsDb = controllers.NewCohortDefinitionController(*new(models.CohortDefinition), *new(dummyTeamProjectAuthz))
 
 // instance of the controller that talks to a mock implementation of the model:
 var cohortDefinitionController = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
 var cohortDefinitionControllerWithFailingTeamProjectAuthz = controllers.NewCohortDefinitionController(*new(dummyCohortDefinitionDataModel), &dummyFailingTeamProjectAuthz{failForGlobalOnly: false})
+
+type dummySourceModel struct{}
+
+func (h dummySourceModel) GetSourceById(id int) (*models.Source, error) {
+	return &models.Source{SourceId: id, SourceName: "dummy source"}, nil
+}
+
+func (h dummySourceModel) GetSourceByName(name string) (*models.Source, error) {
+	return &models.Source{SourceId: 1, SourceName: name}, nil
+}
+
+func (h dummySourceModel) GetAllSources() ([]*models.Source, error) {
+	return []*models.Source{{SourceId: 1, SourceName: "dummy source"}}, nil
+}
+
+func (h dummySourceModel) GetAllSourcesWithTeamProject(teamName string) ([]*models.Source, error) {
+	if dummyModelReturnError {
+		return nil, fmt.Errorf("fake model error!")
+	}
+	return []*models.Source{
+		{
+			SourceId:                     1,
+			SourceName:                   "source for " + teamName,
+			CurrentTeamProjectAccessible: "true",
+		},
+	}, nil
+}
 
 type dummyCohortDataModel struct{}
 
@@ -493,6 +523,67 @@ func TestRetrieveCohortOverlapStatsBadRequest(t *testing.T) {
 	// Params above are incorrect, so request should abort:
 	if !requestContext.IsAborted() {
 		t.Errorf("Expected this request to abort")
+	}
+}
+
+func TestRetriveAllSourcesWithTeamProjectAuthorizationError(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	sourceControllerWithFailingTeamProjectAuthz.RetriveAll(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if result.Status() != http.StatusForbidden {
+		t.Errorf("Expected StatusForbidden, got %d", result.Status())
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "access denied") {
+		t.Errorf("Expected 'access denied' in response")
+	}
+}
+
+func TestRetriveAllSourcesWithTeamProjectModelError(t *testing.T) {
+	setUp(t)
+	dummyModelReturnError = true
+	requestContext := new(gin.Context)
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	sourceController.RetriveAll(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if !requestContext.IsAborted() {
+		t.Errorf("Expected aborted request")
+	}
+	if result.Status() != http.StatusInternalServerError {
+		t.Errorf("Expected StatusInternalServerError, got %d", result.Status())
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "Error to retrieve source") {
+		t.Errorf("Expected source retrieval error in response")
+	}
+}
+
+func TestRetriveAllSourcesWithTeamProject(t *testing.T) {
+	setUp(t)
+	requestContext := new(gin.Context)
+	requestContext.Request = &http.Request{URL: &url.URL{}}
+	teamProject := "/test/dummyname/dummy-team-project"
+	requestContext.Request.URL.RawQuery = "team-project=" + teamProject
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	sourceController.RetriveAll(requestContext)
+	result := requestContext.Writer.(*tests.CustomResponseWriter)
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect aborted request")
+	}
+	if result.Status() != http.StatusOK {
+		t.Errorf("Expected StatusOK, got %d", result.Status())
+	}
+	if !strings.Contains(result.CustomResponseWriterOut, "source for "+teamProject) {
+		t.Errorf("Expected source data for team project, got %q", result.CustomResponseWriterOut)
 	}
 }
 

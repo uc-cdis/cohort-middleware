@@ -151,7 +151,6 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 			JOIN ` + atlasDb.Schema + `.sec_role sr
 			  ON srp.role_id = sr.id
 		`).
-		Where("sr.name LIKE ?", "/gwas_projects/%").
 		Where("s.deleted_date is null").
 		Group("s.source_id, s.source_name")
 

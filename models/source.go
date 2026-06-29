@@ -20,7 +20,7 @@ type SourceI interface {
 	GetSourceById(id int) (*Source, error)
 	GetSourceByName(name string) (*Source, error)
 	GetAllSources() ([]*Source, error)
-	GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
+	GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error)
 }
 
 func (h Source) GetSourceById(id int) (*Source, error) {
@@ -140,15 +140,15 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 			bool_or(sr.name = ?) AS current_team_project_accessible
 		`, teamName).
 		Joins(`
-			JOIN `+atlasDb.Schema+`.sec_permission sp
+			JOIN ` + atlasDb.Schema + `.sec_permission sp
 			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:\*:generate:(.*?):get')
 		`).
 		Joins(`
-			JOIN `+atlasDb.Schema+`.sec_role_permission srp
+			JOIN ` + atlasDb.Schema + `.sec_role_permission srp
 			  ON sp.id = srp.permission_id
 		`).
 		Joins(`
-			JOIN `+atlasDb.Schema+`.sec_role sr
+			JOIN ` + atlasDb.Schema + `.sec_role sr
 			  ON srp.role_id = sr.id
 		`).
 		Where("sr.name LIKE ?", "/gwas_projects/%").
@@ -185,4 +185,48 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 	}
 
 	return dataSource, nil
+}
+
+// Returns list of roles names for the roles that contain a permission to generate
+// cohorts for a specific source.
+func (h Source) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error) {
+	atlasDb := db.GetAtlasDB()
+	db2 := atlasDb.Db
+
+	type roleRow struct {
+		Name string `gorm:"column:name"`
+	}
+
+	var rows []roleRow
+
+	query := db2.Table(atlasDb.Schema+".source AS s").
+		Select("sr.name AS name").
+		Joins(`
+			JOIN `+atlasDb.Schema+`.sec_permission sp
+			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:\*:generate:(.*?):get')
+		`).
+		Joins(`
+			JOIN `+atlasDb.Schema+`.sec_role_permission srp
+			  ON sp.id = srp.permission_id
+		`).
+		Joins(`
+			JOIN `+atlasDb.Schema+`.sec_role sr
+			  ON srp.role_id = sr.id
+		`).
+		Where("s.id = ?", sourceId).
+		Group("sr.name")
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	metaResult := query.Scan(&rows)
+	if metaResult.Error != nil {
+		return nil, metaResult.Error
+	}
+
+	roleNames := make([]string, len(rows))
+	for i, r := range rows {
+		roleNames[i] = r.Name
+	}
+
+	return roleNames, nil
 }

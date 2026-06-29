@@ -15,6 +15,7 @@ type TeamProjectAuthzI interface {
 	TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
 	TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool
 	HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool
+	TeamProjectHasAccessToSource(ctx *gin.Context, teamProject string, sourceId int)
 }
 
 type HttpClientI interface {
@@ -23,12 +24,14 @@ type HttpClientI interface {
 
 type TeamProjectAuthz struct {
 	cohortDefinitionModel models.CohortDefinitionI
+	sourceModel           models.SourceI
 	httpClient            HttpClientI
 }
 
-func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI, httpClient HttpClientI) TeamProjectAuthz {
+func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI, sourceModel models.SourceI, httpClient HttpClientI) TeamProjectAuthz {
 	return TeamProjectAuthz{
 		cohortDefinitionModel: cohortDefinitionModel,
+		sourceModel:           sourceModel,
 		httpClient:            httpClient,
 	}
 }
@@ -86,8 +89,8 @@ func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefiniti
 //		(1.1) if yes, check if ALL cohorts belong to the "global reader role".
 //	       If so, return true.
 //
-// (2) check if all remaining cohorts belong to the same "team project"
-// (3) check if the user has permission in the "team project"
+// (2) check if all remaining cohorts belong to a same "team project"
+// (3) check if the user has permission in one of these "team project"s
 // Returns true if all checks above pass, false otherwise.
 func (u TeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
 
@@ -115,6 +118,26 @@ func (u TeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context
 	teamProjects, _ := u.cohortDefinitionModel.GetTeamProjectsThatMatchAllCohortDefinitionIds(cohortDefinitionIdsToCheck)
 	if len(teamProjects) == 0 {
 		log.Printf("Invalid request error: could not find a 'team project' that is associated to ALL the cohorts present in this request")
+		return false
+	}
+	if !u.hasAccessToAtLeastOne(ctx, teamProjects) {
+		log.Printf("Invalid request error: user does not have access to any of the 'team projects' associated with the cohorts in this request")
+		return false
+	}
+	// passed both tests:
+	return true
+}
+
+// "team project" related checks:
+// (1) check if any role is associated to the given sourceId
+// (2) check if the user has permission in one of these roles (typically "team project" roles)
+// Returns true if all checks above pass, false otherwise.
+func (u TeamProjectAuthz) TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool {
+
+	// proceed with the checks on the remaining list of cohortDefinitionIds:
+	teamProjects, _ := u.sourceModel.GetAllRoleNamesWithSourceGeneratePermission(sourceId)
+	if len(teamProjects) == 0 {
+		log.Printf("Invalid request error: could not find a 'team project' that is associated to the given sourceId")
 		return false
 	}
 	if !u.hasAccessToAtLeastOne(ctx, teamProjects) {

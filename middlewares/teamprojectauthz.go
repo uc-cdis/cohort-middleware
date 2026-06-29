@@ -15,7 +15,7 @@ type TeamProjectAuthzI interface {
 	TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
 	TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool
 	HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool
-	TeamProjectHasAccessToSource(ctx *gin.Context, teamProject string, sourceId int)
+	TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool
 }
 
 type HttpClientI interface {

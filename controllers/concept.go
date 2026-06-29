@@ -99,7 +99,14 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -132,7 +139,14 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariabl
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	validAccessRequest = u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -198,7 +212,14 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		return
 	}
 	_, cohortPairs := utils.GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	validAccessRequest = u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})

@@ -126,7 +126,14 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservat
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -171,7 +178,14 @@ func (u CohortDefinitionController) retriveStatsBySourceIdAndCohortIdAndObservat
 	cohort2Id, errors[2] = utils.ParseNumericArg(c, "cohort2")
 	observationWindow1stCohort, errors[3] = utils.ParseNumericArg(c, "observationwindow1stcohort")
 
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -209,7 +223,14 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservat
 	cohort2Id, errors[2] = utils.ParseNumericArg(c, "cohort2")
 	observationWindow1stCohort, errors[3] = utils.ParseNumericArg(c, "observationwindow1stcohort")
 	outcomeWindow2ndCohort, errors[4] = utils.ParseNumericArg(c, "outcomeWindow2ndCohort")
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})

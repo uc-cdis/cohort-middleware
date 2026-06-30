@@ -59,6 +59,8 @@ func NewRouter() *gin.Engine {
 		// :casecohortid/:controlcohortid are just labels here and have no special meaning. Could also just be :cohortAId/:cohortBId here:
 		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStats)
 		authorized.GET("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStatsSimple)
+		// person pseudonym data endpoints:
+		authorized.GET("/cohort-person-pseudonyms/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrievePersonPseudonymsBySourceIdAndCohortId)
 		// full data endpoints:
 		authorized.POST("/cohort-data/by-source-id/:sourceid/by-cohort-definition-id/:cohortid", cohortData.RetrieveDataBySourceIdAndCohortIdAndVariables)
 

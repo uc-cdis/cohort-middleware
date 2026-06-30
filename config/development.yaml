@@ -1,5 +1,8 @@
 arborist_endpoint: 'NONE'
 global_reader_role: 'dummyGlobalReaderRole'
+pseudonyms:
+  pseudonym_field: 'person.person_source_value'
+  pseudonym_external_name: 'my_pseudonym_id'
 # see tests/setup_cdm/README.md
 atlas_db:
   host: localhost

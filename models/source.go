@@ -20,6 +20,7 @@ type SourceI interface {
 	GetSourceById(id int) (*Source, error)
 	GetSourceByName(name string) (*Source, error)
 	GetAllSources() ([]*Source, error)
+	GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 	GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error)
 }
 

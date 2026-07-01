@@ -24,13 +24,13 @@ func NewRouter() *gin.Engine {
 	authorized.Use(middlewares.AuthMiddleware())
 	{
 		source := controllers.NewSourceController(*new(models.Source),
-			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
+			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), *new(models.Source), &http.Client{}))
 		authorized.GET("/source/by-id/:id", source.RetriveById)
 		authorized.GET("/source/by-name/:name", source.RetriveByName)
 		authorized.GET("/sources", source.RetriveAll)
 
 		cohortdefinitions := controllers.NewCohortDefinitionController(*new(models.CohortDefinition),
-			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
+			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), *new(models.Source), &http.Client{}))
 		authorized.GET("/cohortdefinition/by-id/:id", cohortdefinitions.RetriveById)
 
 		// cohort definition statistics:
@@ -45,7 +45,7 @@ func NewRouter() *gin.Engine {
 
 		// concept endpoints:
 		concepts := controllers.NewConceptController(*new(models.Concept), *new(models.CohortDefinition),
-			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
+			middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), *new(models.Source), &http.Client{}))
 		authorized.GET("/concept/by-source-id/:sourceid", concepts.RetriveAllBySourceId)
 		authorized.POST("/concept/by-source-id/:sourceid", concepts.RetrieveInfoBySourceIdAndConceptIds)
 		authorized.POST("/concept/by-source-id/:sourceid/by-type", concepts.RetrieveInfoBySourceIdAndConceptTypes)
@@ -55,7 +55,7 @@ func NewRouter() *gin.Engine {
 		authorized.POST("/concept-stats/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/breakdown-by-concept-id/:breakdownconceptid/csv", concepts.RetrieveAttritionTable)
 
 		// cohort stats and checks:
-		cohortData := controllers.NewCohortDataController(*new(models.CohortData), *new(models.DataDictionary), middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), &http.Client{}))
+		cohortData := controllers.NewCohortDataController(*new(models.CohortData), *new(models.DataDictionary), middlewares.NewTeamProjectAuthz(*new(models.CohortDefinition), *new(models.Source), &http.Client{}))
 		// :casecohortid/:controlcohortid are just labels here and have no special meaning. Could also just be :cohortAId/:cohortBId here:
 		authorized.POST("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStats)
 		authorized.GET("/cohort-stats/check-overlap/by-source-id/:sourceid/by-cohort-definition-ids/:casecohortid/:controlcohortid", cohortData.RetrieveCohortOverlapStatsSimple)

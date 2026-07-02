@@ -252,6 +252,15 @@ func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, e
 	return sourceId, cohortId, conceptIds, nil
 }
 
+func ParseSource(c *gin.Context) (int, error) {
+	// parse and validate all parameters:
+	sourceId, err := ParseNumericArg(c, "sourceid")
+	if err != nil {
+		return -1, err
+	}
+	return sourceId, nil
+}
+
 func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 	// parse and validate all parameters:
 	sourceId, err := ParseNumericArg(c, "sourceid")

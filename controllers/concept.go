@@ -30,23 +30,30 @@ func NewConceptController(conceptModel models.ConceptI, cohortDefinitionModel mo
 }
 
 func (u ConceptController) RetriveAllBySourceId(c *gin.Context) {
-	sourceId := c.Param("sourceid")
 
-	if sourceId != "" {
-		sourceId, _ := strconv.Atoi(sourceId)
-		concepts, err := u.conceptModel.RetriveAllBySourceId(sourceId)
-		if err != nil {
-			log.Printf("Error: %s", err.Error())
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
-			c.Abort()
-			return
-		}
-		c.JSON(http.StatusOK, gin.H{"concepts": concepts})
+	sourceId, err := utils.ParseSource(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
 		return
 	}
-	log.Printf("Error: bad request")
-	c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-	c.Abort()
+
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	concepts, err := u.conceptModel.RetriveAllBySourceId(sourceId)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving concept details", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"concepts": concepts})
 }
 
 func (u ConceptController) RetrieveInfoBySourceIdAndConceptIds(c *gin.Context) {
@@ -99,14 +106,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortId(c *gin.Co
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohort(c, sourceId, cohortId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -139,14 +139,7 @@ func (u ConceptController) RetrieveBreakdownStatsBySourceIdAndCohortIdAndVariabl
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -212,14 +205,7 @@ func (u ConceptController) RetrieveAttritionTable(c *gin.Context) {
 		return
 	}
 	_, cohortPairs := utils.GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs)
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})

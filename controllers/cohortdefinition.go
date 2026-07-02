@@ -31,7 +31,7 @@ func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 	if cohortDefinitionId != "" {
 		cohortDefinitionId, _ := strconv.Atoi(cohortDefinitionId)
 		// validate teamproject access permission for cohort:
-		validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortDefinitionId)
+		validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortDefinition(c, cohortDefinitionId)
 		if !validAccessRequest {
 			log.Printf("Error: invalid request")
 			c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -54,15 +54,20 @@ func (u CohortDefinitionController) RetriveById(c *gin.Context) {
 func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.Context) {
 	// This method returns ALL cohortdefinition entries for a teamProject with cohort size statistics (for a given source).
 	// If the user has access to the default global reader role, the cohorts that are part of that role are also returned.
-	sourceId, err1 := utils.ParseNumericArg(c, "sourceid")
+	sourceId, err1 := utils.ParseSource(c)
+	if err1 != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
+		c.Abort()
+		return
+	}
 	teamProject := c.Query("team-project")
 	if teamProject == "" {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error while parsing request", "error": "team-project is a mandatory parameter but was found to be empty!"})
 		c.Abort()
 		return
 	}
-	// validate teamproject access permission:
-	validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject)
+	// validate teamproject and sourceId access permission:
+	validAccessRequest := u.teamProjectAuthz.HasAccessToTeamProject(c, teamProject) && u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -70,36 +75,30 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndTeamProject(c *gin.
 		return
 	}
 
-	if err1 == nil {
-		cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinitions for 'team project' role", "error": err.Error()})
-			c.Abort()
-			return
-		}
-		// all users should be allowed to see the cohorts shared with the default global role,
-		// so also include cohorts from there:
-		conf := config.GetConfig()
-		globalReaderRole := conf.GetString("global_reader_role")
-		log.Printf("INFO: found %s as global_reader_role", globalReaderRole)
-		globalCohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, globalReaderRole)
-		if err != nil {
-			c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition for 'global reader' role", "error": err.Error()})
-			c.Abort()
-			return
-		}
-		// remove overlaps (if any):
-		combinedTeamAndGlobalCohorts := MakeUniqueListOfCohortStats(append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...))
-		// sort by CohortSize desc:
-		sort.Slice(combinedTeamAndGlobalCohorts, func(i, j int) bool {
-			return combinedTeamAndGlobalCohorts[i].CohortSize > combinedTeamAndGlobalCohorts[j].CohortSize
-		})
-		c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": combinedTeamAndGlobalCohorts})
+	cohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, teamProject)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinitions for 'team project' role", "error": err.Error()})
+		c.Abort()
 		return
-
 	}
-	c.JSON(http.StatusBadRequest, gin.H{"message": err1.Error()})
-	c.Abort()
+	// all users should be allowed to see the cohorts shared with the default global role,
+	// so also include cohorts from there:
+	conf := config.GetConfig()
+	globalReaderRole := conf.GetString("global_reader_role")
+	log.Printf("INFO: found %s as global_reader_role", globalReaderRole)
+	globalCohortDefinitionsAndStats, err := u.cohortDefinitionModel.GetAllCohortDefinitionsAndStatsOrderBySizeDesc(sourceId, globalReaderRole)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving cohortDefinition for 'global reader' role", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	// remove overlaps (if any):
+	combinedTeamAndGlobalCohorts := MakeUniqueListOfCohortStats(append(cohortDefinitionsAndStats, globalCohortDefinitionsAndStats...))
+	// sort by CohortSize desc:
+	sort.Slice(combinedTeamAndGlobalCohorts, func(i, j int) bool {
+		return combinedTeamAndGlobalCohorts[i].CohortSize > combinedTeamAndGlobalCohorts[j].CohortSize
+	})
+	c.JSON(http.StatusOK, gin.H{"cohort_definitions_and_stats": combinedTeamAndGlobalCohorts})
 }
 
 func MakeUniqueListOfCohortStats(input []*models.CohortDefinitionStats) []*models.CohortDefinitionStats {
@@ -126,14 +125,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservat
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohort(c, sourceId, cohortId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -178,14 +170,7 @@ func (u CohortDefinitionController) retriveStatsBySourceIdAndCohortIdAndObservat
 	cohort2Id, errors[2] = utils.ParseNumericArg(c, "cohort2")
 	observationWindow1stCohort, errors[3] = utils.ParseNumericArg(c, "observationwindow1stcohort")
 
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohortIdsList(c, sourceId, []int{cohort1Id, cohort2Id})
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -223,14 +208,7 @@ func (u CohortDefinitionController) RetriveStatsBySourceIdAndCohortIdAndObservat
 	cohort2Id, errors[2] = utils.ParseNumericArg(c, "cohort2")
 	observationWindow1stCohort, errors[3] = utils.ParseNumericArg(c, "observationwindow1stcohort")
 	outcomeWindow2ndCohort, errors[4] = utils.ParseNumericArg(c, "outcomeWindow2ndCohort")
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{cohort1Id, cohort2Id})
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohortIdsList(c, sourceId, []int{cohort1Id, cohort2Id})
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})

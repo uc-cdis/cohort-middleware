@@ -11,9 +11,10 @@ import (
 )
 
 type TeamProjectAuthzI interface {
-	TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool
-	TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
-	TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool
+	TeamProjectValidationForSourceIdAndCohort(ctx *gin.Context, sourceId int, cohortDefinitionId int) bool
+	TeamProjectValidationForCohortDefinition(ctx *gin.Context, cohortDefinitionId int) bool
+	TeamProjectValidation(ctx *gin.Context, sourceId int, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool
+	TeamProjectValidationForSourceIdAndCohortIdsList(ctx *gin.Context, sourceId int, uniqueCohortDefinitionIdsList []int) bool
 	HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool
 	TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool
 }
@@ -72,15 +73,15 @@ func (u TeamProjectAuthz) hasAccessToAtLeastOne(ctx *gin.Context, teamProjects [
 	return false
 }
 
-func (u TeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+func (u TeamProjectAuthz) TeamProjectValidationForSourceIdAndCohort(ctx *gin.Context, sourceId int, cohortDefinitionId int) bool {
 	filterCohortPairs := []utils.CustomDichotomousVariableDef{}
-	return u.TeamProjectValidation(ctx, []int{cohortDefinitionId}, filterCohortPairs)
+	return u.TeamProjectValidation(ctx, sourceId, []int{cohortDefinitionId}, filterCohortPairs)
 }
 
-func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, sourceId int, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
 
 	uniqueCohortDefinitionIdsList := utils.GetUniqueCohortDefinitionIdsList(cohortDefinitionIds, filterCohortPairs)
-	return u.TeamProjectValidationForCohortIdsList(ctx, uniqueCohortDefinitionIdsList)
+	return u.TeamProjectValidationForSourceIdAndCohortIdsList(ctx, sourceId, uniqueCohortDefinitionIdsList)
 }
 
 // "team project" related checks:
@@ -92,7 +93,20 @@ func (u TeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefiniti
 // (2) check if all remaining cohorts belong to a same "team project"
 // (3) check if the user has permission in one of these "team project"s
 // Returns true if all checks above pass, false otherwise.
-func (u TeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+func (u TeamProjectAuthz) TeamProjectValidationForSourceIdAndCohortIdsList(ctx *gin.Context, sourceId int, uniqueCohortDefinitionIdsList []int) bool {
+
+	// check access to source and cohortdefinitionidslist:
+	return u.TeamProjectValidationForSourceId(ctx, sourceId) &&
+		u.teamProjectValidationForCohortIdsList(ctx, uniqueCohortDefinitionIdsList)
+}
+
+// CAUTION: use this specific simple check (without sourceId) ONLY IF it is related to an access / authorization check regarding
+// cohort definition metadata, and NOT the actual cohort data related to this cohort definition.
+func (u TeamProjectAuthz) TeamProjectValidationForCohortDefinition(ctx *gin.Context, cohortDefinitionId int) bool {
+	return u.teamProjectValidationForCohortIdsList(ctx, []int{cohortDefinitionId})
+}
+
+func (u TeamProjectAuthz) teamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
 
 	// validate input:
 	if len(uniqueCohortDefinitionIdsList) == 0 {

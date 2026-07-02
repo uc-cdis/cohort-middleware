@@ -95,6 +95,10 @@ func (h dummySourceModel) GetAllSourcesWithTeamProject(teamName string) ([]*mode
 	}, nil
 }
 
+func (h dummySourceModel) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error) {
+	return []string{"dummy role"}, nil
+}
+
 type dummyCohortDataModel struct{}
 
 func (h dummyCohortDataModel) RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId int, cohortDefinitionId int, conceptIds []int64) ([]*models.PersonConceptAndValue, error) {
@@ -213,15 +217,19 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWin
 
 type dummyTeamProjectAuthz struct{}
 
-func (h dummyTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohort(ctx *gin.Context, sourceId int, cohortDefinitionId int) bool {
 	return true
 }
 
-func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortDefinition(ctx *gin.Context, cohortDefinitionId int) bool {
 	return true
 }
 
-func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, sourceId int, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return true
+}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohortIdsList(ctx *gin.Context, sourceId int, uniqueCohortDefinitionIdsList []int) bool {
 	return true
 }
 
@@ -229,19 +237,27 @@ func (h dummyTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProj
 	return true
 }
 
+func (h dummyTeamProjectAuthz) TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool {
+	return true
+}
+
 type dummyFailingTeamProjectAuthz struct {
 	failForGlobalOnly bool
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohort(ctx *gin.Context, sourceId int, cohortDefinitionId int) bool {
 	return false
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortDefinition(ctx *gin.Context, cohortDefinitionId int) bool {
 	return false
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, sourceId int, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohortIdsList(ctx *gin.Context, sourceId int, uniqueCohortDefinitionIdsList []int) bool {
 	return false
 }
 
@@ -257,6 +273,10 @@ func (h dummyFailingTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, t
 	} else {
 		return false
 	}
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool {
+	return false
 }
 
 var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))

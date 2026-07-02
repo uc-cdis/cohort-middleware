@@ -14,8 +14,10 @@ func AuthMiddleware() gin.HandlerFunc {
 
 	c := config.GetConfig()
 
+	arboristEndpoint := c.GetString("arborist_endpoint")
+	log.Printf("ARBORIST ENDPOINT = %s", arboristEndpoint)
 	// used in local DEV mode:
-	if c.GetString("arborist_endpoint") == "NONE" {
+	if arboristEndpoint == "NONE" {
 		return func(ctx *gin.Context) {
 			ctx.Next()
 		}

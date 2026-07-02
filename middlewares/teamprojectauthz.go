@@ -38,6 +38,12 @@ func NewTeamProjectAuthz(cohortDefinitionModel models.CohortDefinitionI, sourceM
 }
 
 func (u TeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProject string) bool {
+	c := config.GetConfig()
+	arboristEndpoint := c.GetString("arborist_endpoint")
+	// used in local DEV mode:
+	if arboristEndpoint == "NONE" {
+		return true
+	}
 	teamProjectAsResourcePath := teamProject
 	teamProjectAccessService := "atlas-argo-wrapper-and-cohort-middleware"
 
@@ -147,7 +153,12 @@ func (u TeamProjectAuthz) teamProjectValidationForCohortIdsList(ctx *gin.Context
 // (2) check if the user has permission in one of these roles (typically "team project" roles)
 // Returns true if all checks above pass, false otherwise.
 func (u TeamProjectAuthz) TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool {
-
+	c := config.GetConfig()
+	arboristEndpoint := c.GetString("arborist_endpoint")
+	// used in local DEV mode:
+	if arboristEndpoint == "NONE" {
+		return true
+	}
 	// proceed with the checks on the remaining list of cohortDefinitionIds:
 	teamProjects, _ := u.sourceModel.GetAllRoleNamesWithSourceGeneratePermission(sourceId)
 	if len(teamProjects) == 0 {

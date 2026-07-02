@@ -117,9 +117,9 @@ cd tests/setup_local_db/
 **Test this setup by trying the following curl commands**:
 JSON summary data endpoints:
 ```bash
-curl http://localhost:8080/sources | python -m json.tool
-curl "http://localhost:8080/cohortdefinition-stats/by-source-id/1/by-team-project?team-project=test" | python -m json.tool
-curl http://localhost:8080/concept/by-source-id/1 | python -m json.tool
+curl "http://localhost:8080/sources?team-project=test" | python3 -m json.tool
+curl "http://localhost:8080/cohortdefinition-stats/by-source-id/1/by-team-project?team-project=test" | python3 -m json.tool
+curl http://localhost:8080/concept/by-source-id/1 | python3 -m json.tool
 curl -d '{"ConceptIds":[2000000324,2000006885]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept/by-source-id/1 | python -m json.tool
 curl -d '{"ConceptTypes":["Measurement","Person"]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept/by-source-id/1/by-type | python -m json.tool
 

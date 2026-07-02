@@ -128,14 +128,7 @@ func (u CohortDataController) RetrievePersonPseudonymsBySourceIdAndCohortId(c *g
 		c.Abort()
 		return
 	}
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
-	if !validAccessRequest {
-		log.Printf("Error: invalid request")
-		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
-		c.Abort()
-		return
-	}
-	validAccessRequest = u.teamProjectAuthz.TeamProjectValidationForCohort(c, cohortId)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohort(c, sourceId, cohortId)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})

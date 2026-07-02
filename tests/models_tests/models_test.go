@@ -1304,6 +1304,19 @@ func TestRetrieveDataByOriginalCohortAndNewCohort(t *testing.T) {
 	}
 }
 
+func TestRetrievePseudonymsBySourceIdAndCohortId(t *testing.T) {
+	setUp(t)
+	cohortId := secondLargestCohort.Id
+	conf := config.GetConfig()
+	pseudonymField := conf.GetString("pseudonyms.pseudonym_field")
+	pseudonymExternalName := conf.GetString("pseudonyms.pseudonym_external_name")
+
+	pseudonyms, _ := cohortDataModel.RetrievePseudonymsBySourceIdAndCohortId(testSourceId, cohortId, pseudonymField, pseudonymExternalName)
+	if len(pseudonyms) != secondLargestCohort.CohortSize {
+		t.Errorf("length of return data does not match number of people in cohort")
+	}
+}
+
 func TestAddTimeoutToQuery(t *testing.T) {
 	setUp(t)
 

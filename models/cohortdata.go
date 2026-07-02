@@ -163,7 +163,7 @@ func (h CohortData) RetrievePseudonymsBySourceIdAndCohortId(
 	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
 	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
 
-	var rows []map[string]any
+	var rows []string
 
 	query := omopDataSource.Db.Table(omopDataSource.Schema+".person as person").
 		Select(pseudonymFieldName).
@@ -178,12 +178,8 @@ func (h CohortData) RetrievePseudonymsBySourceIdAndCohortId(
 
 	pseudonyms := make([]map[string]string, 0, len(rows))
 	for _, row := range rows {
-		val, ok := row[pseudonymFieldName]
-		if !ok || val == nil {
-			continue
-		}
 		pseudonyms = append(pseudonyms, map[string]string{
-			pseudonymExternalName: fmt.Sprintf("%v", val),
+			pseudonymExternalName: fmt.Sprintf("%v", row),
 		})
 	}
 	return pseudonyms, nil

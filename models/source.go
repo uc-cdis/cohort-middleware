@@ -213,7 +213,7 @@ func (h Source) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]str
 			JOIN `+atlasDb.Schema+`.sec_role sr
 			  ON srp.role_id = sr.id
 		`).
-		Where("s.id = ?", sourceId).
+		Where("s.source_id = ?", sourceId).
 		Group("sr.name")
 
 	query, cancel := utils.AddTimeoutToQuery(query)

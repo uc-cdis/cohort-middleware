@@ -145,6 +145,10 @@ func (h dummyCohortDataModel) RetrieveDataByOriginalCohortAndNewCohort(sourceId 
 	}, nil
 }
 
+func (h dummyCohortDataModel) RetrievePseudonymsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, pseudonymFieldName string, pseudonymExternalName string) ([]map[string]string, error) {
+	return nil, nil
+}
+
 type dummyCohortDefinitionDataModel struct{}
 
 var dummyModelReturnError bool = false

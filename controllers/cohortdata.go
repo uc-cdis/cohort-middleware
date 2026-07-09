@@ -9,6 +9,7 @@ import (
 	"strconv"
 
 	"github.com/gin-gonic/gin"
+	"github.com/uc-cdis/cohort-middleware/config"
 	"github.com/uc-cdis/cohort-middleware/middlewares"
 	"github.com/uc-cdis/cohort-middleware/models"
 	"github.com/uc-cdis/cohort-middleware/utils"
@@ -117,6 +118,52 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 	statsData := utils.GenerateStatsData(cohortId, conceptId, conceptValues)
 
 	c.JSON(http.StatusOK, gin.H{"statsData": statsData})
+}
+
+func (u CohortDataController) RetrievePersonPseudonymsBySourceIdAndCohortId(c *gin.Context) {
+	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohort(c, sourceId, cohortId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	// get config options
+	conf := config.GetConfig()
+
+	// Validate presence of pseudonyms section:
+	if !conf.IsSet("pseudonyms") {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request - this endpoint needs pseudonyms config to be set"})
+		c.Abort()
+		return
+	}
+	// Validate presence of pseudonym_* config:
+	pseudonymField := conf.GetString("pseudonyms.pseudonym_field")
+	pseudonymExternalName := conf.GetString("pseudonyms.pseudonym_external_name")
+
+	if pseudonymField == "" || pseudonymExternalName == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request - pseudonyms.pseudonym_field and pseudonyms.pseudonym_external_name config options must be set"})
+		c.Abort()
+		return
+	}
+	log.Printf("INFO: found %s as pseudonym_field", pseudonymField)
+	log.Printf("INFO: found %s as pseudonym_external_name", pseudonymExternalName)
+
+	// call model method:
+	pseudonyms, err := u.cohortDataModel.RetrievePseudonymsBySourceIdAndCohortId(sourceId, cohortId, pseudonymField, pseudonymExternalName)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error retrieving pseudonyms", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"pseudonyms": pseudonyms})
 }
 
 func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *gin.Context) {

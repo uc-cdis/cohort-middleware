@@ -14,6 +14,7 @@ type CohortDataI interface {
 	RetrieveHistogramDataBySourceIdAndCohortIdAndConceptIdsAndCohortPairs(sourceId int, cohortDefinitionId int, histogramConceptId int64, filterConceptIdsAndValues []utils.CustomConceptVariableDef, filterCohortPairs []utils.CustomDichotomousVariableDef) ([]*PersonConceptAndValue, error)
 	RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourceId int, conceptId int64) ([]*NominalGroupData, error)
 	RetrieveHistogramDataBySourceIdAndConceptId(sourceId int, histogramConceptId int64) ([]*PersonConceptAndValue, error)
+	RetrievePseudonymsBySourceIdAndCohortId(sourceId int, cohortDefinitionId int, pseudonymFieldName string, pseudonymExternalName string) ([]map[string]string, error)
 }
 
 type CohortData struct{}
@@ -152,6 +153,36 @@ func (h CohortData) RetrieveBarGraphDataBySourceIdAndCohortIdAndConceptIds(sourc
 	defer cancel()
 	meta_result := query.Scan(&cohortData)
 	return cohortData, meta_result.Error
+}
+
+// Returns the pseudonym person id value (from pseudonymFieldName) for all persons in a give source / cohort combination.
+// The list is returned in a struct containing a field named according to pseudonymExternalName.
+func (h CohortData) RetrievePseudonymsBySourceIdAndCohortId(
+	sourceId int, cohortDefinitionId int, pseudonymFieldName string, pseudonymExternalName string) ([]map[string]string, error) {
+	var dataSourceModel = new(Source)
+	omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+	resultsDataSource := dataSourceModel.GetDataSource(sourceId, Results)
+
+	var rows []string
+
+	query := omopDataSource.Db.Table(omopDataSource.Schema+".person as person").
+		Select(pseudonymFieldName).
+		Joins("INNER JOIN "+resultsDataSource.Schema+".cohort ON cohort.subject_id = person.person_id").
+		Where("cohort.cohort_definition_id = ?", cohortDefinitionId)
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	if err := query.Scan(&rows).Error; err != nil {
+		return nil, err
+	}
+
+	pseudonyms := make([]map[string]string, 0, len(rows))
+	for _, row := range rows {
+		pseudonyms = append(pseudonyms, map[string]string{
+			pseudonymExternalName: fmt.Sprintf("%v", row),
+		})
+	}
+	return pseudonyms, nil
 }
 
 // Assesses the overlap between case and control cohorts. It does this after filtering the cohorts and keeping only

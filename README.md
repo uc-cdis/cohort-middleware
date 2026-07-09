@@ -128,6 +128,11 @@ curl http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/
 curl -d '{"variables": [{"variable_type": "concept", "concept_id": 2000006885}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/concept-stats/by-source-id/1/by-cohort-definition-id/3/breakdown-by-concept-id/2000007027 | python3 -m json.tool
 ```
 
+Pseudonym endpoints:
+```bash
+curl "http://localhost:8080/cohort-person-pseudonyms/by-source-id/1/by-cohort-definition-id/3" | python3 -m json.tool
+```
+
 CSV data endpoints:
 ```bash
 curl -d '{"variables":[{"variable_type": "concept", "concept_id": 2000000324},{"variable_type": "concept", "concept_id": 2000006885},{"variable_type": "concept", "concept_id": 2000007027},{"variable_type": "custom_dichotomous", "cohort_ids": [1, 2]}]}' -H "Content-Type: application/json" -X POST http://localhost:8080/cohort-data/by-source-id/1/by-cohort-definition-id/3

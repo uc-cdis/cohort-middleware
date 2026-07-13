@@ -87,7 +87,12 @@ func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Contex
 		return
 	}
 
-	filterConceptIdsAndValues, cohortPairs, _ := utils.ParseConceptDefsAndDichotomousDefs(c)
+	filterConceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
+		c.Abort()
+		return
+	}
 
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
@@ -126,6 +131,13 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 		return
 	}
 	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -291,6 +303,11 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	conceptIdsAndValues, cohortPairs, errors[3] = utils.ParseConceptDefsAndDichotomousDefs(c)
 	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{caseCohortId, controlCohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -299,11 +316,6 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 		return
 	}
 
-	if utils.ContainsNonNil(errors) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-		c.Abort()
-		return
-	}
 	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId,
 		controlCohortId, conceptIds, cohortPairs)
 	if err != nil {
@@ -323,6 +335,11 @@ func (u CohortDataController) RetrieveCohortOverlapStatsSimple(c *gin.Context) {
 	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
 
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohortIdsList(c, sourceId, []int{caseCohortId, controlCohortId})
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
@@ -331,11 +348,6 @@ func (u CohortDataController) RetrieveCohortOverlapStatsSimple(c *gin.Context) {
 		return
 	}
 
-	if utils.ContainsNonNil(errors) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-		c.Abort()
-		return
-	}
 	// call RetrieveCohortOverlapStats with last two filters as empty lists:
 	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId,
 		controlCohortId, []int64{}, []utils.CustomDichotomousVariableDef{})

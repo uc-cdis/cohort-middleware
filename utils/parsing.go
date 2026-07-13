@@ -274,6 +274,20 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 	return sourceId, cohortId, nil
 }
 
+func ParseSourceAndCohortIdAndConceptId(c *gin.Context) (int, int, int64, error) {
+	// parse and validate all parameters:
+	sourceId, cohortId, err := ParseSourceAndCohortId(c)
+	if err != nil {
+		return -1, -1, -1, err
+	}
+	conceptIdStr := c.Param("conceptid")
+	conceptId, err := strconv.ParseInt(conceptIdStr, 10, 64)
+	if conceptIdStr == "" || err != nil {
+		return -1, -1, -1, err
+	}
+	return sourceId, cohortId, conceptId, nil
+}
+
 // separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list
 func GetConceptIdsAndValuesAndCohortPairsAsSeparateLists(conceptIdsAndCohortPairs []interface{}) ([]CustomConceptVariableDef, []CustomDichotomousVariableDef) {
 	conceptIdsAndValues := []CustomConceptVariableDef{}

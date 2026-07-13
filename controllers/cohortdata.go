@@ -77,22 +77,17 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 }
 
 func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Context) {
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
-	conceptIdStr := c.Param("conceptid")
-	if sourceIdStr == "" || cohortIdStr == "" || conceptIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+
+	// parse and validate all parameters:
+	sourceId, cohortId, conceptId, err := utils.ParseSourceAndCohortIdAndConceptId(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
 
 	filterConceptIdsAndValues, cohortPairs, _ := utils.ParseConceptDefsAndDichotomousDefs(c)
-
-	sourceId, _ := strconv.Atoi(sourceIdStr)
-	cohortId, _ := strconv.Atoi(cohortIdStr)
-	conceptId, _ := strconv.ParseInt(conceptIdStr, 10, 64)
 
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
@@ -123,32 +118,25 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
 
 	// parse and validate all parameters:
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
-	if sourceIdStr == "" || cohortIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-		c.Abort()
-		return
-	}
-
-	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
-	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
-
+	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
 	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
-
-	sourceId, _ := strconv.Atoi(sourceIdStr)
-	cohortId, _ := strconv.Atoi(cohortIdStr)
-
+	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
 	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
+
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
 		return
 	}

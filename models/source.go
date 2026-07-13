@@ -24,6 +24,7 @@ type SourceI interface {
 	GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error)
 }
 
+// Returns source name details for given id
 func (h Source) GetSourceById(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
@@ -37,7 +38,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 	return dataSource, nil
 }
 
-func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
+func (h Source) getSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
 	query := db2.Model(&Source{}).
@@ -93,7 +94,7 @@ const (
 // Get the data source details for given source id and source type.
 // The source type can be one of the type SourceType.
 func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndSchema {
-	dataSource, _ := h.GetSourceByIdWithConnection(sourceId)
+	dataSource, _ := h.getSourceByIdWithConnection(sourceId)
 
 	dbSchema, _ := h.GetSourceSchemaNameBySourceIdAndSourceType(sourceId, sourceType)
 	dbSchemaName := dbSchema.SchemaName
@@ -105,6 +106,7 @@ func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndS
 	return dbAndSchema
 }
 
+// Returns source id for given source name
 func (h Source) GetSourceByName(name string) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
@@ -118,6 +120,7 @@ func (h Source) GetSourceByName(name string) (*Source, error) {
 	return dataSource, nil
 }
 
+// Returns list of all active sources
 func (h Source) GetAllSources() ([]*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource []*Source
@@ -130,6 +133,8 @@ func (h Source) GetAllSources() ([]*Source, error) {
 	return dataSource, nil
 }
 
+// Returns a list of all sources, enriched with a boolean field (`current_team_project_accessible`)
+// telling whether the source is accessible to the given team or not.
 func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error) {
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db

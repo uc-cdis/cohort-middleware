@@ -39,6 +39,8 @@ type CohortDefinitionStats struct {
 	CohortSize int    `json:"size"`
 }
 
+// Returns the cohort definition (i.e. metadata/definition only) for given cohort definition id.
+// This will NOT return any cohort data.
 func (h CohortDefinition) GetCohortDefinitionById(id int) (*CohortDefinition, error) {
 	atlasDb := db.GetAtlasDB()
 	db2 := db.GetAtlasDB().Db

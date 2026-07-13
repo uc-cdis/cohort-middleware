@@ -65,6 +65,13 @@ func (u ConceptController) RetrieveInfoBySourceIdAndConceptIds(c *gin.Context) {
 		c.Abort()
 		return
 	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 
 	// call model method:
 	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptIds(sourceId, conceptIds)
@@ -86,7 +93,13 @@ func (u ConceptController) RetrieveInfoBySourceIdAndConceptTypes(c *gin.Context)
 		c.Abort()
 		return
 	}
-
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 	// call model method:
 	conceptInfo, err := u.conceptModel.RetrieveInfoBySourceIdAndConceptTypes(sourceId, conceptTypes)
 	if err != nil {

@@ -83,6 +83,68 @@ func TestParsePrefixedConceptIdsAndDichotomousIds(t *testing.T) {
 
 }
 
+func TestParseSource(t *testing.T) {
+	setUp(t)
+
+	// Simulate endpoint with route param: /concept/by-source-id/:sourceid
+	requestContext := new(gin.Context)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+
+	sourceId, err := utils.ParseSource(requestContext)
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+
+	// Add route param "sourceid"
+	requestContext.Params = gin.Params{
+		{Key: "sourceid", Value: "123"},
+	}
+
+	sourceId, err = utils.ParseSource(requestContext)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if sourceId != 123 {
+		t.Errorf("Expected sourceId to be 123, got %d", sourceId)
+	}
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+}
+
+func TestParseSourceAndCohortIdAndConceptId(t *testing.T) {
+	setUp(t)
+
+	// Simulate endpoint with multiple route params:
+	requestContext := new(gin.Context)
+	requestContext.Writer = new(tests.CustomResponseWriter)
+	requestContext.Request = new(http.Request)
+
+	sourceId, cohortId, conceptId, err := utils.ParseSourceAndCohortIdAndConceptId(requestContext)
+	if err == nil {
+		t.Errorf("Expected error")
+	}
+
+	// Add route params for sourceid, cohortid, conceptid
+	requestContext.Params = gin.Params{
+		{Key: "sourceid", Value: "123"},
+		{Key: "cohortid", Value: "456"},
+		{Key: "conceptid", Value: "789"},
+	}
+
+	sourceId, cohortId, conceptId, err = utils.ParseSourceAndCohortIdAndConceptId(requestContext)
+	if err != nil {
+		t.Errorf("Expected no error, got %v", err)
+	}
+	if sourceId != 123 || cohortId != 456 || conceptId != 789 {
+		t.Errorf("Expected 123,456,789 but got %d,%d,%d", sourceId, cohortId, conceptId)
+	}
+	if requestContext.IsAborted() {
+		t.Errorf("Did not expect this request to abort")
+	}
+}
+
 var testData = []float64{
 	47.0,
 	6.0,

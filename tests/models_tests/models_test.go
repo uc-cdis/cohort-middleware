@@ -28,7 +28,7 @@ var dummyContinuousConceptId = tests.GetTestDummyContinuousConceptId()
 var hareConceptId = tests.GetTestHareConceptId()
 var histogramConceptId = tests.GetTestHistogramConceptId()
 var defaultTeamProject = "defaultteamproject"
-var deletedSourceId = 99
+var deletedSourceId = 2
 
 func TestMain(m *testing.M) {
 	setupSuite()
@@ -1250,8 +1250,8 @@ func TestGetSourceByName(t *testing.T) {
 
 func TestGetAllSources(t *testing.T) {
 	allSources, _ := sourceModel.GetAllSources()
-	if len(allSources) > 1 {
-		t.Errorf("Expected data not found. Expected 1 source, found: %d",
+	if len(allSources) != 2 {
+		t.Errorf("Expected data not found. Expected 2 active sources, found: %d",
 			len(allSources))
 	}
 }
@@ -1269,6 +1269,35 @@ func TestGetSourceById2(t *testing.T) {
 	foundSource, _ := sourceModel.GetSourceById(deletedSourceId)
 	if foundSource != nil {
 		t.Errorf("Expected not to find data, but found something.")
+	}
+}
+
+func TestGetAllSourcesWithTeamProject(t *testing.T) {
+	allSources, _ := sourceModel.GetAllSourcesWithTeamProject(defaultTeamProject)
+	if len(allSources) != 2 {
+		t.Errorf("Expected 2 sources, found %d", len(allSources))
+	}
+	if allSources[0].CurrentTeamProjectAccessible || allSources[1].CurrentTeamProjectAccessible {
+		t.Errorf("Expected sources to have accessibility flag == False for team '%s'", defaultTeamProject)
+	}
+	allSources, _ = sourceModel.GetAllSourcesWithTeamProject("teamprojectX")
+	if len(allSources) != 2 {
+		t.Errorf("Expected 2 sources, found %d", len(allSources))
+	}
+	if !allSources[0].CurrentTeamProjectAccessible || !allSources[1].CurrentTeamProjectAccessible {
+		t.Errorf("Expected sources to has accessibility flag == True for team '%s'", "teamprojectX")
+	}
+}
+
+func TestGetAllRoleNamesWithSourceGeneratePermission(t *testing.T) {
+	allRolesWithPermission, _ := sourceModel.GetAllRoleNamesWithSourceGeneratePermission(testSourceId)
+	if len(allRolesWithPermission) != 1 || allRolesWithPermission[0] != "teamprojectX" {
+		t.Errorf("Expected only one role, being the role with name 'teamprojectX'.")
+	}
+
+	allRolesWithPermission, _ = sourceModel.GetAllRoleNamesWithSourceGeneratePermission(tests.GetLastTestSourceId())
+	if len(allRolesWithPermission) != 2 {
+		t.Errorf("Expected 2 roles, found: %d", len(allRolesWithPermission))
 	}
 }
 

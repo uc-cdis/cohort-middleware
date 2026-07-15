@@ -91,7 +91,7 @@ func TestParseSource(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 
-	sourceId, err := utils.ParseSource(requestContext)
+	_, err := utils.ParseSource(requestContext)
 	if err == nil {
 		t.Errorf("Expected error")
 	}
@@ -101,7 +101,7 @@ func TestParseSource(t *testing.T) {
 		{Key: "sourceid", Value: "123"},
 	}
 
-	sourceId, err = utils.ParseSource(requestContext)
+	sourceId, err := utils.ParseSource(requestContext)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}
@@ -121,7 +121,7 @@ func TestParseSourceAndCohortIdAndConceptId(t *testing.T) {
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 
-	sourceId, cohortId, conceptId, err := utils.ParseSourceAndCohortIdAndConceptId(requestContext)
+	_, _, _, err := utils.ParseSourceAndCohortIdAndConceptId(requestContext)
 	if err == nil {
 		t.Errorf("Expected error")
 	}
@@ -133,7 +133,7 @@ func TestParseSourceAndCohortIdAndConceptId(t *testing.T) {
 		{Key: "conceptid", Value: "789"},
 	}
 
-	sourceId, cohortId, conceptId, err = utils.ParseSourceAndCohortIdAndConceptId(requestContext)
+	sourceId, cohortId, conceptId, err := utils.ParseSourceAndCohortIdAndConceptId(requestContext)
 	if err != nil {
 		t.Errorf("Expected no error, got %v", err)
 	}

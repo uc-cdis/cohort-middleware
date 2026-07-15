@@ -178,7 +178,12 @@ func (h dummySourceModel) GetAllSourcesWithTeamProject(teamName string) ([]*mode
 }
 
 func (h dummySourceModel) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error) {
-	return []string{"dummy role"}, nil
+	// dummy switch just to support two test scenarios:
+	if sourceId == testSourceId {
+		return []string{"dummy role"}, nil
+	}
+	return make([]string, 0), nil
+
 }
 
 func TestTeamProjectValidationForCohort(t *testing.T) {
@@ -199,6 +204,37 @@ func TestTeamProjectValidationForCohort(t *testing.T) {
 	}
 	if dummyHttpClient.nrCalls != 2 {
 		t.Errorf("Expected dummyHttpClient to have been called twice")
+	}
+}
+
+func TestTeamProjectValidationForSourceIdAndCohortIdsList(t *testing.T) {
+	setUp(t)
+	config.Init("mocktest")
+	arboristAuthzResponseCode := 200
+	dummyHttpClient := &dummyHttpClient{statusCode: arboristAuthzResponseCode}
+	teamProjectAuthz := middlewares.NewTeamProjectAuthz(*new(dummyCohortDefinitionDataModel), *new(dummySourceModel),
+		dummyHttpClient)
+	requestContext := new(gin.Context)
+	requestContext.Request = new(http.Request)
+	requestContext.Request.Header = map[string][]string{
+		"Authorization": {"dummy_token_value"},
+	}
+	// happy scenario:
+	result := teamProjectAuthz.TeamProjectValidationForSourceIdAndCohortIdsList(requestContext, testSourceId, []int{1})
+	if result == false {
+		t.Errorf("Expected TeamProjectValidationForSourceIdAndCohortIdsList result to be 'true'")
+	}
+	if dummyHttpClient.nrCalls != 2 {
+		t.Errorf("Expected dummyHttpClient to have been called twice")
+	}
+	// error scenario:
+	result = teamProjectAuthz.TeamProjectValidationForSourceIdAndCohortIdsList(requestContext, -1, []int{1})
+	if result == true {
+		t.Errorf("Expected TeamProjectValidationForSourceIdAndCohortIdsList result to be 'false'")
+	}
+	// no extra calls when compared to above:
+	if dummyHttpClient.nrCalls != 2 {
+		t.Errorf("Expected no extra calls to dummyHttpClient")
 	}
 }
 

@@ -1299,6 +1299,11 @@ func TestGetAllRoleNamesWithSourceGeneratePermission(t *testing.T) {
 	if len(allRolesWithPermission) != 2 {
 		t.Errorf("Expected 2 roles, found: %d", len(allRolesWithPermission))
 	}
+
+	allRolesWithPermission, _ = sourceModel.GetAllRoleNamesWithSourceGeneratePermission(deletedSourceId)
+	if len(allRolesWithPermission) != 0 {
+		t.Errorf("Expected 0 roles, found: %d", len(allRolesWithPermission))
+	}
 }
 
 func TestGetCohortDefinitionById(t *testing.T) {

@@ -13,7 +13,7 @@ type Source struct {
 	SourceDialect                string `json:",omitempty"`
 	Username                     string `json:"-"` // never included
 	Password                     string `json:"-"` // never included
-	CurrentTeamProjectAccessible string `json:",omitempty" gorm:"column:current_team_project_accessible"`
+	CurrentTeamProjectAccessible bool   `json:",omitempty" gorm:"column:current_team_project_accessible"`
 }
 
 type SourceI interface {

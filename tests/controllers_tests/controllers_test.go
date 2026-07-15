@@ -90,9 +90,13 @@ func (h dummySourceModel) GetAllSourcesWithTeamProject(teamName string) ([]*mode
 		{
 			SourceId:                     1,
 			SourceName:                   "source for " + teamName,
-			CurrentTeamProjectAccessible: "true",
+			CurrentTeamProjectAccessible: true,
 		},
 	}, nil
+}
+
+func (h dummySourceModel) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error) {
+	return []string{"dummy role"}, nil
 }
 
 type dummyCohortDataModel struct{}
@@ -213,15 +217,19 @@ func (h dummyCohortDefinitionDataModel) GetCohortDefinitionStatsByObservationWin
 
 type dummyTeamProjectAuthz struct{}
 
-func (h dummyTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohort(ctx *gin.Context, sourceId int, cohortDefinitionId int) bool {
 	return true
 }
 
-func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortDefinition(ctx *gin.Context, cohortDefinitionId int) bool {
 	return true
 }
 
-func (h dummyTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+func (h dummyTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, sourceId int, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return true
+}
+
+func (h dummyTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohortIdsList(ctx *gin.Context, sourceId int, uniqueCohortDefinitionIdsList []int) bool {
 	return true
 }
 
@@ -229,19 +237,27 @@ func (h dummyTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, teamProj
 	return true
 }
 
+func (h dummyTeamProjectAuthz) TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool {
+	return true
+}
+
 type dummyFailingTeamProjectAuthz struct {
 	failForGlobalOnly bool
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohort(ctx *gin.Context, cohortDefinitionId int) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohort(ctx *gin.Context, sourceId int, cohortDefinitionId int) bool {
 	return false
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortDefinition(ctx *gin.Context, cohortDefinitionId int) bool {
 	return false
 }
 
-func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForCohortIdsList(ctx *gin.Context, uniqueCohortDefinitionIdsList []int) bool {
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidation(ctx *gin.Context, sourceId int, cohortDefinitionIds []int, filterCohortPairs []utils.CustomDichotomousVariableDef) bool {
+	return false
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForSourceIdAndCohortIdsList(ctx *gin.Context, sourceId int, uniqueCohortDefinitionIdsList []int) bool {
 	return false
 }
 
@@ -257,6 +273,10 @@ func (h dummyFailingTeamProjectAuthz) HasAccessToTeamProject(ctx *gin.Context, t
 	} else {
 		return false
 	}
+}
+
+func (h dummyFailingTeamProjectAuthz) TeamProjectValidationForSourceId(ctx *gin.Context, sourceId int) bool {
+	return false
 }
 
 var conceptController = controllers.NewConceptController(*new(dummyConceptDataModel), *new(dummyCohortDefinitionDataModel), *new(dummyTeamProjectAuthz))
@@ -328,7 +348,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 
 type dummyDataDictionaryModel struct{}
 
-func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+func (h dummyDataDictionaryModel) GetDataDictionary(sourceId int) (*models.DataDictionaryModel, error) {
 	data := new(models.DataDictionaryModel)
 	data.Total = 2
 	entries := []*models.DataDictionaryEntry{
@@ -344,15 +364,15 @@ func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryMod
 	return data, nil
 }
 
-func (h dummyDataDictionaryModel) GenerateDataDictionary() {}
+func (h dummyDataDictionaryModel) GenerateDataDictionary(sourceId int) {}
 
 type dummyFailingDataDictionaryModel struct{}
 
-func (h dummyFailingDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+func (h dummyFailingDataDictionaryModel) GetDataDictionary(sourceId int) (*models.DataDictionaryModel, error) {
 	return nil, errors.New("data dictionary is not available yet")
 }
 
-func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() {}
+func (h dummyFailingDataDictionaryModel) GenerateDataDictionary(sourceId int) {}
 
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
@@ -1407,6 +1427,7 @@ func TestRetrieveAttritionTable(t *testing.T) {
 func TestRetrieveDataDictionary(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	cohortDataController.RetrieveDataDictionary(requestContext)
@@ -1422,6 +1443,7 @@ func TestRetrieveDataDictionary(t *testing.T) {
 func TestFailingRetrieveDataDictionary(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	cohortDataControllerWithFailingDataDictionary.RetrieveDataDictionary(requestContext)
@@ -1437,6 +1459,7 @@ func TestFailingRetrieveDataDictionary(t *testing.T) {
 func TestGenerateDataDictionary(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	cohortDataController.GenerateDataDictionary(requestContext)

@@ -21,6 +21,10 @@ func GetTestSourceId() int {
 	return 1 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
 }
 
+func GetLastTestSourceId() int {
+	return 99 // TODO - ideally this should also be used when populating "source" tables in test Atlas DB in the first place...
+}
+
 func GetTestDummyContinuousConceptId() int64 {
 	return 2000000324
 }

@@ -2,6 +2,11 @@
 -- Populate cdm schema
 -- ========================================================
 
+insert into omop.cdm_source
+(cdm_source_name,source_description)
+values
+    ('results_and_cdm_DATABASE','Longer description for results_and_cdm_DATABASE');
+
 insert into omop.concept
 (concept_id,concept_name,domain_id,vocabulary_id,concept_class_id,standard_concept,concept_code,valid_start_date,valid_end_date,invalid_reason)
 values

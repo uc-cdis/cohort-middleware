@@ -8,6 +8,7 @@ CREATE TABLE atlas.source
 (
     source_id integer NOT NULL,
     source_name character varying(100) NOT NULL,
+    source_key character varying(50) NOT NULL,
     source_connection character varying(100) NOT NULL,
     source_dialect character varying(100),
     username character varying(100),

@@ -3,10 +3,11 @@
 -- ========================================================
 
 insert into atlas.source
-(source_id,source_name,source_connection,source_dialect,username,password, deleted_date)
+(source_id,source_name,source_key,source_connection,source_dialect,username,password, deleted_date)
 values
-    (1,'results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434/postgres', 'postgres', 'postgres', 'mysecretpassword', null), -- pragma: allowlist secret
-    (99,'other_DB', 'jdbc:postgresql://localhost:5434/otherDB', 'postgres', 'postgres', 'mysecretpassword', '2025-06-02 14:30:00') -- pragma: allowlist secret
+    (1,'results_and_cdm_DATABASE','results_and_cdm_DATABASE', 'jdbc:postgresql://localhost:5434/postgres', 'postgres', 'postgres', 'mysecretpassword', null), -- pragma: allowlist secret
+    (2,'deleted_DB', 'deleted_DB', 'jdbc:postgresql://localhost:5434/deletedDB', 'postgres', 'postgres', 'mysecretpassword', '2025-06-02 14:30:00'), -- pragma: allowlist secret
+    (99,'other_DB', 'other_DB', 'jdbc:postgresql://localhost:5434/postgres', 'postgres', 'postgres', 'mysecretpassword', null) -- pragma: allowlist secret -- using same DB as in 1 above, to avoid spinning up another one for testing
 ;
 
 insert into atlas.source_daimon
@@ -15,7 +16,15 @@ values
     (1,1,0, 'OMOP', 1),
     (2,1,1, 'OMOP', 1),
     (3,1,2, 'RESULTS', 1),
-    (4,1,5, 'TEMP', 1)
+    (4,1,5, 'TEMP', 1),
+    (5,2,0, 'OMOP', 1),
+    (6,2,1, 'OMOP', 1),
+    (7,2,2, 'RESULTS', 1),
+    (8,2,5, 'TEMP', 1),
+    (9,99,0, 'OMOP', 1),
+    (10,99,1, 'OMOP', 1),
+    (11,99,2, 'RESULTS', 1),
+    (12,99,5, 'TEMP', 1)
 ;
 
 insert into atlas.cohort_definition
@@ -72,12 +81,18 @@ values
     (3193, 'cohortdefinition:3:get', 'Get Cohort Definition by ID'),
     (4193, 'cohortdefinition:32:get', 'Get Cohort Definition by ID'),
     (5193, 'cohortdefinition:5:get', 'Get Cohort Definition by ID'),
-    (6193, 'cohortdefinition:6:get', 'Get Cohort Definition by ID')
+    (6193, 'cohortdefinition:6:get', 'Get Cohort Definition by ID'),
+    (7193, 'cohortdefinition:*:generate:results_and_cdm_DATABASE:get', 'Cohort generation permission on results_and_cdm_DATABASE'),
+    (8193, 'cohortdefinition:*:generate:deleted_DB:get', 'Cohort generation permission on deleted_DB'),
+    (9193, 'cohortdefinition:*:generate:other_DB:get', 'Cohort generation permission on other_DB')
 ;
 
 insert into atlas.sec_role_permission
     (id, role_id, permission_id)
 values
+    (1361, 1005, 7193), -- 1005 teamprojectX has access to results_and_cdm_DATABASE
+    (1362, 1005, 9193), -- 1005 teamprojectX has access to other_DB
+    (1363, 1009, 9193), -- 1009 teamprojectY has access to other_DB
     (1454, 1005, 1181),
     (1455, 1005, 1182),
     (1456, 1005, 1183),

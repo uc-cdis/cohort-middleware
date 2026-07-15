@@ -252,6 +252,15 @@ func ParseSourceIdAndCohortIdAndConceptIds(c *gin.Context) (int, int, []int64, e
 	return sourceId, cohortId, conceptIds, nil
 }
 
+func ParseSource(c *gin.Context) (int, error) {
+	// parse and validate all parameters:
+	sourceId, err := ParseNumericArg(c, "sourceid")
+	if err != nil {
+		return -1, err
+	}
+	return sourceId, nil
+}
+
 func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 	// parse and validate all parameters:
 	sourceId, err := ParseNumericArg(c, "sourceid")
@@ -263,6 +272,20 @@ func ParseSourceAndCohortId(c *gin.Context) (int, int, error) {
 		return -1, -1, err
 	}
 	return sourceId, cohortId, nil
+}
+
+func ParseSourceAndCohortIdAndConceptId(c *gin.Context) (int, int, int64, error) {
+	// parse and validate all parameters:
+	sourceId, cohortId, err := ParseSourceAndCohortId(c)
+	if err != nil {
+		return -1, -1, -1, err
+	}
+	conceptIdStr := c.Param("conceptid")
+	conceptId, err := strconv.ParseInt(conceptIdStr, 10, 64)
+	if conceptIdStr == "" || err != nil {
+		return -1, -1, -1, err
+	}
+	return sourceId, cohortId, conceptId, nil
 }
 
 // separates a conceptIdsAndCohortPairs into a conceptIds list and a cohortPairs list

@@ -13,7 +13,7 @@ type Source struct {
 	SourceDialect                string `json:",omitempty"`
 	Username                     string `json:"-"` // never included
 	Password                     string `json:"-"` // never included
-	CurrentTeamProjectAccessible string `json:",omitempty" gorm:"column:current_team_project_accessible"`
+	CurrentTeamProjectAccessible bool   `json:",omitempty" gorm:"column:current_team_project_accessible"`
 }
 
 type SourceI interface {
@@ -21,8 +21,10 @@ type SourceI interface {
 	GetSourceByName(name string) (*Source, error)
 	GetAllSources() ([]*Source, error)
 	GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
+	GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error)
 }
 
+// Returns source name details for given id
 func (h Source) GetSourceById(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
@@ -36,7 +38,7 @@ func (h Source) GetSourceById(id int) (*Source, error) {
 	return dataSource, nil
 }
 
-func (h Source) GetSourceByIdWithConnection(id int) (*Source, error) {
+func (h Source) getSourceByIdWithConnection(id int) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
 	query := db2.Model(&Source{}).
@@ -92,7 +94,7 @@ const (
 // Get the data source details for given source id and source type.
 // The source type can be one of the type SourceType.
 func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndSchema {
-	dataSource, _ := h.GetSourceByIdWithConnection(sourceId)
+	dataSource, _ := h.getSourceByIdWithConnection(sourceId)
 
 	dbSchema, _ := h.GetSourceSchemaNameBySourceIdAndSourceType(sourceId, sourceType)
 	dbSchemaName := dbSchema.SchemaName
@@ -104,6 +106,7 @@ func (h Source) GetDataSource(sourceId int, sourceType SourceType) *utils.DbAndS
 	return dbAndSchema
 }
 
+// Returns source id for given source name
 func (h Source) GetSourceByName(name string) (*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource *Source
@@ -117,6 +120,7 @@ func (h Source) GetSourceByName(name string) (*Source, error) {
 	return dataSource, nil
 }
 
+// Returns list of all active sources
 func (h Source) GetAllSources() ([]*Source, error) {
 	db2 := db.GetAtlasDB().Db
 	var dataSource []*Source
@@ -129,6 +133,8 @@ func (h Source) GetAllSources() ([]*Source, error) {
 	return dataSource, nil
 }
 
+// Returns a list of all sources, enriched with a boolean field (`current_team_project_accessible`)
+// telling whether the source is accessible to the given team or not.
 func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error) {
 	atlasDb := db.GetAtlasDB()
 	db2 := atlasDb.Db
@@ -140,18 +146,17 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 			bool_or(sr.name = ?) AS current_team_project_accessible
 		`, teamName).
 		Joins(`
-			JOIN `+atlasDb.Schema+`.sec_permission sp
+			JOIN ` + atlasDb.Schema + `.sec_permission sp
 			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:\*:generate:(.*?):get')
 		`).
 		Joins(`
-			JOIN `+atlasDb.Schema+`.sec_role_permission srp
+			JOIN ` + atlasDb.Schema + `.sec_role_permission srp
 			  ON sp.id = srp.permission_id
 		`).
 		Joins(`
-			JOIN `+atlasDb.Schema+`.sec_role sr
+			JOIN ` + atlasDb.Schema + `.sec_role sr
 			  ON srp.role_id = sr.id
 		`).
-		Where("sr.name LIKE ?", "/gwas_projects/%").
 		Where("s.deleted_date is null").
 		Group("s.source_id, s.source_name")
 
@@ -185,4 +190,48 @@ func (h Source) GetAllSourcesWithTeamProject(teamName string) ([]*Source, error)
 	}
 
 	return dataSource, nil
+}
+
+// Returns list of roles names for the roles that contain a permission to generate
+// cohorts for a specific source.
+func (h Source) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]string, error) {
+	atlasDb := db.GetAtlasDB()
+	db2 := atlasDb.Db
+
+	type roleRow struct {
+		Name string `gorm:"column:name"`
+	}
+
+	var rows []roleRow
+
+	query := db2.Table(atlasDb.Schema+".source AS s").
+		Select("sr.name AS name").
+		Joins(`
+			JOIN `+atlasDb.Schema+`.sec_permission sp
+			  ON s.source_key = SUBSTRING(sp.value FROM 'cohortdefinition:\*:generate:(.*?):get')
+		`).
+		Joins(`
+			JOIN `+atlasDb.Schema+`.sec_role_permission srp
+			  ON sp.id = srp.permission_id
+		`).
+		Joins(`
+			JOIN `+atlasDb.Schema+`.sec_role sr
+			  ON srp.role_id = sr.id
+		`).
+		Where("s.source_id = ?", sourceId).
+		Group("sr.name")
+
+	query, cancel := utils.AddTimeoutToQuery(query)
+	defer cancel()
+	metaResult := query.Scan(&rows)
+	if metaResult.Error != nil {
+		return nil, metaResult.Error
+	}
+
+	roleNames := make([]string, len(rows))
+	for i, r := range rows {
+		roleNames[i] = r.Name
+	}
+
+	return roleNames, nil
 }

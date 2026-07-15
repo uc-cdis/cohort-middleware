@@ -51,7 +51,7 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 	cohortId, _ := strconv.Atoi(cohortIdStr)
 	histogramConceptId, _ := strconv.ParseInt(histogramIdStr, 10, 64)
 
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -77,24 +77,24 @@ func (u CohortDataController) RetrieveHistogramForCohortIdAndConceptId(c *gin.Co
 }
 
 func (u CohortDataController) RetrieveStatsForCohortIdAndConceptId(c *gin.Context) {
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
-	conceptIdStr := c.Param("conceptid")
-	if sourceIdStr == "" || cohortIdStr == "" || conceptIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+
+	// parse and validate all parameters:
+	sourceId, cohortId, conceptId, err := utils.ParseSourceAndCohortIdAndConceptId(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
 
-	filterConceptIdsAndValues, cohortPairs, _ := utils.ParseConceptDefsAndDichotomousDefs(c)
+	filterConceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids", "error": err.Error()})
+		c.Abort()
+		return
+	}
 
-	sourceId, _ := strconv.Atoi(sourceIdStr)
-	cohortId, _ := strconv.Atoi(cohortIdStr)
-	conceptId, _ := strconv.ParseInt(conceptIdStr, 10, 64)
-
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -123,35 +123,28 @@ func (u CohortDataController) RetrieveDataBySourceIdAndCohortIdAndVariables(c *g
 	// TODO - add some validation to ensure that only calls from Argo are allowed through since it outputs FULL data?
 
 	// parse and validate all parameters:
-	sourceIdStr := c.Param("sourceid")
-	log.Printf("Querying source: %s", sourceIdStr)
-	cohortIdStr := c.Param("cohortid")
-	log.Printf("Querying cohort for cohort definition id: %s", cohortIdStr)
-	if sourceIdStr == "" || cohortIdStr == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+	sourceId, cohortId, err := utils.ParseSourceAndCohortId(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
 		c.Abort()
 		return
 	}
-
 	conceptIdsAndValues, cohortPairs, err := utils.ParseConceptDefsAndDichotomousDefs(c)
-	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
-
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"message": "Error parsing request body for prefixed concept ids and dichotomous Ids", "error": err.Error()})
 		c.Abort()
 		return
 	}
 
-	sourceId, _ := strconv.Atoi(sourceIdStr)
-	cohortId, _ := strconv.Atoi(cohortIdStr)
-
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{cohortId}, cohortPairs)
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{cohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
 		c.Abort()
 		return
 	}
+	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
 	// call model method:
 	cohortData, err := u.cohortDataModel.RetrieveDataBySourceIdAndCohortIdAndConceptIdsOrderedByPersonId(sourceId, cohortId, conceptIds)
@@ -303,7 +296,12 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 	conceptIdsAndValues, cohortPairs, errors[3] = utils.ParseConceptDefsAndDichotomousDefs(c)
 	conceptIds := utils.ExtractConceptIdsFromCustomConceptVariablesDef(conceptIdsAndValues)
 
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, []int{caseCohortId, controlCohortId}, cohortPairs)
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidation(c, sourceId, []int{caseCohortId, controlCohortId}, cohortPairs)
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -311,11 +309,6 @@ func (u CohortDataController) RetrieveCohortOverlapStats(c *gin.Context) {
 		return
 	}
 
-	if utils.ContainsNonNil(errors) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-		c.Abort()
-		return
-	}
 	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId,
 		controlCohortId, conceptIds, cohortPairs)
 	if err != nil {
@@ -335,7 +328,12 @@ func (u CohortDataController) RetrieveCohortOverlapStatsSimple(c *gin.Context) {
 	caseCohortId, errors[1] = utils.ParseNumericArg(c, "casecohortid")
 	controlCohortId, errors[2] = utils.ParseNumericArg(c, "controlcohortid")
 
-	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForCohortIdsList(c, []int{caseCohortId, controlCohortId})
+	if utils.ContainsNonNil(errors) {
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceIdAndCohortIdsList(c, sourceId, []int{caseCohortId, controlCohortId})
 	if !validAccessRequest {
 		log.Printf("Error: invalid request")
 		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
@@ -343,11 +341,6 @@ func (u CohortDataController) RetrieveCohortOverlapStatsSimple(c *gin.Context) {
 		return
 	}
 
-	if utils.ContainsNonNil(errors) {
-		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request"})
-		c.Abort()
-		return
-	}
 	// call RetrieveCohortOverlapStats with last two filters as empty lists:
 	overlapStats, err := u.cohortDataModel.RetrieveCohortOverlapStats(sourceId, caseCohortId,
 		controlCohortId, []int64{}, []utils.CustomDichotomousVariableDef{})
@@ -439,8 +432,22 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 }
 
 func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
+	sourceId, err := utils.ParseSource(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 
-	var dataDictionary, error = u.dataDictionaryModel.GetDataDictionary()
+	var dataDictionary, error = u.dataDictionaryModel.GetDataDictionary(sourceId)
 
 	if dataDictionary == nil {
 		c.JSON(http.StatusServiceUnavailable, error)
@@ -451,7 +458,22 @@ func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
 }
 
 func (u CohortDataController) GenerateDataDictionary(c *gin.Context) {
+	sourceId, err := utils.ParseSource(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	log.Printf("Generating Data Dictionary...")
-	go u.dataDictionaryModel.GenerateDataDictionary()
+	go u.dataDictionaryModel.GenerateDataDictionary(sourceId)
 	c.JSON(http.StatusOK, "Data Dictionary Kicked Off")
 }

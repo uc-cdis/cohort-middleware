@@ -12,8 +12,8 @@ import (
 )
 
 type DataDictionaryI interface {
-	GenerateDataDictionary()
-	GetDataDictionary() (*DataDictionaryModel, error)
+	GenerateDataDictionary(sourceId int)
+	GetDataDictionary(sourceId int) (*DataDictionaryModel, error)
 }
 
 type DataDictionary struct {
@@ -60,22 +60,15 @@ type DataDictionaryResult struct {
 
 var ResultCache *DataDictionaryModel = nil
 
-func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
+func (u DataDictionary) GetDataDictionary(sourceId int) (*DataDictionaryModel, error) {
 	//Read from cache
 	if ResultCache != nil {
 		return ResultCache, nil
 	} else {
 		//Read from DB
-		var source = new(Source)
-		sources, _ := source.GetAllSources()
-		if len(sources) < 1 {
-			panic("Error: No data source found")
-		} else if len(sources) > 1 {
-			panic("More than one data source! Exiting")
-		}
 		var dataSourceModel = new(Source)
-		omopDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Omop)
-		miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
+		omopDataSource := dataSourceModel.GetDataSource(sourceId, Omop)
+		miscDataSource := dataSourceModel.GetDataSource(sourceId, Misc)
 
 		if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
 			var newDataDictionary DataDictionaryModel
@@ -119,7 +112,7 @@ func (u DataDictionary) GetDataDictionary() (*DataDictionaryModel, error) {
 }
 
 // Generate Data Dictionary Json
-func (u DataDictionary) GenerateDataDictionary() {
+func (u DataDictionary) GenerateDataDictionary(sourceId int) {
 	conf := config.GetConfig()
 	var maxWorkerSize = conf.GetInt("worker_pool_size")
 	log.Printf("maxWorkerSize is %v", maxWorkerSize)
@@ -128,15 +121,8 @@ func (u DataDictionary) GenerateDataDictionary() {
 
 	entryCh := make(chan *DataDictionaryResult, maxWorkerSize)
 
-	var source = new(Source)
-	sources, _ := source.GetAllSources()
-	if len(sources) < 1 {
-		panic("Error: No data source found")
-	} else if len(sources) > 1 {
-		panic("More than one data source! Exiting")
-	}
 	var dataSourceModel = new(Source)
-	miscDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Misc)
+	miscDataSource := dataSourceModel.GetDataSource(sourceId, Misc)
 
 	if u.CheckIfDataDictionaryIsFilled(miscDataSource) {
 		log.Print("Data Dictionary Result already filled. Skipping generation.")
@@ -174,7 +160,7 @@ func (u DataDictionary) GenerateDataDictionary() {
 
 			for _, d := range partialDataList {
 				wg.Add(1)
-				go GenerateData(d, sources[0].SourceId, &wg, entryCh)
+				go GenerateData(d, sourceId, &wg, entryCh)
 				resultEntry := <-entryCh
 				partialResultList = append(partialResultList, resultEntry)
 			}

@@ -15,7 +15,7 @@ type Version struct {
 
 type DbSchemaVersion struct {
 	AtlasSchemaVersion string
-	DataSchemaVersion  int
+	DataSchemaVersions []int
 }
 
 type SchemaVersion struct {
@@ -42,7 +42,10 @@ func (h Version) GetVersion() *Version {
 }
 
 func (h Version) GetSchemaVersion() *DbSchemaVersion {
-	dbSchemaVersion := &DbSchemaVersion{"error", -1}
+	dbSchemaVersion := &DbSchemaVersion{
+		AtlasSchemaVersion: "error",
+		DataSchemaVersions: []int{},
+	}
 
 	atlasDb := db.GetAtlasDB().Db
 	var atlasSchemaVersion *SchemaVersion
@@ -54,7 +57,7 @@ func (h Version) GetSchemaVersion() *DbSchemaVersion {
 	query, cancel := utils.AddTimeoutToQuery(query)
 	defer cancel()
 	meta_result := query.Scan(&atlasSchemaVersion)
-	if meta_result.Error == nil {
+	if meta_result.Error == nil && atlasSchemaVersion != nil {
 		dbSchemaVersion.AtlasSchemaVersion = atlasSchemaVersion.Version
 	}
 
@@ -62,23 +65,26 @@ func (h Version) GetSchemaVersion() *DbSchemaVersion {
 	sources, _ := source.GetAllSources()
 	if len(sources) < 1 {
 		panic("Error: No data source found")
-	} else if len(sources) > 1 {
-		panic("More than one data source! Exiting")
 	}
-	var dataSourceModel = new(Source)
-	dboDataSource := dataSourceModel.GetDataSource(sources[0].SourceId, Dbo)
+	for _, source := range sources {
+		var dataSourceModel = new(Source)
+		dboDataSource := dataSourceModel.GetDataSource(source.SourceId, Dbo)
 
-	var versionInfo *VersionInfo
-	query = dboDataSource.Db.Table(dboDataSource.Schema + ".versioninfo").
-		Limit(1).
-		Select("Version").
-		Order("Version Desc")
+		var versionInfo *VersionInfo
+		query = dboDataSource.Db.Table(dboDataSource.Schema + ".versioninfo").
+			Limit(1).
+			Select("Version").
+			Order("Version Desc")
 
-	query, cancel = utils.AddTimeoutToQuery(query)
-	defer cancel()
-	meta_result = query.Scan(&versionInfo)
-	if meta_result.Error == nil {
-		dbSchemaVersion.DataSchemaVersion = versionInfo.Version
+		query, cancel = utils.AddTimeoutToQuery(query)
+		defer cancel()
+		meta_result = query.Scan(&versionInfo)
+		if meta_result.Error == nil && versionInfo != nil {
+			dbSchemaVersion.DataSchemaVersions = append(dbSchemaVersion.DataSchemaVersions, versionInfo.Version)
+		} else {
+			// else store "-1" to flag error:
+			dbSchemaVersion.DataSchemaVersions = append(dbSchemaVersion.DataSchemaVersions, -1)
+		}
 	}
 
 	return dbSchemaVersion

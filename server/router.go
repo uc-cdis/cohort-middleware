@@ -69,10 +69,10 @@ func NewRouter() *gin.Engine {
 		authorized.POST("/histogram/by-source-id/:sourceid/by-cohort-definition-id/:cohortid/by-histogram-concept-id/:histogramid", cohortData.RetrieveHistogramForCohortIdAndConceptId)
 
 		// Data Dictionary endpoint
-		authorized.GET("/data-dictionary/Retrieve", cohortData.RetrieveDataDictionary)
+		authorized.GET("/data-dictionary/Retrieve/by-source-id/:sourceid", cohortData.RetrieveDataDictionary)
 
 		// Data Dictionary endpoint
-		authorized.GET("/data-dictionary/Generate", cohortData.GenerateDataDictionary)
+		authorized.GET("/data-dictionary/Generate/by-source-id/:sourceid", cohortData.GenerateDataDictionary)
 
 		// Get Schema Version
 		authorized.GET("/_schema_version", version.RetrieveSchemaVersion)

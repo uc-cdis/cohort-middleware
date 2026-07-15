@@ -1346,7 +1346,7 @@ func TestPersonConceptAndCountString(t *testing.T) {
 func TestGetDataDictionaryFail(t *testing.T) {
 	setUp(t)
 
-	data, _ := dataDictionaryModel.GetDataDictionary()
+	data, _ := dataDictionaryModel.GetDataDictionary(testSourceId)
 	//Pre generation cache should be empty
 	if data != nil {
 		t.Errorf("Get Data Dictionary should have failed.")
@@ -1364,7 +1364,7 @@ func TestCheckIfDataDictionaryIsFilled(t *testing.T) {
 	if filled != false {
 		t.Errorf("Flag should be false")
 	}
-	dataDictionaryModel.GenerateDataDictionary()
+	dataDictionaryModel.GenerateDataDictionary(testSourceId)
 	filled = dataDictionaryModel.CheckIfDataDictionaryIsFilled(miscDataSource)
 	if filled != true {
 		t.Errorf("Flag should be true")
@@ -1373,9 +1373,9 @@ func TestCheckIfDataDictionaryIsFilled(t *testing.T) {
 
 func TestGenerateDataDictionary(t *testing.T) {
 	setUp(t)
-	dataDictionaryModel.GenerateDataDictionary()
+	dataDictionaryModel.GenerateDataDictionary(testSourceId)
 	//Update this with read
-	data, _ := dataDictionaryModel.GetDataDictionary()
+	data, _ := dataDictionaryModel.GetDataDictionary(testSourceId)
 	if data == nil || data.Total != 18 || data.Data == nil {
 		t.Errorf("Get Data Dictionary should have succeeded.")
 	}

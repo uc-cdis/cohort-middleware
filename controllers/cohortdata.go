@@ -439,8 +439,22 @@ func (u CohortDataController) RetrievePeopleIdAndCohort(sourceId int, cohortId i
 }
 
 func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
+	sourceId, err := utils.ParseSource(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
 
-	var dataDictionary, error = u.dataDictionaryModel.GetDataDictionary()
+	var dataDictionary, error = u.dataDictionaryModel.GetDataDictionary(sourceId)
 
 	if dataDictionary == nil {
 		c.JSON(http.StatusServiceUnavailable, error)
@@ -451,7 +465,22 @@ func (u CohortDataController) RetrieveDataDictionary(c *gin.Context) {
 }
 
 func (u CohortDataController) GenerateDataDictionary(c *gin.Context) {
+	sourceId, err := utils.ParseSource(c)
+	if err != nil {
+		log.Printf("Error: %s", err.Error())
+		c.JSON(http.StatusBadRequest, gin.H{"message": "bad request", "error": err.Error()})
+		c.Abort()
+		return
+	}
+	validAccessRequest := u.teamProjectAuthz.TeamProjectValidationForSourceId(c, sourceId)
+	if !validAccessRequest {
+		log.Printf("Error: invalid request")
+		c.JSON(http.StatusForbidden, gin.H{"message": "access denied"})
+		c.Abort()
+		return
+	}
+
 	log.Printf("Generating Data Dictionary...")
-	go u.dataDictionaryModel.GenerateDataDictionary()
+	go u.dataDictionaryModel.GenerateDataDictionary(sourceId)
 	c.JSON(http.StatusOK, "Data Dictionary Kicked Off")
 }

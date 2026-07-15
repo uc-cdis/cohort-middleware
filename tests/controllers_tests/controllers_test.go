@@ -348,7 +348,7 @@ func (h dummyConceptDataModel) RetrieveBreakdownStatsBySourceIdAndCohortIdAndCon
 
 type dummyDataDictionaryModel struct{}
 
-func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+func (h dummyDataDictionaryModel) GetDataDictionary(sourceId int) (*models.DataDictionaryModel, error) {
 	data := new(models.DataDictionaryModel)
 	data.Total = 2
 	entries := []*models.DataDictionaryEntry{
@@ -364,15 +364,15 @@ func (h dummyDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryMod
 	return data, nil
 }
 
-func (h dummyDataDictionaryModel) GenerateDataDictionary() {}
+func (h dummyDataDictionaryModel) GenerateDataDictionary(sourceId int) {}
 
 type dummyFailingDataDictionaryModel struct{}
 
-func (h dummyFailingDataDictionaryModel) GetDataDictionary() (*models.DataDictionaryModel, error) {
+func (h dummyFailingDataDictionaryModel) GetDataDictionary(sourceId int) (*models.DataDictionaryModel, error) {
 	return nil, errors.New("data dictionary is not available yet")
 }
 
-func (h dummyFailingDataDictionaryModel) GenerateDataDictionary() {}
+func (h dummyFailingDataDictionaryModel) GenerateDataDictionary(sourceId int) {}
 
 func TestRetrieveHistogramForCohortIdAndConceptIdWithWrongParams(t *testing.T) {
 	setUp(t)
@@ -1427,6 +1427,7 @@ func TestRetrieveAttritionTable(t *testing.T) {
 func TestRetrieveDataDictionary(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	cohortDataController.RetrieveDataDictionary(requestContext)
@@ -1442,6 +1443,7 @@ func TestRetrieveDataDictionary(t *testing.T) {
 func TestFailingRetrieveDataDictionary(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	cohortDataControllerWithFailingDataDictionary.RetrieveDataDictionary(requestContext)
@@ -1457,6 +1459,7 @@ func TestFailingRetrieveDataDictionary(t *testing.T) {
 func TestGenerateDataDictionary(t *testing.T) {
 	setUp(t)
 	requestContext := new(gin.Context)
+	requestContext.Params = append(requestContext.Params, gin.Param{Key: "sourceid", Value: strconv.Itoa(tests.GetTestSourceId())})
 	requestContext.Writer = new(tests.CustomResponseWriter)
 	requestContext.Request = new(http.Request)
 	cohortDataController.GenerateDataDictionary(requestContext)

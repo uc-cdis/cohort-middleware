@@ -1235,8 +1235,8 @@ func TestGetVersion(t *testing.T) {
 
 func TestGetSchemaVersion(t *testing.T) {
 	v := versionModel.GetSchemaVersion()
-	if v.AtlasSchemaVersion != "1.0.1" || v.DataSchemaVersion != 1 {
-		t.Errorf("Wrong value")
+	if v.AtlasSchemaVersion != "1.0.1" || len(v.DataSchemaVersions) != 2 || v.DataSchemaVersions[0] != 1 {
+		t.Errorf("Wrong version info")
 	}
 }
 

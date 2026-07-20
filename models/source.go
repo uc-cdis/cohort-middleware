@@ -219,6 +219,7 @@ func (h Source) GetAllRoleNamesWithSourceGeneratePermission(sourceId int) ([]str
 			  ON srp.role_id = sr.id
 		`).
 		Where("s.source_id = ?", sourceId).
+		Where("s.deleted_date is null").
 		Group("sr.name")
 
 	query, cancel := utils.AddTimeoutToQuery(query)
